@@ -5,6 +5,7 @@
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.x-blue)
 ![Next.js](https://img.shields.io/badge/Next.js-16-black)
 ![React](https://img.shields.io/badge/React-19-blue)
+![Tailwind CSS](https://img.shields.io/badge/Tailwind-4.x-38bdf8)
 ![Status](https://img.shields.io/badge/Status-Active-brightgreen)
 
 ## Overview
@@ -25,12 +26,12 @@ An internal analytics dashboard for Triathlon Väst members. It aggregates CSV r
 
 ### Prerequisites
 
-- Node.js 20+
+- Node.js 18+
 
 ### Installation
 
 ```bash
-git clone <repo-url>
+git clone https://github.com/Thiebauts/triathlon-vast-dashboard-vercel.git
 cd triathlon-vast-dashboard-vercel
 npm install
 ```
@@ -49,6 +50,7 @@ triathlon-vast-dashboard-vercel/
 ├── README.md
 ├── package.json
 ├── next.config.ts
+├── test-dashboard.mjs           # Smoke test script (Playwright)
 ├── data/                        # CSV result files (inputs, not edited manually)
 │   ├── competitions.csv
 │   ├── processed_triathlon_results_*.csv
