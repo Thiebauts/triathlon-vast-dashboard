@@ -53,7 +53,8 @@ triathlon-vast-dashboard-vercel/
 ├── test-dashboard.mjs           # Smoke test script (Playwright)
 ├── data/                        # CSV result files (inputs, not edited manually)
 │   ├── competitions.csv
-│   ├── processed_triathlon_results_*.csv
+│   ├── member_signups.csv
+│   ├── processed_<sport>_results_<date>.csv
 │   └── ...
 ├── public/                      # Static assets
 └── src/
