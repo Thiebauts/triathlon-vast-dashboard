@@ -1,5 +1,5 @@
 'use client'
-import { useState, useMemo, useCallback, Fragment } from 'react'
+import { useState, useMemo, useCallback, useDeferredValue, Fragment } from 'react'
 import { t } from '@/lib/translations'
 import type { CompetitionsData, SportType, Lang } from '@/lib/types'
 import { isClubMember, computeSplitRanks, athleteKey, type SplitRanks } from '@/lib/data'
@@ -37,6 +37,7 @@ export function ResultsTab({ data, lang, onAthleteClick }: Props) {
   const [year, setYear] = useState<string>('all')
   const [category, setCategory] = useState<'all' | 'men' | 'women'>('all')
   const [search, setSearch] = useState('')
+  const deferredSearch = useDeferredValue(search)
 
   const isMultiSport = sport === 'triathlon' || sport === 'duathlon'
 
@@ -65,14 +66,14 @@ export function ResultsTab({ data, lang, onAthleteClick }: Props) {
     if (year !== 'all') list = list.filter((a) => a.Competition_Year === year)
     if (category === 'men') list = list.filter((a) => ['herr', 'man', 'men'].includes(a.Class.toLowerCase()))
     if (category === 'women') list = list.filter((a) => ['dam', 'woman', 'women'].includes(a.Class.toLowerCase()))
-    if (search.trim()) {
-      const q = search.toLowerCase()
+    if (deferredSearch.trim()) {
+      const q = deferredSearch.toLowerCase()
       list = list.filter((a) => a.Name.toLowerCase().includes(q))
     }
     return year === 'all'
       ? [...list].sort((a, b) => (a.Total_Time_Seconds || Infinity) - (b.Total_Time_Seconds || Infinity))
       : [...list].sort((a, b) => (a.Overall_Rank || 999) - (b.Overall_Rank || 999))
-  }, [data, sport, year, category, search])
+  }, [data, sport, year, category, deferredSearch])
 
   const triathlonSegs = [
     { timeKey: 'Swim_Time',  rankKey: 'swim',  label: t('swim', lang) },

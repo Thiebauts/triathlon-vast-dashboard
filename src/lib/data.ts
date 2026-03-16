@@ -134,9 +134,15 @@ export function getAthleteEvents(
   const events: ReturnType<typeof getAthleteEvents> = {}
 
   for (const [sport, athletes] of Object.entries(data) as [SportType, AthleteResult[]][]) {
+    const byYear: Record<string, AthleteResult[]> = {}
+    for (const a of athletes) {
+      byYear[a.Competition_Year] = byYear[a.Competition_Year] ?? []
+      byYear[a.Competition_Year].push(a)
+    }
+
     for (const a of athletes) {
       if (a.Name !== athleteName) continue
-      const sameYear = athletes.filter((x) => x.Competition_Year === a.Competition_Year)
+      const sameYear = byYear[a.Competition_Year]
       const classTotal = sameYear.filter((x) => x.Class === a.Class).length
       const cmRank = calculateClubMemberRank(a, sameYear)
       const isMember = isClubMember(a.Club)
@@ -185,13 +191,26 @@ export function getClubRankings(
 
     for (const [year, yearGroup] of Object.entries(byYear)) {
       if (yearFilter !== 'all' && year !== yearFilter) continue
+
+      // Pre-compute club member ranks per class (avoids repeated filter+sort per athlete)
+      const clubRanksByClass = new Map<string, Map<string, number>>()
+      for (const a of yearGroup) {
+        if (!isClubMember(a.Club) || clubRanksByClass.has(a.Class)) continue
+        const classMembers = yearGroup
+          .filter((x) => isClubMember(x.Club) && x.Class === a.Class)
+          .sort((x, y) => (x.Total_Time_Seconds ?? Infinity) - (y.Total_Time_Seconds ?? Infinity))
+        const rankMap = new Map<string, number>()
+        classMembers.forEach((x, i) => rankMap.set(x.Name, i + 1))
+        clubRanksByClass.set(a.Class, rankMap)
+      }
+
       for (const a of yearGroup) {
         if (!isClubMember(a.Club)) continue
         const cls = a.Class.toLowerCase()
         if (genderFilter === 'men' && !['herr', 'man', 'men'].includes(cls)) continue
         if (genderFilter === 'women' && !['dam', 'woman', 'women'].includes(cls)) continue
 
-        const cmRank = calculateClubMemberRank(a, yearGroup)
+        const cmRank = clubRanksByClass.get(a.Class)?.get(a.Name) ?? 999
         const pts = calculatePoints(cmRank)
 
         if (!map[a.Name]) {

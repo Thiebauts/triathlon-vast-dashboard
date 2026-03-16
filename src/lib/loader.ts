@@ -20,8 +20,13 @@ function readCsv(filePath: string): Record<string, string>[] {
   return result.data
 }
 
+let cached: CompetitionsData | null = null
+
 export function loadAllCompetitions(): CompetitionsData {
+  if (cached) return cached
+
   const base = path.join(process.cwd(), 'data')
+  const allFiles = fs.readdirSync(base).sort()
   const sports: SportType[] = ['triathlon', 'duathlon', 'swimming', 'cycling', 'running', 'swimrun']
   const data: CompetitionsData = {
     triathlon: [], duathlon: [], swimming: [], cycling: [], running: [], swimrun: [],
@@ -29,7 +34,7 @@ export function loadAllCompetitions(): CompetitionsData {
 
   for (const sport of sports) {
     const pattern = new RegExp(`processed_${sport}_results_(\\d{4}-\\d{2}-\\d{2})\\.csv`)
-    const files = fs.readdirSync(base).filter((f) => pattern.test(f)).sort()
+    const files = allFiles.filter((f) => pattern.test(f))
     for (const file of files) {
       const year = file.match(pattern)![1].split('-')[0]
       const rows = readCsv(path.join(base, file))
@@ -46,5 +51,7 @@ export function loadAllCompetitions(): CompetitionsData {
       }
     }
   }
+
+  cached = data
   return data
 }
