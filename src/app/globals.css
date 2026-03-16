@@ -1,8 +1,7 @@
 @import "tailwindcss";
 
-/* Base: 14px instead of Tailwind's default 16px — scales everything down proportionally */
 html {
-  font-size: 14px;
+  font-size: 16px;
 }
 
 body {
