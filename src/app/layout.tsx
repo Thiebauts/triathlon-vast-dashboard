@@ -4,6 +4,9 @@ import { LanguageProvider } from '@/components/LanguageProvider'
 import { Header } from '@/components/Header'
 
 export const metadata: Metadata = {
+  metadataBase: process.env.VERCEL_PROJECT_PRODUCTION_URL
+    ? new URL(`https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`)
+    : new URL('http://localhost:3000'),
   title: 'Triathlon Väst – Competition Dashboard',
   description: 'Results, rankings, and athlete profiles for Triathlon Väst members (2021–present).',
   openGraph: {

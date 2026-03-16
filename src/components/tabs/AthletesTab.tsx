@@ -1,9 +1,14 @@
 'use client'
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo, useDeferredValue } from 'react'
+import dynamic from 'next/dynamic'
 import { t } from '@/lib/translations'
 import { getAthleteEvents, getClubRankings } from '@/lib/data'
-import { AthleteRankChart } from '@/components/charts/AthleteCharts'
 import type { CompetitionsData, Lang } from '@/lib/types'
+
+const AthleteRankChart = dynamic(
+  () => import('@/components/charts/AthleteCharts').then((m) => m.AthleteRankChart),
+  { ssr: false, loading: () => <div className="h-[380px] bg-gray-50 animate-pulse rounded" /> },
+)
 
 interface Props {
   data: CompetitionsData
@@ -27,31 +32,43 @@ function formatDelta(seconds: number): string {
 
 export function AthletesTab({ data, athleteNames, lang, initialAthlete }: Props) {
   const [search, setSearch] = useState('')
+  const deferredSearch = useDeferredValue(search)
   const [selected, setSelected] = useState<string | null>(initialAthlete ?? null)
+  const deferredSelected = useDeferredValue(selected)
+  const isStale = selected !== deferredSelected
+  const [prevInitial, setPrevInitial] = useState<string | null | undefined>(initialAthlete)
 
-  // Sync when navigating from another tab
-  useEffect(() => {
+  // Sync when navigating from another tab (adjust state during render, no useEffect)
+  if (initialAthlete !== prevInitial) {
+    setPrevInitial(initialAthlete)
     if (initialAthlete) setSelected(initialAthlete)
-  }, [initialAthlete])
+  }
 
   const filtered = useMemo(
-    () => athleteNames.filter((n) => n.toLowerCase().includes(search.toLowerCase())),
-    [athleteNames, search],
+    () => athleteNames.filter((n) => n.toLowerCase().includes(deferredSearch.toLowerCase())),
+    [athleteNames, deferredSearch],
   )
 
   const events = useMemo(
-    () => (selected ? getAthleteEvents(data, selected) : {}),
-    [data, selected],
+    () => (deferredSelected ? getAthleteEvents(data, deferredSelected) : {}),
+    [data, deferredSelected],
+  )
+
+  const allRankings = useMemo(
+    () => getClubRankings(data, 'all', 'all'),
+    [data],
   )
 
   const clubPos = useMemo(() => {
     if (!selected) return null
-    const all = getClubRankings(data, 'all', 'all')
-    const idx = all.findIndex((a) => a.name === selected)
-    return idx >= 0 ? { rank: idx + 1, total: all.length, pts: all[idx].total_points } : null
-  }, [data, selected])
+    const idx = allRankings.findIndex((a) => a.name === selected)
+    return idx >= 0 ? { rank: idx + 1, total: allRankings.length, pts: allRankings[idx].total_points } : null
+  }, [allRankings, selected])
 
-  const eventList = Object.entries(events).sort(([, a], [, b]) => b.year.localeCompare(a.year))
+  const eventList = useMemo(
+    () => Object.entries(events).sort(([, a], [, b]) => b.year.localeCompare(a.year)),
+    [events],
+  )
   const isMember = eventList[0]?.[1]?.is_club_member ?? false
 
   // Personal bests per sport
@@ -94,9 +111,10 @@ export function AthletesTab({ data, athleteNames, lang, initialAthlete }: Props)
         <p className="text-xs text-gray-500 leading-relaxed">{t('athlete_profiles_text', lang)}</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+      {/* Top row: search (left) + summary & event table (right) */}
+      <div className="flex flex-col sm:flex-row gap-3">
         {/* Athlete list */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-3">
+        <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-3 sm:w-64 shrink-0 sm:sticky sm:top-4 sm:self-start">
           <label className="block text-[10px] font-medium text-gray-400 uppercase tracking-wide mb-1.5">
             {t('select_athlete', lang)}
           </label>
@@ -125,8 +143,8 @@ export function AthletesTab({ data, athleteNames, lang, initialAthlete }: Props)
           </ul>
         </div>
 
-        {/* Profile */}
-        <div className="md:col-span-2 space-y-3">
+        {/* Summary + event table */}
+        <div className={`flex-1 min-w-0 space-y-3 transition-opacity duration-150 ${isStale ? 'opacity-50' : ''}`}>
           {!selected ? (
             <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-8 text-center text-xs text-gray-400">
               {t('select_athlete_prompt', lang)}
@@ -149,22 +167,6 @@ export function AthletesTab({ data, athleteNames, lang, initialAthlete }: Props)
                   </div>
                 )}
               </div>
-
-              {/* Chart */}
-              {eventList.length > 0 && (
-                <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-3">
-                  <h4 className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-2">{t('class_rank', lang)} &amp; {t('total_time', lang)}</h4>
-                  <AthleteRankChart
-                    events={Object.fromEntries(eventList.map(([k, v]) => [k, {
-                      type: v.type, year: v.year, rank: v.rank,
-                      time_seconds: v.time_seconds, time: v.time,
-                      gender_class: v.gender_class, class_total: v.class_total,
-                    }]))}
-                    allData={data}
-                    lang={lang}
-                  />
-                </div>
-              )}
 
               {/* Event table */}
               <div className="bg-white rounded-lg shadow-sm border border-gray-100 overflow-x-auto">
@@ -215,6 +217,22 @@ export function AthletesTab({ data, athleteNames, lang, initialAthlete }: Props)
           )}
         </div>
       </div>
+
+      {/* Charts — full width below */}
+      {selected && eventList.length > 0 && (
+        <div className={`bg-white rounded-lg shadow-sm border border-gray-100 p-3 transition-opacity duration-150 ${isStale ? 'opacity-50' : ''}`}>
+          <h4 className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-2">{t('class_rank', lang)} &amp; {t('total_time', lang)}</h4>
+          <AthleteRankChart
+            events={Object.fromEntries(eventList.map(([k, v]) => [k, {
+              type: v.type, year: v.year, rank: v.rank,
+              time_seconds: v.time_seconds, time: v.time,
+              gender_class: v.gender_class, class_total: v.class_total,
+            }]))}
+            allData={data}
+            lang={lang}
+          />
+        </div>
+      )}
     </div>
   )
 }

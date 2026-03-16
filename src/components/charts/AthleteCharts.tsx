@@ -1,5 +1,5 @@
 'use client'
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import {
   ComposedChart, Area, Line, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer,
@@ -10,8 +10,6 @@ import { t } from '@/lib/translations'
 const RED  = '#d32f2f'
 const BLUE = '#4A7FA5'
 const BAND = '#9CA3AF'
-
-const ALL_YEARS = ['2021', '2022', '2023', '2024', '2025']
 
 // Fixed widths so both charts have identical plot-area widths
 const LEFT_W  = 38   // rank axis (short integers)
@@ -52,6 +50,20 @@ interface RankChartProps {
 export function AthleteRankChart({ events, allData, lang }: RankChartProps) {
   const availableSports = [...new Set(Object.values(events).map((e) => e.type as SportType))].sort()
   const [sport, setSport] = useState<string>(availableSports[0] ?? 'triathlon')
+  const [prevSports, setPrevSports] = useState(availableSports)
+
+  if (availableSports.join() !== prevSports.join()) {
+    setPrevSports(availableSports)
+    setSport(availableSports[0] ?? 'triathlon')
+  }
+
+  const allYears = useMemo(() => {
+    const years = new Set<string>()
+    for (const athletes of Object.values(allData)) {
+      for (const a of athletes) years.add(a.Competition_Year)
+    }
+    return [...years].sort()
+  }, [allData])
 
   // Athlete's own data for the selected sport
   const byYear: Record<string, { rank: number; time_seconds: number; gender_class: string }> = {}
@@ -68,7 +80,7 @@ export function AthleteRankChart({ events, allData, lang }: RankChartProps) {
   // Class-wide stats for ALL years where the sport was held (independent of athlete participation)
   const classStats: Record<string, { minTime: number; maxTime: number; classSize: number }> = {}
   if (athleteClass) {
-    for (const year of ALL_YEARS) {
+    for (const year of allYears) {
       const peers = allData[sport as SportType].filter(
         (a) => a.Competition_Year === year
           && a.Class === athleteClass
@@ -99,7 +111,7 @@ export function AthleteRankChart({ events, allData, lang }: RankChartProps) {
   const timeDomain: [number, number] = [Math.max(0, globalBest - timePad), globalWorst + timePad]
 
   // ── Data rows (fixed 2021–2025 X-axis) ───────────────────────────────────────
-  const data = ALL_YEARS.map((year) => {
+  const data = allYears.map((year) => {
     const s = classStats[year]
     return {
       year,

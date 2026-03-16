@@ -1,7 +1,12 @@
 'use client'
+import dynamic from 'next/dynamic'
 import { t } from '@/lib/translations'
-import { ParticipationChart } from '@/components/charts/ParticipationChart'
 import type { Lang } from '@/lib/types'
+
+const ParticipationChart = dynamic(
+  () => import('@/components/charts/ParticipationChart').then((m) => m.ParticipationChart),
+  { ssr: false, loading: () => <div className="h-[320px] bg-gray-50 animate-pulse rounded" /> },
+)
 
 interface Props {
   participationByYear: Array<{ year: string; triathlon: number; duathlon: number; swimming: number; cycling: number; running: number; swimrun: number }>
@@ -43,15 +48,15 @@ const DISCIPLINES: Array<{
   {
     title: { en: 'Triathlon — Sprint Format',  sv: 'Triathlon — sprintformat' },
     desc:  {
-      en: '750 m swim / 20 km bike / 5 km run, held at Insesjön.',
-      sv: '750 m sim / 20 km cykel / 5 km löp, vid Insesjön.',
+      en: '750 m swim / 20 km bike / 5 km run, held at Inseros.',
+      sv: '750 m sim / 20 km cykel / 5 km löp, vid Inseros.',
     },
   },
   {
     title: { en: 'Swimrun — Sisjön',           sv: 'Swimrun — Sisjön' },
     desc:  {
-      en: 'A swimrun adventure at Sisjön, alternating between swimming and running.',
-      sv: 'Ett swimrun-äventyr vid Sisjön med växelvis simning och löpning.',
+      en: 'A swimrun adventure at Sisjön.',
+      sv: 'Ett swimrun-äventyr vid Sisjön.',
     },
   },
 ]

@@ -10,8 +10,8 @@ export function Header() {
         <Image
           src="/OGLogo-2.png"
           alt="Triathlon Väst"
-          width={180}
-          height={62}
+          width={220}
+          height={76}
           className="object-contain"
           priority
         />
