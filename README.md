@@ -12,6 +12,8 @@
 
 An internal analytics dashboard for Triathlon Väst members. It aggregates CSV result files from club competitions (triathlon, duathlon, swimming, cycling, running, swimrun) spanning 2021–2025 and makes them searchable and visual. Athletes can look up their personal results, track rankings over time, and compare against the full field.
 
+The dataset currently covers **25 competitions** across 6 sports (triathlon, duathlon, swimming, cycling, running, swimrun) from **2021–2025**, including 1 swimrun event added in 2025.
+
 ## Highlights
 
 ### Features
@@ -22,11 +24,22 @@ An internal analytics dashboard for Triathlon Väst members. It aggregates CSV r
 - **Rankings tab**: Club-wide leaderboard based on aggregated points across events
 - **Bilingual UI**: Swedish / English toggle throughout
 
+## Tech Stack
+
+| Tool | Version |
+|------|---------|
+| Next.js | 16.1 |
+| React | 19.2 |
+| Recharts | 3.8 |
+| PapaParse | 5.5 |
+| Tailwind CSS | 4.x |
+| Playwright | 1.58 |
+
 ## Getting Started
 
 ### Prerequisites
 
-- Node.js 18+
+- Node.js 20+
 
 ### Installation
 
@@ -47,6 +60,7 @@ npm run dev
 
 ```
 triathlon-vast-dashboard-vercel/
+├── CLAUDE.md                    # AI assistant context
 ├── README.md
 ├── package.json
 ├── next.config.ts
@@ -54,17 +68,26 @@ triathlon-vast-dashboard-vercel/
 ├── data/                        # CSV result files (inputs, not edited manually)
 │   ├── competitions.csv
 │   ├── member_signups.csv
-│   ├── processed_<sport>_results_<date>.csv
-│   └── ...
-├── public/                      # Static assets
+│   └── processed_<sport>_results_<date>.csv
+├── public/                      # Static assets (logo, favicon)
 └── src/
-    ├── app/                     # Next.js App Router (layout, page, globals)
+    ├── app/                     # Next.js App Router
+    │   ├── layout.tsx
+    │   ├── page.tsx
+    │   ├── globals.css
+    │   └── favicon.ico
     ├── components/
     │   ├── Dashboard.tsx        # Main shell with tab navigation
     │   ├── Header.tsx
     │   ├── LanguageProvider.tsx
-    │   ├── charts/              # Recharts wrappers
-    │   └── tabs/                # One component per tab
+    │   ├── charts/
+    │   │   ├── AthleteCharts.tsx
+    │   │   └── ParticipationChart.tsx
+    │   └── tabs/
+    │       ├── OverviewTab.tsx
+    │       ├── ResultsTab.tsx
+    │       ├── AthletesTab.tsx
+    │       └── RankingsTab.tsx
     └── lib/
         ├── loader.ts            # Server-side CSV parsing (PapaParse)
         ├── data.ts              # Query helpers over parsed data
