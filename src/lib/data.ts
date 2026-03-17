@@ -10,7 +10,7 @@ export interface SplitRanks {
 
 /** Unique key for an athlete within a specific event (sport + year) */
 export function athleteKey(a: AthleteResult): string {
-  return `${a.Name}||${a.Bib ?? ''}||${a.Competition_Year}`
+  return `${a.Name}||${a.Club}||${a.Bib ?? ''}||${a.Competition_Year}`
 }
 
 /**
@@ -74,7 +74,7 @@ export function calculateClubMemberRank(
   const sorted = [...sameClass].sort(
     (a, b) => (a.Total_Time_Seconds ?? Infinity) - (b.Total_Time_Seconds ?? Infinity),
   )
-  const idx = sorted.findIndex((a) => a.Name === athlete.Name)
+  const idx = sorted.findIndex((a) => athleteKey(a) === athleteKey(athlete))
   return idx >= 0 ? idx + 1 : 999
 }
 

@@ -17,6 +17,7 @@ export function Header() {
         />
         <button
           onClick={() => setLang(lang === 'en' ? 'sv' : 'en')}
+          aria-label={lang === 'en' ? 'Switch to Swedish' : 'Byt till engelska'}
           className="text-xs font-medium text-gray-500 hover:text-red-700 border border-gray-200 rounded-md px-2.5 py-1 transition-colors bg-gray-50 hover:bg-white"
         >
           {lang === 'en' ? '🇸🇪 Svenska' : '🇬🇧 English'}

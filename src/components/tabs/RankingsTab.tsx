@@ -31,10 +31,10 @@ function RankTable({ data, lang, onAthleteClick }: {
     <table className="min-w-full text-xs">
       <thead>
         <tr className="bg-gray-50 border-b border-gray-200 text-[10px] uppercase tracking-wider text-gray-400">
-          <th className="px-3 py-2 text-left w-10 font-semibold">{t('rank', lang)}</th>
-          <th className="px-3 py-2 text-left font-semibold">{t('athlete', lang)}</th>
-          <th className="px-3 py-2 text-right font-semibold">{t('total_points', lang)}</th>
-          <th className="px-3 py-2 text-right font-semibold hidden sm:table-cell">{t('competitions', lang)}</th>
+          <th scope="col" className="px-3 py-2 text-left w-10 font-semibold">{t('rank', lang)}</th>
+          <th scope="col" className="px-3 py-2 text-left font-semibold">{t('athlete', lang)}</th>
+          <th scope="col" className="px-3 py-2 text-right font-semibold">{t('total_points', lang)}</th>
+          <th scope="col" className="px-3 py-2 text-right font-semibold hidden sm:table-cell">{t('competitions', lang)}</th>
         </tr>
       </thead>
       <tbody>

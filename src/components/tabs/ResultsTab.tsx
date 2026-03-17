@@ -101,7 +101,8 @@ export function ResultsTab({ data, lang, onAthleteClick }: Props) {
     const csvRows = [headers.join(',')]
     rows.forEach((a, i) => {
       const rank = year === 'all' ? i + 1 : a.Overall_Rank
-      csvRows.push([rank, `"${a.Name}"`, `"${a.Club}"`, a.Class, a.Competition_Year, a.Total_Time].join(','))
+      const esc = (s: string) => `"${s.replace(/"/g, '""')}"`
+      csvRows.push([rank, esc(a.Name), esc(a.Club), a.Class, a.Competition_Year, a.Total_Time].join(','))
     })
     const blob = new Blob([csvRows.join('\n')], { type: 'text/csv' })
     const url = URL.createObjectURL(blob)
@@ -178,18 +179,18 @@ export function ResultsTab({ data, lang, onAthleteClick }: Props) {
           <table className="min-w-full text-xs">
             <thead>
               <tr className="bg-gray-50 border-b border-gray-200 text-[10px] uppercase tracking-wider text-gray-400">
-                <th className="px-3 py-2 text-left font-semibold">
+                <th scope="col" className="px-3 py-2 text-left font-semibold">
                   {year === 'all' ? t('all_time_rank', lang) : t('overall_rank', lang)}
                 </th>
-                <th className="px-3 py-2 text-left font-semibold">{t('name', lang)}</th>
-                <th className={`px-3 py-2 text-left font-semibold ${D}`}>{t('club', lang)}</th>
-                <th className={`px-3 py-2 text-left font-semibold ${D}`}>{t('gender', lang)}</th>
-                {year === 'all' && <th className={`px-3 py-2 text-left font-semibold ${D}`}>{t('year', lang)}</th>}
-                <th className="px-3 py-2 text-left font-semibold">{t('total_time', lang)}</th>
+                <th scope="col" className="px-3 py-2 text-left font-semibold">{t('name', lang)}</th>
+                <th scope="col" className={`px-3 py-2 text-left font-semibold ${D}`}>{t('club', lang)}</th>
+                <th scope="col" className={`px-3 py-2 text-left font-semibold ${D}`}>{t('gender', lang)}</th>
+                {year === 'all' && <th scope="col" className={`px-3 py-2 text-left font-semibold ${D}`}>{t('year', lang)}</th>}
+                <th scope="col" className="px-3 py-2 text-left font-semibold">{t('total_time', lang)}</th>
                 {segs.map((s) => (
                   <Fragment key={s.label}>
-                    <th className={`px-2 py-2 text-left font-semibold border-l border-gray-100 ${D}`}>{s.label}</th>
-                    <th className={`px-2 py-2 text-center font-semibold text-gray-300 ${D}`}>#</th>
+                    <th scope="col" className={`px-2 py-2 text-left font-semibold border-l border-gray-100 ${D}`}>{s.label}</th>
+                    <th scope="col" className={`px-2 py-2 text-center font-semibold text-gray-300 ${D}`}>#</th>
                   </Fragment>
                 ))}
               </tr>

@@ -15,9 +15,17 @@ function normalizeClass(cls: string): string {
 }
 
 function readCsv(filePath: string): Record<string, string>[] {
-  const content = fs.readFileSync(filePath, 'utf-8')
-  const result = Papa.parse<Record<string, string>>(content, { header: true, skipEmptyLines: true })
-  return result.data
+  try {
+    const content = fs.readFileSync(filePath, 'utf-8')
+    const result = Papa.parse<Record<string, string>>(content, { header: true, skipEmptyLines: true })
+    if (result.errors.length > 0) {
+      console.error(`CSV parse errors in ${filePath}:`, result.errors)
+    }
+    return result.data
+  } catch (err) {
+    console.error(`Failed to read CSV ${filePath}:`, err)
+    return []
+  }
 }
 
 let cached: CompetitionsData | null = null

@@ -173,13 +173,13 @@ export function AthletesTab({ data, athleteNames, lang, initialAthlete }: Props)
                 <table className="min-w-full text-xs">
                   <thead>
                     <tr className="bg-gray-50 border-b border-gray-200 text-[10px] uppercase tracking-wider text-gray-400">
-                      <th className="px-3 py-2 text-left font-semibold">{t('year', lang)}</th>
-                      <th className="px-3 py-2 text-left font-semibold">{t('select_event', lang).replace(':', '')}</th>
-                      <th className="px-3 py-2 text-left font-semibold">{t('class_rank', lang)}</th>
-                      <th className="px-3 py-2 text-left font-semibold hidden sm:table-cell">{t('overall_rank', lang)}</th>
-                      <th className="px-3 py-2 text-left font-semibold hidden sm:table-cell">{t('club_rank', lang)}</th>
-                      <th className="px-3 py-2 text-right font-semibold">{t('points', lang)}</th>
-                      <th className="px-3 py-2 text-left font-semibold">{t('total_time', lang)}</th>
+                      <th scope="col" className="px-3 py-2 text-left font-semibold">{t('year', lang)}</th>
+                      <th scope="col" className="px-3 py-2 text-left font-semibold">{t('select_event', lang).replace(':', '')}</th>
+                      <th scope="col" className="px-3 py-2 text-left font-semibold">{t('class_rank', lang)}</th>
+                      <th scope="col" className="px-3 py-2 text-left font-semibold hidden sm:table-cell">{t('overall_rank', lang)}</th>
+                      <th scope="col" className="px-3 py-2 text-left font-semibold hidden sm:table-cell">{t('club_rank', lang)}</th>
+                      <th scope="col" className="px-3 py-2 text-right font-semibold">{t('points', lang)}</th>
+                      <th scope="col" className="px-3 py-2 text-left font-semibold">{t('total_time', lang)}</th>
                     </tr>
                   </thead>
                   <tbody>

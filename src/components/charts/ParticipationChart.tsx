@@ -22,7 +22,7 @@ interface Props {
 export function ParticipationChart({ data, lang }: Props) {
   const sports = ['triathlon', 'duathlon', 'swimming', 'cycling', 'running', 'swimrun']
   return (
-    <ResponsiveContainer width="100%" height={320}>
+    <ResponsiveContainer width="100%" height={320} aria-label="Participation trends by sport and year">
       <BarChart data={data} margin={{ top: 10, right: 20, left: 0, bottom: 5 }}>
         <CartesianGrid strokeDasharray="3 3" />
         <XAxis dataKey="year" tick={{ fontSize: 13 }} />
