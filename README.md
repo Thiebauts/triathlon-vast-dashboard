@@ -44,8 +44,8 @@ The dataset currently covers **25 competitions** across 6 sports (triathlon, dua
 ### Installation
 
 ```bash
-git clone https://github.com/Thiebauts/triathlon-vast-dashboard-vercel.git
-cd triathlon-vast-dashboard-vercel
+git clone https://github.com/Thiebauts/triathlon-vast-dashboard.git
+cd triathlon-vast-dashboard
 npm install
 ```
 
@@ -59,7 +59,7 @@ npm run dev
 ## Project Structure
 
 ```
-triathlon-vast-dashboard-vercel/
+triathlon-vast-dashboard/
 ├── CLAUDE.md                    # AI assistant context
 ├── README.md
 ├── package.json
