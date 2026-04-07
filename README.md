@@ -66,8 +66,6 @@ triathlon-vast-dashboard-vercel/
 ├── next.config.ts
 ├── test-dashboard.mjs           # Smoke test script (Playwright)
 ├── data/                        # CSV result files (inputs, not edited manually)
-│   ├── competitions.csv
-│   ├── member_signups.csv
 │   └── processed_<sport>_results_<date>.csv
 ├── public/                      # Static assets (logo, favicon)
 └── src/
@@ -94,6 +92,39 @@ triathlon-vast-dashboard-vercel/
         ├── types.ts             # Shared TypeScript types
         └── translations.ts      # EN/SV string catalogue
 ```
+
+## Data Entry Rules (NyTaTime)
+
+When exporting results from NyTaTime, follow these rules to keep the data consistent:
+
+**Names**
+- Always use **full first name and surname** — no nicknames (e.g., "Tobias Olsson", not "Tobbe")
+- Use **proper capitalization** for both first and last name (e.g., "Daniel Sastre", not "Daniel sastre")
+- Keep surname particles lowercase: "van", "du", "de" (e.g., "Stijn van Weegberg")
+- Use the **same spelling** consistently across seasons — check previous files if unsure
+
+**Class (gender)**
+- Only two values allowed: `Herr` or `Dam`
+- Do not use: ~~Herrar~~, ~~Damer~~, ~~Man~~, ~~Male~~, ~~Female~~
+
+**Club**
+- Only two values allowed: `TriVäst` or `Gäst`
+- Do not use: ~~Triväst~~, ~~Triathlon Väst~~, ~~Ej medlem~~, ~~-~~
+
+**Times**
+- If a split time was not captured, leave the field **empty** — do not enter `0` or a negative value
+
+**Rankings**
+- `Overall_Rank` must be sequential starting from 1
+- `Class_Rank` must be sequential within each class (Herr and Dam ranked separately)
+
+**Status**
+- Only two values: `ok` or `dnf`
+
+**General**
+- No trailing whitespace in any field
+- File encoding: **UTF-8**
+- One empty line at end of file maximum
 
 ## Deployment
 
