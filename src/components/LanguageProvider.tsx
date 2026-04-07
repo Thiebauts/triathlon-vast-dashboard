@@ -6,8 +6,12 @@ const STORAGE_KEY = 'triathlon-vast-lang'
 
 function getInitialLang(): Lang {
   if (typeof window === 'undefined') return 'en'
-  const saved = localStorage.getItem(STORAGE_KEY)
-  return saved === 'sv' || saved === 'en' ? saved : 'en'
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY)
+    return saved === 'sv' || saved === 'en' ? saved : 'en'
+  } catch {
+    return 'en'
+  }
 }
 
 const LangCtx = createContext<{ lang: Lang; setLang: (l: Lang) => void }>({
@@ -20,7 +24,7 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
 
   const setLang = useCallback((l: Lang) => {
     setLangState(l)
-    localStorage.setItem(STORAGE_KEY, l)
+    try { localStorage.setItem(STORAGE_KEY, l) } catch { /* private browsing */ }
   }, [])
 
   return <LangCtx.Provider value={{ lang, setLang }}>{children}</LangCtx.Provider>
