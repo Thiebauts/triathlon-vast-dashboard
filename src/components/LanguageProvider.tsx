@@ -4,21 +4,19 @@ import type { Lang } from '@/lib/types'
 
 const STORAGE_KEY = 'triathlon-vast-lang'
 
+function getInitialLang(): Lang {
+  if (typeof window === 'undefined') return 'en'
+  const saved = localStorage.getItem(STORAGE_KEY)
+  return saved === 'sv' || saved === 'en' ? saved : 'en'
+}
+
 const LangCtx = createContext<{ lang: Lang; setLang: (l: Lang) => void }>({
   lang: 'en',
   setLang: () => {},
 })
 
 export function LanguageProvider({ children }: { children: React.ReactNode }) {
-  const [lang, setLangState] = useState<Lang>('en')
-  const [hydrated, setHydrated] = useState(false)
-
-  // Read persisted language on first client render (state-during-render pattern)
-  if (!hydrated && typeof window !== 'undefined') {
-    setHydrated(true)
-    const saved = localStorage.getItem(STORAGE_KEY)
-    if (saved === 'sv' || saved === 'en') setLangState(saved)
-  }
+  const [lang, setLangState] = useState<Lang>(getInitialLang)
 
   const setLang = useCallback((l: Lang) => {
     setLangState(l)

@@ -1,3 +1,5 @@
+export const dynamic = 'force-static'
+
 import { loadAllCompetitions } from '@/lib/loader'
 import {
   getAllAthleteNames,

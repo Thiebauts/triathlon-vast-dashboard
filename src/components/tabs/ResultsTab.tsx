@@ -75,23 +75,23 @@ export function ResultsTab({ data, lang, onAthleteClick }: Props) {
       : [...list].sort((a, b) => (a.Overall_Rank || 999) - (b.Overall_Rank || 999))
   }, [data, sport, year, category, deferredSearch])
 
-  const triathlonSegs = [
-    { timeKey: 'Swim_Time',  rankKey: 'swim',  label: t('swim', lang) },
-    { timeKey: 'T1_Time',    rankKey: 't1',    label: t('t1', lang) },
-    { timeKey: 'Bike_Time',  rankKey: 'bike',  label: t('bike', lang) },
-    { timeKey: 'T2_Time',    rankKey: 't2',    label: t('t2', lang) },
-    { timeKey: 'Run_Time',   rankKey: 'run',   label: t('run', lang) },
-  ] as const
-
-  const duathlonSegs = [
-    { timeKey: 'Run1_Time',  rankKey: 'run1',  label: t('run_1', lang) },
-    { timeKey: 'T1_Time',    rankKey: 't1',    label: t('t1', lang) },
-    { timeKey: 'Bike_Time',  rankKey: 'bike',  label: t('bike', lang) },
-    { timeKey: 'T2_Time',    rankKey: 't2',    label: t('t2', lang) },
-    { timeKey: 'Run2_Time',  rankKey: 'run2',  label: t('run_2', lang) },
-  ] as const
-
-  const segs = sport === 'triathlon' ? triathlonSegs : sport === 'duathlon' ? duathlonSegs : []
+  const segs = useMemo(() => {
+    if (sport === 'triathlon') return [
+      { timeKey: 'Swim_Time',  rankKey: 'swim',  label: t('swim', lang) },
+      { timeKey: 'T1_Time',    rankKey: 't1',    label: t('t1', lang) },
+      { timeKey: 'Bike_Time',  rankKey: 'bike',  label: t('bike', lang) },
+      { timeKey: 'T2_Time',    rankKey: 't2',    label: t('t2', lang) },
+      { timeKey: 'Run_Time',   rankKey: 'run',   label: t('run', lang) },
+    ] as const
+    if (sport === 'duathlon') return [
+      { timeKey: 'Run1_Time',  rankKey: 'run1',  label: t('run_1', lang) },
+      { timeKey: 'T1_Time',    rankKey: 't1',    label: t('t1', lang) },
+      { timeKey: 'Bike_Time',  rankKey: 'bike',  label: t('bike', lang) },
+      { timeKey: 'T2_Time',    rankKey: 't2',    label: t('t2', lang) },
+      { timeKey: 'Run2_Time',  rankKey: 'run2',  label: t('run_2', lang) },
+    ] as const
+    return [] as const
+  }, [sport, lang])
 
   const exportCsv = useCallback(() => {
     const headers = [
@@ -168,7 +168,7 @@ export function ResultsTab({ data, lang, onAthleteClick }: Props) {
       </div>
 
       {isMultiSport && (
-        <p className="text-[10px] text-gray-400 sm:hidden px-1">Split times and ranks visible on wider screens.</p>
+        <p className="text-[10px] text-gray-400 sm:hidden px-1">{t('split_times_hint', lang)}</p>
       )}
 
       {/* Table */}

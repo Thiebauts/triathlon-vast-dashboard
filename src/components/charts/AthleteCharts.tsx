@@ -48,7 +48,10 @@ interface RankChartProps {
 }
 
 export function AthleteRankChart({ events, allData, lang }: RankChartProps) {
-  const availableSports = [...new Set(Object.values(events).map((e) => e.type as SportType))].sort()
+  const availableSports = useMemo(
+    () => [...new Set(Object.values(events).map((e) => e.type as SportType))].sort(),
+    [events],
+  )
   const [sport, setSport] = useState<string>(availableSports[0] ?? 'triathlon')
   const [prevSports, setPrevSports] = useState(availableSports)
 
@@ -126,7 +129,7 @@ export function AthleteRankChart({ events, allData, lang }: RankChartProps) {
   if (!hasAthlete && !hasBand) return (
     <div>
       <SportButtons sports={availableSports} selected={sport} onSelect={setSport} lang={lang} />
-      <p className="text-gray-400 text-xs text-center py-8">No data</p>
+      <p className="text-gray-400 text-xs text-center py-8">{t('no_athlete_data', lang)}</p>
     </div>
   )
 

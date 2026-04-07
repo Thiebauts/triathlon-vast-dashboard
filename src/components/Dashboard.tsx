@@ -1,5 +1,5 @@
 'use client'
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useMemo } from 'react'
 import { useLang } from './LanguageProvider'
 import { t } from '@/lib/translations'
 import { OverviewTab } from './tabs/OverviewTab'
@@ -34,12 +34,12 @@ export function Dashboard({ data, athleteNames, participationByYear }: Props) {
     setTab('athletes')
   }, [])
 
-  const tabs: { id: Tab; full: string; short: string }[] = [
+  const tabs = useMemo<{ id: Tab; full: string; short: string }[]>(() => [
     { id: 'overview', full: t('tab_overview', lang),      short: SHORT_LABELS.overview[lang] },
     { id: 'results',  full: t('tab_event_results', lang), short: SHORT_LABELS.results[lang] },
     { id: 'athletes', full: t('tab_athletes', lang),      short: SHORT_LABELS.athletes[lang] },
     { id: 'rankings', full: t('tab_rankings', lang),      short: SHORT_LABELS.rankings[lang] },
-  ]
+  ], [lang])
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-4">

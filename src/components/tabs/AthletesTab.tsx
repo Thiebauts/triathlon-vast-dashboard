@@ -38,7 +38,6 @@ export function AthletesTab({ data, athleteNames, lang, initialAthlete }: Props)
   const isStale = selected !== deferredSelected
   const [prevInitial, setPrevInitial] = useState<string | null | undefined>(initialAthlete)
 
-  // Sync when navigating from another tab (adjust state during render, no useEffect)
   if (initialAthlete !== prevInitial) {
     setPrevInitial(initialAthlete)
     if (initialAthlete) setSelected(initialAthlete)
@@ -102,6 +101,15 @@ export function AthletesTab({ data, athleteNames, lang, initialAthlete }: Props)
     }
     return prev
   }, [eventList])
+
+  const chartEvents = useMemo(
+    () => Object.fromEntries(eventList.map(([k, v]) => [k, {
+      type: v.type, year: v.year, rank: v.rank,
+      time_seconds: v.time_seconds, time: v.time,
+      gender_class: v.gender_class, class_total: v.class_total,
+    }])),
+    [eventList],
+  )
 
   return (
     <div className="space-y-3">
@@ -222,15 +230,7 @@ export function AthletesTab({ data, athleteNames, lang, initialAthlete }: Props)
       {selected && eventList.length > 0 && (
         <div className={`bg-white rounded-lg shadow-sm border border-gray-100 p-3 transition-opacity duration-150 ${isStale ? 'opacity-50' : ''}`}>
           <h4 className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-2">{t('class_rank', lang)} &amp; {t('total_time', lang)}</h4>
-          <AthleteRankChart
-            events={Object.fromEntries(eventList.map(([k, v]) => [k, {
-              type: v.type, year: v.year, rank: v.rank,
-              time_seconds: v.time_seconds, time: v.time,
-              gender_class: v.gender_class, class_total: v.class_total,
-            }]))}
-            allData={data}
-            lang={lang}
-          />
+          <AthleteRankChart events={chartEvents} allData={data} lang={lang} />
         </div>
       )}
     </div>
