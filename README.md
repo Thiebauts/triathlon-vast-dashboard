@@ -156,6 +156,13 @@ When exporting results from NyTaTime, follow these rules to keep the data consis
 - File encoding: **UTF-8**
 - One empty line at end of file maximum
 
+## Contributing
+
+Have ideas for new features, spotted a bug, or want to fix something yourself?
+
+- **Email**: Send feedback or suggestions to [schirmer.thiebaut@gmail.com](mailto:schirmer.thiebaut@gmail.com) with the subject prefix `[triathlon-vast-dashboard]`
+- **GitHub**: If you're familiar with code, open an [issue](https://github.com/Thiebauts/triathlon-vast-dashboard/issues) or submit a [pull request](https://github.com/Thiebauts/triathlon-vast-dashboard/pulls) — all contributions are welcome and will be reviewed
+
 ## Deployment
 
 Deployed on Vercel. Push to `main` triggers an automatic production deploy. CSV data files are bundled at build time — update `data/` and redeploy to refresh results.

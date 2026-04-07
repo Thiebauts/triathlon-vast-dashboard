@@ -49,12 +49,16 @@ const TRANSLATIONS: Record<string, { en: string; sv: string }> = {
     sv: 'Sektionen Idrottarprofiler ger en personlig vy över varje medlems tävlingsresa: prestationshistorik, framsteg över tid och hur individuella resultat bidrar till klubbrankingen.',
   },
 
-  contact_title:        { en: 'Contact & Support', sv: 'Kontakt & Support' },
+  contact_title:        { en: 'Contact & Contribute', sv: 'Kontakt & Bidra' },
   contact_text:         {
     en: "Your feedback helps make this dashboard better for everyone. If you've spotted a data error, have ideas for new features, or prefer to have your information removed from public rankings, send an email to schirmer.thiebaut@gmail.com with a subject like:",
     sv: 'Din feedback hjälper till att göra denna dashboard bättre för alla. Om du har hittat ett datafel, har idéer för nya funktioner, eller föredrar att få din information borttagen från offentliga rankingar, skicka ett mail till schirmer.thiebaut@gmail.com med ett ämne som:',
   },
   contact_subject_placeholder: { en: 'your subject', sv: 'ditt ämne' },
+  contribute_text:      {
+    en: 'If you are familiar with code, you can also propose changes directly on GitHub — open an issue or submit a pull request and we will review it together.',
+    sv: 'Om du är bekant med kod kan du även föreslå ändringar direkt på GitHub — öppna ett ärende eller skicka en pull request så granskar vi det tillsammans.',
+  },
 
   competition_statistics:  { en: 'Competition Statistics', sv: 'Tävlingsstatistik' },
   participation_by_year:   { en: 'Participation by Year and Event Type', sv: 'Deltagande per År och Tävlingstyp' },

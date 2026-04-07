@@ -91,7 +91,7 @@ export function OverviewTab({ participationByYear, lang }: Props) {
         <ParticipationChart data={participationByYear} lang={lang} />
       </div>
 
-      {/* Contact */}
+      {/* Contact & Contribute */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-100 px-4 py-3">
         <h2 className="text-sm font-semibold text-red-700 mb-1">{t('contact_title', lang)}</h2>
         <p className="text-xs text-gray-500 leading-relaxed">
@@ -99,6 +99,17 @@ export function OverviewTab({ participationByYear, lang }: Props) {
           <code className="bg-gray-100 rounded px-1 py-0.5 text-[11px] text-gray-700">
             [triathlon-vast-dashboard] {t('contact_subject_placeholder', lang)}
           </code>
+        </p>
+        <p className="text-xs text-gray-500 leading-relaxed mt-2">
+          {t('contribute_text', lang)}{' '}
+          <a
+            href="https://github.com/Thiebauts/triathlon-vast-dashboard"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-red-700 hover:underline font-medium"
+          >
+            GitHub
+          </a>
         </p>
       </div>
     </div>
