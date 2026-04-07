@@ -14,7 +14,7 @@ const MEDAL = {
 } as Record<number, { color: string }>
 
 function RankCell({ n }: { n: number | undefined }) {
-  if (!n) return <span className="text-gray-200 text-[11px]">—</span>
+  if (!n) return <span className="text-gray-400 text-[11px]">—</span>
   const style = MEDAL[n] ?? { color: '#9CA3AF' }
   const weight = n <= 3 ? 'font-semibold' : 'font-normal'
   return <span style={style} className={`text-[11px] tabular-nums ${weight}`}>{n}</span>
@@ -101,7 +101,10 @@ export function ResultsTab({ data, lang, onAthleteClick }: Props) {
     const csvRows = [headers.join(',')]
     rows.forEach((a, i) => {
       const rank = year === 'all' ? i + 1 : a.Overall_Rank
-      const esc = (s: string) => `"${s.replace(/"/g, '""')}"`
+      const esc = (s: string) => {
+        const escaped = s.replace(/"/g, '""')
+        return /^[=\-+@\t\r]/.test(s) ? `"'${escaped}"` : `"${escaped}"`
+      }
       csvRows.push([rank, esc(a.Name), esc(a.Club), a.Class, a.Competition_Year, a.Total_Time].join(','))
     })
     const blob = new Blob([csvRows.join('\n')], { type: 'text/csv' })
@@ -122,53 +125,50 @@ export function ResultsTab({ data, lang, onAthleteClick }: Props) {
 
       {/* Filters */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-100 px-4 py-2.5 flex flex-wrap items-end gap-4">
-        {[
-          { label: t('select_event', lang), node: (
-            <select value={sport} onChange={(e) => { setSport(e.target.value as SportType); setYear('all') }}
-              className="border border-gray-200 rounded px-2 py-1 text-xs bg-white">
-              {SPORTS.map((s) => <option key={s} value={s}>{t(s, lang)}</option>)}
-            </select>
-          )},
-          { label: t('select_year', lang), node: (
-            <select value={year} onChange={(e) => setYear(e.target.value)}
-              className="border border-gray-200 rounded px-2 py-1 text-xs bg-white">
-              {years.map((y) => <option key={y} value={y}>{y === 'all' ? t('all_years', lang) : y}</option>)}
-            </select>
-          )},
-          { label: t('select_category', lang), node: (
-            <select value={category} onChange={(e) => setCategory(e.target.value as 'all' | 'men' | 'women')}
-              className="border border-gray-200 rounded px-2 py-1 text-xs bg-white">
-              <option value="all">{t('all_mixed', lang)}</option>
-              <option value="men">{t('men_only', lang)}</option>
-              <option value="women">{t('women_only', lang)}</option>
-            </select>
-          )},
-        ].map(({ label, node }) => (
-          <div key={label}>
-            <label className="block text-[10px] font-medium text-gray-400 uppercase tracking-wide mb-1">{label}</label>
-            {node}
-          </div>
-        ))}
+        <div>
+          <label htmlFor="filter-event" className="block text-[11px] font-medium text-gray-500 uppercase tracking-wide mb-1">{t('select_event', lang)}</label>
+          <select id="filter-event" value={sport} onChange={(e) => { setSport(e.target.value as SportType); setYear('all') }}
+            className="border border-gray-200 rounded px-2 py-1 text-xs bg-white focus-visible:ring-2 focus-visible:ring-red-700 focus-visible:ring-offset-1">
+            {SPORTS.map((s) => <option key={s} value={s}>{t(s, lang)}</option>)}
+          </select>
+        </div>
+        <div>
+          <label htmlFor="filter-year" className="block text-[11px] font-medium text-gray-500 uppercase tracking-wide mb-1">{t('select_year', lang)}</label>
+          <select id="filter-year" value={year} onChange={(e) => setYear(e.target.value)}
+            className="border border-gray-200 rounded px-2 py-1 text-xs bg-white focus-visible:ring-2 focus-visible:ring-red-700 focus-visible:ring-offset-1">
+            {years.map((y) => <option key={y} value={y}>{y === 'all' ? t('all_years', lang) : y}</option>)}
+          </select>
+        </div>
+        <div>
+          <label htmlFor="filter-category" className="block text-[11px] font-medium text-gray-500 uppercase tracking-wide mb-1">{t('select_category', lang)}</label>
+          <select id="filter-category" value={category} onChange={(e) => setCategory(e.target.value as 'all' | 'men' | 'women')}
+            className="border border-gray-200 rounded px-2 py-1 text-xs bg-white focus-visible:ring-2 focus-visible:ring-red-700 focus-visible:ring-offset-1">
+            <option value="all">{t('all_mixed', lang)}</option>
+            <option value="men">{t('men_only', lang)}</option>
+            <option value="women">{t('women_only', lang)}</option>
+          </select>
+        </div>
         <div>
           <input
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder={t('search_athlete', lang)}
-            className="border border-gray-200 rounded px-2 py-1 text-xs bg-white w-36"
+            aria-label={t('search_athlete', lang)}
+            className="border border-gray-200 rounded px-2 py-1 text-xs bg-white w-36 focus-visible:ring-2 focus-visible:ring-red-700 focus-visible:ring-offset-1"
           />
         </div>
         <div className="flex items-center gap-3 ml-auto self-center">
-          <span className="text-xs text-gray-400">{rows.length} {t('total_participants', lang)}</span>
+          <span className="text-xs text-gray-500" aria-live="polite">{rows.length} {t('total_participants', lang)}</span>
           <button onClick={exportCsv}
-            className="text-[10px] text-gray-400 hover:text-red-700 border border-gray-200 rounded px-2 py-0.5 transition-colors">
+            className="text-[11px] text-gray-500 hover:text-red-700 border border-gray-200 rounded px-2 py-0.5 transition-colors focus-visible:ring-2 focus-visible:ring-red-700 focus-visible:ring-offset-1">
             {t('export_csv', lang)}
           </button>
         </div>
       </div>
 
       {isMultiSport && (
-        <p className="text-[10px] text-gray-400 sm:hidden px-1">{t('split_times_hint', lang)}</p>
+        <p className="text-[11px] text-gray-500 sm:hidden px-1">{t('split_times_hint', lang)}</p>
       )}
 
       {/* Table */}
@@ -178,7 +178,7 @@ export function ResultsTab({ data, lang, onAthleteClick }: Props) {
         ) : (
           <table className="min-w-full text-xs">
             <thead>
-              <tr className="bg-gray-50 border-b border-gray-200 text-[10px] uppercase tracking-wider text-gray-400">
+              <tr className="bg-gray-50 border-b border-gray-200 text-[11px] uppercase tracking-wider text-gray-500">
                 <th scope="col" className="px-3 py-2 text-left font-semibold">
                   {year === 'all' ? t('all_time_rank', lang) : t('overall_rank', lang)}
                 </th>
@@ -209,13 +209,13 @@ export function ResultsTab({ data, lang, onAthleteClick }: Props) {
                 return (
                   <tr key={`${a.Name}-${a.Competition_Year}-${i}`}
                     className={`${bg} border-b border-gray-100 hover:bg-blue-50/20 transition-colors`}>
-                    <td className="px-3 py-1.5 font-semibold tabular-nums">
+                    <th scope="row" className="px-3 py-1.5 font-semibold tabular-nums">
                       <span style={MEDAL[rank] ?? { color: '#6B7280' }}>{rank}</span>
-                    </td>
+                    </th>
                     <td className="px-3 py-1.5 whitespace-nowrap font-medium text-gray-800">
                       {onAthleteClick ? (
                         <button onClick={() => onAthleteClick(a.Name)}
-                          className="hover:text-red-700 hover:underline transition-colors text-left">
+                          className="hover:text-red-700 hover:underline transition-colors text-left focus-visible:ring-2 focus-visible:ring-red-700 focus-visible:ring-offset-1 rounded">
                           {a.Name}
                         </button>
                       ) : a.Name}

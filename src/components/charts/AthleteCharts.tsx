@@ -129,7 +129,7 @@ export function AthleteRankChart({ events, allData, lang }: RankChartProps) {
   if (!hasAthlete && !hasBand) return (
     <div>
       <SportButtons sports={availableSports} selected={sport} onSelect={setSport} lang={lang} />
-      <p className="text-gray-400 text-xs text-center py-8">{t('no_athlete_data', lang)}</p>
+      <p className="text-gray-500 text-xs text-center py-8">{t('no_athlete_data', lang)}</p>
     </div>
   )
 
@@ -138,8 +138,8 @@ export function AthleteRankChart({ events, allData, lang }: RankChartProps) {
       <SportButtons sports={availableSports} selected={sport} onSelect={setSport} lang={lang} />
 
       {/* ── Rank chart ─────────────────────────────────────────────────────── */}
-      <p className="text-[10px] text-gray-400 uppercase tracking-wide mb-1">{t('class_rank', lang)}</p>
-      <ResponsiveContainer width="100%" height={160}>
+      <p className="text-[11px] text-gray-500 uppercase tracking-wide mb-1">{t('class_rank', lang)}</p>
+      <ResponsiveContainer width="100%" height={160} aria-label={t('class_rank', lang)}>
         <ComposedChart data={data} margin={MARGIN}>
           {/*
             Band: fills from classSize down toward baseValue=1 (the top of the reversed axis).
@@ -173,8 +173,8 @@ export function AthleteRankChart({ events, allData, lang }: RankChartProps) {
       </ResponsiveContainer>
 
       {/* ── Time chart ─────────────────────────────────────────────────────── */}
-      <p className="text-[10px] text-gray-400 uppercase tracking-wide mt-3 mb-1">{t('total_time', lang)}</p>
-      <ResponsiveContainer width="100%" height={180}>
+      <p className="text-[11px] text-gray-500 uppercase tracking-wide mt-3 mb-1">{t('total_time', lang)}</p>
+      <ResponsiveContainer width="100%" height={180} aria-label={t('total_time', lang)}>
         <ComposedChart data={data} margin={MARGIN}>
           {/*
             Band: "cover" technique for a stripe between classMinTime and classMaxTime.
@@ -249,7 +249,7 @@ function SportButtons({ sports, selected, onSelect, lang }: {
         <button
           key={s}
           onClick={() => onSelect(s)}
-          className={`px-2 py-0.5 text-[10px] rounded border font-medium transition-colors ${
+          className={`px-2 py-1.5 text-[11px] rounded border font-medium transition-colors focus-visible:ring-2 focus-visible:ring-red-700 focus-visible:ring-offset-1 ${
             selected === s
               ? 'bg-red-700 text-white border-red-700'
               : 'bg-white text-gray-500 border-gray-200 hover:border-gray-400'

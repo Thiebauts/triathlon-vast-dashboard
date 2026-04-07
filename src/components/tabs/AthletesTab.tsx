@@ -123,22 +123,23 @@ export function AthletesTab({ data, athleteNames, lang, initialAthlete }: Props)
       <div className="flex flex-col sm:flex-row gap-3">
         {/* Athlete list */}
         <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-3 sm:w-64 shrink-0 sm:sticky sm:top-4 sm:self-start">
-          <label className="block text-[10px] font-medium text-gray-400 uppercase tracking-wide mb-1.5">
+          <label htmlFor="athlete-search" className="block text-[11px] font-medium text-gray-500 uppercase tracking-wide mb-1.5">
             {t('select_athlete', lang)}
           </label>
           <input
+            id="athlete-search"
             type="text"
             placeholder={t('search_athlete', lang)}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full border border-gray-200 rounded px-2 py-1 text-xs mb-1.5 focus:outline-none focus:border-red-300"
+            className="w-full border border-gray-200 rounded px-2 py-1 text-xs mb-1.5 focus-visible:ring-2 focus-visible:ring-red-700 focus-visible:ring-offset-1"
           />
           <ul className="divide-y divide-gray-50 max-h-[168px] overflow-y-auto">
             {filtered.map((name) => (
               <li key={name}>
                 <button
                   onClick={() => setSelected(name)}
-                  className={`w-full text-left px-2 py-1.5 text-xs transition-colors rounded ${
+                  className={`w-full text-left px-2 py-2 text-xs transition-colors rounded focus-visible:ring-2 focus-visible:ring-red-700 focus-visible:ring-offset-1 ${
                     selected === name
                       ? 'bg-red-50 font-semibold text-red-700'
                       : 'hover:bg-gray-50 text-gray-700'
@@ -152,7 +153,7 @@ export function AthletesTab({ data, athleteNames, lang, initialAthlete }: Props)
         </div>
 
         {/* Summary + event table */}
-        <div className={`flex-1 min-w-0 space-y-3 transition-opacity duration-150 ${isStale ? 'opacity-50' : ''}`}>
+        <div className={`flex-1 min-w-0 space-y-3 transition-opacity duration-150 ${isStale ? 'opacity-50' : ''}`} aria-busy={isStale}>
           {!selected ? (
             <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-8 text-center text-xs text-gray-400">
               {t('select_athlete_prompt', lang)}
@@ -180,7 +181,7 @@ export function AthletesTab({ data, athleteNames, lang, initialAthlete }: Props)
               <div className="bg-white rounded-lg shadow-sm border border-gray-100 overflow-x-auto">
                 <table className="min-w-full text-xs">
                   <thead>
-                    <tr className="bg-gray-50 border-b border-gray-200 text-[10px] uppercase tracking-wider text-gray-400">
+                    <tr className="bg-gray-50 border-b border-gray-200 text-[11px] uppercase tracking-wider text-gray-500">
                       <th scope="col" className="px-3 py-2 text-left font-semibold">{t('year', lang)}</th>
                       <th scope="col" className="px-3 py-2 text-left font-semibold">{t('select_event', lang).replace(':', '')}</th>
                       <th scope="col" className="px-3 py-2 text-left font-semibold">{t('class_rank', lang)}</th>
@@ -196,7 +197,7 @@ export function AthletesTab({ data, athleteNames, lang, initialAthlete }: Props)
                       const delta = prevYearTime[`${e.type}_${e.year}`]
                       return (
                         <tr key={key} className={`border-b border-gray-100 hover:bg-blue-50/20 transition-colors ${i % 2 === 0 ? 'bg-white' : 'bg-gray-50/40'}`}>
-                          <td className="px-3 py-1.5 text-gray-500">{e.year}</td>
+                          <th scope="row" className="px-3 py-1.5 text-gray-500 font-normal">{e.year}</th>
                           <td className="px-3 py-1.5 capitalize font-medium text-gray-700">{t(e.type, lang)}</td>
                           <td className="px-3 py-1.5 text-gray-600">{e.rank}/{e.class_total}</td>
                           <td className="px-3 py-1.5 text-gray-400 hidden sm:table-cell">{e.overall_rank}/{e.overall_total}</td>
@@ -229,7 +230,7 @@ export function AthletesTab({ data, athleteNames, lang, initialAthlete }: Props)
       {/* Charts — full width below */}
       {selected && eventList.length > 0 && (
         <div className={`bg-white rounded-lg shadow-sm border border-gray-100 p-3 transition-opacity duration-150 ${isStale ? 'opacity-50' : ''}`}>
-          <h4 className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-2">{t('class_rank', lang)} &amp; {t('total_time', lang)}</h4>
+          <h4 className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide mb-2">{t('class_rank', lang)} &amp; {t('total_time', lang)}</h4>
           <AthleteRankChart events={chartEvents} allData={data} lang={lang} />
         </div>
       )}

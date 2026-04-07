@@ -26,11 +26,11 @@ function RankTable({ data, lang, onAthleteClick }: {
   lang: Lang
   onAthleteClick?: (name: string) => void
 }) {
-  if (!data.length) return <p className="text-center text-xs text-gray-400 py-6">{t('not_ranked', lang)}</p>
+  if (!data.length) return <p className="text-center text-xs text-gray-500 py-6">{t('not_ranked', lang)}</p>
   return (
     <table className="min-w-full text-xs">
       <thead>
-        <tr className="bg-gray-50 border-b border-gray-200 text-[10px] uppercase tracking-wider text-gray-400">
+        <tr className="bg-gray-50 border-b border-gray-200 text-[11px] uppercase tracking-wider text-gray-500">
           <th scope="col" className="px-3 py-2 text-left w-10 font-semibold">{t('rank', lang)}</th>
           <th scope="col" className="px-3 py-2 text-left font-semibold">{t('athlete', lang)}</th>
           <th scope="col" className="px-3 py-2 text-right font-semibold">{t('total_points', lang)}</th>
@@ -44,11 +44,11 @@ function RankTable({ data, lang, onAthleteClick }: {
           const color = MEDAL_COLOR[rank] ?? '#6B7280'
           return (
             <tr key={a.name} className={`${bg} border-b border-gray-100 hover:bg-blue-50/20 transition-colors`}>
-              <td className="px-3 py-1.5 font-bold tabular-nums" style={{ color }}>{rank}</td>
+              <th scope="row" className="px-3 py-1.5 font-bold tabular-nums" style={{ color }}>{rank}</th>
               <td className="px-3 py-1.5 font-medium text-gray-800">
                 {onAthleteClick ? (
                   <button onClick={() => onAthleteClick(a.name)}
-                    className="hover:text-red-700 hover:underline transition-colors text-left">
+                    className="hover:text-red-700 hover:underline transition-colors text-left focus-visible:ring-2 focus-visible:ring-red-700 focus-visible:ring-offset-1 rounded">
                     {a.name}
                   </button>
                 ) : a.name}
@@ -85,9 +85,9 @@ export function RankingsTab({ data, lang, onAthleteClick }: Props) {
       </div>
 
       <div className="bg-white rounded-lg shadow-sm border border-gray-100 px-4 py-2.5 flex items-center gap-3">
-        <label className="text-[10px] font-medium text-gray-400 uppercase tracking-wide">{t('select_year', lang)}</label>
-        <select value={year} onChange={(e) => setYear(e.target.value)}
-          className="border border-gray-200 rounded px-2 py-1 text-xs bg-white">
+        <label htmlFor="rankings-year" className="text-[11px] font-medium text-gray-500 uppercase tracking-wide">{t('select_year', lang)}</label>
+        <select id="rankings-year" value={year} onChange={(e) => setYear(e.target.value)}
+          className="border border-gray-200 rounded px-2 py-1 text-xs bg-white focus-visible:ring-2 focus-visible:ring-red-700 focus-visible:ring-offset-1">
           {years.map((y) => (
             <option key={y} value={y}>{y === 'all' ? t('all_years', lang) : y}</option>
           ))}

@@ -154,7 +154,6 @@ const TRANSLATIONS: Record<string, { en: string; sv: string }> = {
   export_csv:               { en: 'Export CSV', sv: 'Exportera CSV' },
   improvement:              { en: 'vs prev.', sv: 'jmf föreg.' },
   split_times_hint:         { en: 'Split times and ranks visible on wider screens.', sv: 'Deltider och placeringar visas på bredare skärmar.' },
-  switch_to_swedish:        { en: 'Switch to Swedish', sv: 'Byt till engelska' },
 }
 
 export function t(key: string, lang: Lang = 'en'): string {

@@ -1,7 +1,6 @@
 'use client'
 import Image from 'next/image'
 import { useLang } from './LanguageProvider'
-import { t } from '@/lib/translations'
 
 export function Header() {
   const { lang, setLang } = useLang()
@@ -18,8 +17,8 @@ export function Header() {
         />
         <button
           onClick={() => setLang(lang === 'en' ? 'sv' : 'en')}
-          aria-label={t('switch_to_swedish', lang)}
-          className="text-xs font-medium text-gray-500 hover:text-red-700 border border-gray-200 rounded-md px-2.5 py-1 transition-colors bg-gray-50 hover:bg-white"
+          aria-label={lang === 'en' ? 'Switch to Swedish' : 'Switch to English'}
+          className="text-xs font-medium text-gray-500 hover:text-red-700 border border-gray-200 rounded-md px-2.5 py-1 transition-colors bg-gray-50 hover:bg-white focus-visible:ring-2 focus-visible:ring-red-700 focus-visible:ring-offset-1"
         >
           {lang === 'en' ? '🇸🇪 Svenska' : '🇬🇧 English'}
         </button>

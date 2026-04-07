@@ -49,10 +49,11 @@ export function Dashboard({ data, athleteNames, participationByYear }: Props) {
           <button
             key={id}
             onClick={() => setTab(id)}
-            className={`flex-1 py-2.5 text-[11px] sm:text-xs font-semibold tracking-wide border-b-2 transition-all text-center uppercase ${
+            aria-pressed={tab === id}
+            className={`flex-1 py-2.5 text-[11px] sm:text-xs font-semibold tracking-wide border-b-2 transition-all text-center uppercase focus-visible:ring-2 focus-visible:ring-red-700 focus-visible:ring-offset-1 ${
               tab === id
                 ? 'border-red-700 text-red-700 bg-red-50/50'
-                : 'border-transparent text-gray-400 hover:text-gray-600 hover:border-gray-300 hover:bg-gray-50/50'
+                : 'border-transparent text-gray-500 hover:text-gray-600 hover:border-gray-300 hover:bg-gray-50/50'
             }`}
           >
             <span className="sm:hidden">{short}</span>

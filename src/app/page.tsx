@@ -13,7 +13,7 @@ export default function Home() {
   const participationByYear = getParticipationByYear(data)
 
   return (
-    <main>
+    <main id="main">
       <Dashboard
         data={data}
         athleteNames={athleteNames}
