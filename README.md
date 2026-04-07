@@ -44,12 +44,10 @@ The dataset currently covers **25 competitions** across 6 sports (triathlon, dua
 ### Installation
 
 ```bash
-git clone --recurse-submodules https://github.com/Thiebauts/triathlon-vast-dashboard.git
+git clone https://github.com/Thiebauts/triathlon-vast-dashboard.git
 cd triathlon-vast-dashboard
 npm install
 ```
-
-> **Note:** The `data/` directory is a private Git submodule ([triathlon-vast-data](https://github.com/Thiebauts/triathlon-vast-data)). If you cloned without `--recurse-submodules`, run `git submodule update --init` to populate it.
 
 ### Quick Start
 
@@ -67,7 +65,7 @@ triathlon-vast-dashboard/
 ├── package.json
 ├── next.config.ts
 ├── test-dashboard.mjs           # Smoke test script (Playwright)
-├── data/                        # Private submodule (triathlon-vast-data)
+├── data/                        # CSV result files (inputs, not edited manually)
 │   └── processed_<sport>_results_<date>.csv
 ├── public/                      # Static assets (logo, favicon)
 └── src/
@@ -130,7 +128,7 @@ When exporting results from NyTaTime, follow these rules to keep the data consis
 
 ## Deployment
 
-Deployed on Vercel. Push to `main` triggers an automatic production deploy. CSV data files live in a [private submodule](https://github.com/Thiebauts/triathlon-vast-data) and are bundled at build time — update the submodule and redeploy to refresh results.
+Deployed on Vercel. Push to `main` triggers an automatic production deploy. CSV data files are bundled at build time — update `data/` and redeploy to refresh results.
 
 ## License
 
