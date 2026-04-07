@@ -1,18 +1,48 @@
-# Triathlon Väst Dashboard
+<p align="center">
+  <img src="public/github-banner.png" alt="Triathlon Väst Dashboard" width="100%" />
+</p>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/TypeScript-5.x-blue" alt="TypeScript" />
+  <img src="https://img.shields.io/badge/Next.js-16-black" alt="Next.js" />
+  <img src="https://img.shields.io/badge/React-19-blue" alt="React" />
+  <img src="https://img.shields.io/badge/Tailwind-4.x-38bdf8" alt="Tailwind CSS" />
+  <img src="https://img.shields.io/badge/Status-Active-brightgreen" alt="Status" />
+</p>
 
 > Club results dashboard for Triathlon Väst — explore competition history, athlete rankings, and participation trends across 6 sports from 2021 to 2025.
-
-![TypeScript](https://img.shields.io/badge/TypeScript-5.x-blue)
-![Next.js](https://img.shields.io/badge/Next.js-16-black)
-![React](https://img.shields.io/badge/React-19-blue)
-![Tailwind CSS](https://img.shields.io/badge/Tailwind-4.x-38bdf8)
-![Status](https://img.shields.io/badge/Status-Active-brightgreen)
 
 ## Overview
 
 An internal analytics dashboard for Triathlon Väst members. It aggregates CSV result files from club competitions (triathlon, duathlon, swimming, cycling, running, swimrun) spanning 2021–2025 and makes them searchable and visual. Athletes can look up their personal results, track rankings over time, and compare against the full field.
 
 The dataset currently covers **25 competitions** across 6 sports (triathlon, duathlon, swimming, cycling, running, swimrun) from **2021–2025**, including 1 swimrun event added in 2025.
+
+## Screenshots
+
+### Event Results
+
+Browse all competition results filtered by sport, year, and category. Each entry shows overall and class rankings, total time, and individual segment splits.
+
+<p align="center">
+  <img src="public/screenshot-event-results.png" alt="Event Results tab" width="100%" />
+</p>
+
+### Athlete Profiles
+
+Individual athlete pages showing competition history, accumulated points, overall club rank, and performance trends across seasons and disciplines.
+
+<p align="center">
+  <img src="public/screenshot-athlete-profiles.png" alt="Athlete Profiles tab" width="100%" />
+</p>
+
+### Club Rankings
+
+Annual leaderboards for men and women, based on a points system that rewards consistent participation — 1st place earns 40 pts, 2nd 35 pts, 3rd 30 pts, and so on.
+
+<p align="center">
+  <img src="public/screenshot-club-rankings.png" alt="Club Rankings tab" width="100%" />
+</p>
 
 ## Highlights
 
