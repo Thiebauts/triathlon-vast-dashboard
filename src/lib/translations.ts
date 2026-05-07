@@ -67,9 +67,10 @@ const TRANSLATIONS: Record<string, { en: string; sv: string }> = {
   select_year:     { en: 'Select Year:',     sv: 'Välj År:' },
   select_category: { en: 'Select Category:', sv: 'Välj Kategori:' },
   all_years:       { en: 'All Years (Combined)', sv: 'Alla År (Kombinerat)' },
-  all_mixed:       { en: 'All (Mixed)',      sv: 'Alla (Mixed)' },
+  all_mixed:       { en: 'Adults (Mixed)',   sv: 'Vuxna (Mixed)' },
   men_only:        { en: 'Men Only',         sv: 'Endast Herrar' },
   women_only:      { en: 'Women Only',       sv: 'Endast Damer' },
+  youth_only:      { en: 'Youth Only',       sv: 'Endast Ungdom' },
 
   cycling:   { en: 'Cycling',   sv: 'Cykling' },
   duathlon:  { en: 'Duathlon',  sv: 'Duathlon' },

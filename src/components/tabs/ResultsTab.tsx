@@ -47,7 +47,10 @@ interface Props {
 export function ResultsTab({ data, splitRanks, lang, onAthleteClick }: Props) {
   const [sport, setSport] = useState<SportType>('triathlon')
   const [year, setYear] = useState<string>('all')
-  const [category, setCategory] = useState<'all' | 'men' | 'women'>('all')
+  // 'all' = adults only (Herr + Dam); youth (Ungdom) is its own category
+  // because it races a different/shorter course and shouldn't be ranked
+  // alongside adult times.
+  const [category, setCategory] = useState<'all' | 'men' | 'women' | 'youth'>('all')
   const [search, setSearch] = useState('')
   const deferredSearch = useDeferredValue(search)
 
@@ -64,8 +67,10 @@ export function ResultsTab({ data, splitRanks, lang, onAthleteClick }: Props) {
   const rows = useMemo(() => {
     let list = data[sport]
     if (year !== 'all') list = list.filter((a) => a.Competition_Year === year)
-    if (category === 'men') list = list.filter((a) => a.class_lower === 'herr')
+    if (category === 'all')   list = list.filter((a) => a.class_lower === 'herr' || a.class_lower === 'dam')
+    if (category === 'men')   list = list.filter((a) => a.class_lower === 'herr')
     if (category === 'women') list = list.filter((a) => a.class_lower === 'dam')
+    if (category === 'youth') list = list.filter((a) => a.class_lower === 'ungdom')
     if (deferredSearch.trim()) {
       const q = deferredSearch.toLowerCase()
       list = list.filter((a) => a.Name.toLowerCase().includes(q))
@@ -146,11 +151,12 @@ export function ResultsTab({ data, splitRanks, lang, onAthleteClick }: Props) {
         </div>
         <div>
           <label htmlFor="filter-category" className="block text-[11px] font-medium text-gray-500 uppercase tracking-wide mb-1">{t('select_category', lang)}</label>
-          <select id="filter-category" value={category} onChange={(e) => setCategory(e.target.value as 'all' | 'men' | 'women')}
+          <select id="filter-category" value={category} onChange={(e) => setCategory(e.target.value as 'all' | 'men' | 'women' | 'youth')}
             className="border border-gray-200 rounded px-2 py-1 text-xs bg-white focus-visible:ring-2 focus-visible:ring-red-700 focus-visible:ring-offset-1">
             <option value="all">{t('all_mixed', lang)}</option>
             <option value="men">{t('men_only', lang)}</option>
             <option value="women">{t('women_only', lang)}</option>
+            <option value="youth">{t('youth_only', lang)}</option>
           </select>
         </div>
         <div>
