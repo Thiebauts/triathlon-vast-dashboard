@@ -42,3 +42,9 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# python (nytatime/)
+__pycache__/
+*.pyc
+.venv/
+nytatime/.venv/
