@@ -59,10 +59,11 @@ test('loadAllCompetitions: normalizes legacy class names', () => {
   for (const sport of Object.keys(data) as Array<keyof typeof data>) {
     for (const a of data[sport]) classes.add(a.Class)
   }
-  // After normalization there should be no 'Damer'/'Herrar'/'Man' variants
-  assert.equal(classes.has('Damer'), false)
-  assert.equal(classes.has('Herrar'), false)
-  assert.equal(classes.has('Man'), false)
+  // After normalization there should be no raw legacy variants — they all map
+  // to either 'Dam' or 'Herr'.
+  for (const legacy of ['Damer', 'Herrar', 'Man', 'Män', 'Kvinna', 'Kvinnor']) {
+    assert.equal(classes.has(legacy), false, `Class "${legacy}" should be normalized away`)
+  }
 })
 
 test('loadAllCompetitions: returns the same reference on repeat call (caching)', () => {

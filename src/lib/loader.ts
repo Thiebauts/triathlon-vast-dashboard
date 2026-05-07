@@ -22,9 +22,12 @@ const INT_FIELDS: ReadonlySet<string> = new Set(['Overall_Rank', 'Class_Rank'])
 /** Normalise historical class-name variations to a single canonical form. */
 function normalizeClass(cls: string): string {
   switch (cls.trim().toLowerCase()) {
-    case 'damer': return 'Dam'
+    case 'damer':
+    case 'kvinna':
+    case 'kvinnor': return 'Dam'
     case 'herrar':
-    case 'man': return 'Herr'
+    case 'man':
+    case 'män': return 'Herr'
     default: return cls.trim()
   }
 }
