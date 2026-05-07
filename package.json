@@ -2,11 +2,16 @@
   "name": "triathlon-vast-dashboard-vercel",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test": "node --test --experimental-strip-types --no-warnings 'src/lib/__tests__/*.test.ts'",
+    "test:e2e": "node tests/e2e.mjs"
   },
   "dependencies": {
     "next": "^16.2.2",

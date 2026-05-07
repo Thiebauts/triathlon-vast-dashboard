@@ -59,16 +59,15 @@ async function run() {
     if (count < 4) throw new Error(`Only ${count} tabs found`)
   })
 
-  await test('Stat cards show numbers', async () => {
-    // Look for large numeric values in red (metric cards) — now text-2xl
-    const redNumbers = page.locator('.text-red-700.text-2xl, .text-2xl.font-bold.text-red-700')
-    const count = await redNumbers.count()
-    if (count < 3) throw new Error(`Only ${count} stat cards found`)
+  await test('Discipline cards visible', async () => {
+    // Overview tab now lists club championship disciplines instead of stat cards
+    const card = page.locator('text=Running — 5 km Track Race')
+    await card.waitFor({ state: 'visible', timeout: 5000 })
   })
 
   await test('Participation chart renders', async () => {
-    // Recharts renders an SVG
-    const svg = page.locator('svg').first()
+    // Recharts renders an SVG inside the visible Overview subtree
+    const svg = page.locator('div:not([hidden]) svg').first()
     await svg.waitFor({ state: 'visible', timeout: 5000 })
   })
 
@@ -113,16 +112,17 @@ async function run() {
   })
 
   await test('Sport selector visible with options', async () => {
-    const select = page.locator('select').first()
+    // Tabs stay mounted via `hidden`; scope locators to visible selects only.
+    const select = page.locator('select:visible').first()
     await select.waitFor({ state: 'visible' })
     const options = await select.locator('option').allTextContents()
     if (!options.some(o => /triathlon/i.test(o))) throw new Error('No triathlon option')
   })
 
   await test('Year selector visible', async () => {
-    const selects = page.locator('select')
+    const selects = page.locator('select:visible')
     const count = await selects.count()
-    if (count < 2) throw new Error(`Only ${count} selects`)
+    if (count < 2) throw new Error(`Only ${count} visible selects`)
   })
 
   await test('Results table renders with rows', async () => {
@@ -139,7 +139,7 @@ async function run() {
   })
 
   await test('Filter by year 2024', async () => {
-    const yearSelect = page.locator('select').nth(1)
+    const yearSelect = page.locator('select:visible').nth(1)
     await yearSelect.selectOption('2024')
     await page.waitForTimeout(500)
     const rows = page.locator('table tbody tr')
@@ -148,7 +148,7 @@ async function run() {
   })
 
   await test('Filter by category (Men Only)', async () => {
-    const catSelect = page.locator('select').nth(2)
+    const catSelect = page.locator('select:visible').nth(2)
     await catSelect.selectOption('men')
     await page.waitForTimeout(400)
     const rows = page.locator('table tbody tr')
@@ -157,7 +157,7 @@ async function run() {
   })
 
   await test('Switch sport to Swimming', async () => {
-    const sportSelect = page.locator('select').first()
+    const sportSelect = page.locator('select:visible').first()
     await sportSelect.selectOption('swimming')
     await page.waitForTimeout(500)
     const rows = page.locator('table tbody tr')
@@ -166,7 +166,7 @@ async function run() {
   })
 
   await test('Switch sport to Cycling', async () => {
-    const sportSelect = page.locator('select').first()
+    const sportSelect = page.locator('select:visible').first()
     await sportSelect.selectOption('cycling')
     await page.waitForTimeout(500)
     const rows = page.locator('table tbody tr')
@@ -175,7 +175,7 @@ async function run() {
   })
 
   await test('Switch sport to Running', async () => {
-    const sportSelect = page.locator('select').first()
+    const sportSelect = page.locator('select:visible').first()
     await sportSelect.selectOption('running')
     await page.waitForTimeout(500)
     const rows = page.locator('table tbody tr')
@@ -184,7 +184,7 @@ async function run() {
   })
 
   await test('Switch sport to Duathlon', async () => {
-    const sportSelect = page.locator('select').first()
+    const sportSelect = page.locator('select:visible').first()
     await sportSelect.selectOption('duathlon')
     await page.waitForTimeout(500)
     const rows = page.locator('table tbody tr')
@@ -193,7 +193,7 @@ async function run() {
   })
 
   await test('Triathlon shows segment columns (Swim/T1/Bike/T2/Run)', async () => {
-    const sportSelect = page.locator('select').first()
+    const sportSelect = page.locator('select:visible').first()
     await sportSelect.selectOption('triathlon')
     await page.waitForTimeout(500)
     const swimHeader = page.locator('th', { hasText: /swim/i })
@@ -203,10 +203,11 @@ async function run() {
   })
 
   await test('All-years view sorts by best time', async () => {
-    const yearSelect = page.locator('select').nth(1)
+    const yearSelect = page.locator('select:visible').nth(1)
     await yearSelect.selectOption('all')
     await page.waitForTimeout(500)
-    const firstRank = await page.locator('table tbody tr').first().locator('td').first().textContent()
+    // Rank cell is `<th scope="row">` for accessibility, not `<td>`.
+    const firstRank = await page.locator('table tbody tr').first().locator('th[scope="row"]').first().textContent()
     if (firstRank?.trim() !== '1') throw new Error(`First rank is "${firstRank}", expected "1"`)
   })
 
@@ -222,12 +223,14 @@ async function run() {
   })
 
   await test('Athlete search input visible', async () => {
-    const input = page.locator('input[placeholder="Search…"]')
+    // Both Results and Athletes tabs render an input with this placeholder; the
+    // hidden one is in the DOM but display:none, so filter to visible.
+    const input = page.locator('input[placeholder="Search athlete…"]:visible')
     await input.waitFor({ state: 'visible', timeout: 3000 })
   })
 
   await test('Athlete list populated', async () => {
-    const items = page.locator('ul li button')
+    const items = page.locator('ul li button:visible')
     const count = await items.count()
     if (count === 0) throw new Error('No athletes in list')
     console.log(`     (${count} athletes found)`)
@@ -239,10 +242,10 @@ async function run() {
   })
 
   await test('Search filters athlete list', async () => {
-    const input = page.locator('input[placeholder="Search…"]')
+    const input = page.locator('input[placeholder="Search athlete…"]:visible')
     await input.fill('Jon')
     await page.waitForTimeout(300)
-    const items = page.locator('ul li button')
+    const items = page.locator('ul li button:visible')
     const count = await items.count()
     if (count === 0) throw new Error('Search returned 0 results for "Jon"')
     const all = await items.allTextContents()
@@ -250,10 +253,10 @@ async function run() {
   })
 
   await test('Select first athlete shows profile', async () => {
-    const input = page.locator('input[placeholder="Search…"]')
+    const input = page.locator('input[placeholder="Search athlete…"]:visible')
     await input.clear()
     await page.waitForTimeout(300)
-    const firstAthlete = page.locator('ul li button').first()
+    const firstAthlete = page.locator('ul li button:visible').first()
     const name = await firstAthlete.textContent()
     await firstAthlete.click()
     await page.waitForTimeout(800)
@@ -263,21 +266,23 @@ async function run() {
     console.log(`     (selected: ${name?.trim()})`)
   })
 
-  await test('Radar chart renders for selected athlete', async () => {
-    const svgs = page.locator('svg')
+  await test('Athlete chart renders after selection', async () => {
+    // Recharts renders SVGs inside the visible Athletes subtree.
+    const svgs = page.locator('div:not([hidden]) svg')
+    await svgs.first().waitFor({ state: 'visible', timeout: 5000 })
     const count = await svgs.count()
-    if (count < 2) throw new Error('No chart SVG found after athlete selection')
+    if (count < 1) throw new Error('No chart SVG found after athlete selection')
   })
 
   await test('Event table shows for selected athlete', async () => {
-    const rows = page.locator('table tbody tr')
+    // Multiple tables exist (Results tab is mounted but hidden); count visible rows only.
+    const rows = page.locator('table tbody tr:visible')
     const count = await rows.count()
     if (count === 0) throw new Error('No event rows for selected athlete')
   })
 
   await test('Club member badge shown on profile', async () => {
     // Either "TriVäst Member" badge or "Guest"
-    const badge = page.locator('text=TriVäst Member, text=Guest').first()
     const memberBadge = page.locator('text=TriVäst Member')
     const guestBadge = page.locator('text=Guest')
     const hasMember = await memberBadge.count() > 0
@@ -286,7 +291,7 @@ async function run() {
   })
 
   await test('Select a different athlete', async () => {
-    const athletes = page.locator('ul li button')
+    const athletes = page.locator('ul li button:visible')
     const count = await athletes.count()
     const secondIdx = Math.min(5, count - 1)
     const second = athletes.nth(secondIdx)
@@ -320,39 +325,39 @@ async function run() {
   })
 
   await test('Top 3 ranks styled (medal colors)', async () => {
-    // Rankings table has rank numbers styled with medal colors via inline style
-    const rankCells = page.locator('table tbody tr td:first-child')
+    // Rank cell is `<th scope="row">`, not `<td>`, for accessibility.
+    const rankCells = page.locator('table tbody tr th[scope="row"]:visible')
     await rankCells.first().waitFor({ state: 'visible', timeout: 3000 })
     const firstRank = await rankCells.first().textContent()
     if (!firstRank || firstRank.trim() === '') throw new Error('No rank cell found')
   })
 
   await test('Points column has non-zero values', async () => {
-    const cells = page.locator('table tbody tr td:nth-child(3)')
+    // Row layout: <th>rank</th><td>name</td><td>points</td>... ; points is :nth-child(3)
+    const cells = page.locator('table tbody tr td:nth-child(3):visible')
     const first = await cells.first().textContent()
     if (!first || parseInt(first) <= 0) throw new Error(`First points value is "${first}"`)
   })
 
   await test('Year filter changes data', async () => {
-    const rowsBefore = await page.locator('table tbody tr').count()
-    const yearSelect = page.locator('select').first()
+    const rowsBefore = await page.locator('table tbody tr:visible').count()
+    const yearSelect = page.locator('select:visible').first()
     const options = await yearSelect.locator('option').allTextContents()
     const specific = options.find(o => /^\d{4}$/.test(o.trim()))
     if (specific) {
       await yearSelect.selectOption(specific.trim())
       await page.waitForTimeout(500)
-      const rowsAfter = await page.locator('table tbody tr').count()
-      // Either same or different — just no crash
+      const rowsAfter = await page.locator('table tbody tr:visible').count()
       if (rowsAfter < 0) throw new Error('Negative rows')
       console.log(`     (all years: ${rowsBefore} rows → ${specific}: ${rowsAfter} rows)`)
     }
   })
 
   await test('Reset to all years', async () => {
-    const yearSelect = page.locator('select').first()
+    const yearSelect = page.locator('select:visible').first()
     await yearSelect.selectOption('all')
     await page.waitForTimeout(500)
-    const rows = page.locator('table tbody tr')
+    const rows = page.locator('table tbody tr:visible')
     const count = await rows.count()
     if (count === 0) throw new Error('No rows after resetting year filter')
   })
@@ -390,7 +395,7 @@ async function run() {
   })
 
   await test('Sport labels in Swedish', async () => {
-    const select = page.locator('select').first()
+    const select = page.locator('select:visible').first()
     const options = await select.locator('option').allTextContents()
     if (!options.some(o => /Triathlon/i.test(o))) throw new Error('No Swedish sport options')
   })
