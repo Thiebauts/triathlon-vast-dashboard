@@ -70,9 +70,11 @@ export function ResultsTab({ data, splitRanks, lang, onAthleteClick }: Props) {
       const q = deferredSearch.toLowerCase()
       list = list.filter((a) => a.Name.toLowerCase().includes(q))
     }
-    return year === 'all'
-      ? [...list].sort((a, b) => (a.Total_Time_Seconds || Infinity) - (b.Total_Time_Seconds || Infinity))
-      : [...list].sort((a, b) => (a.Overall_Rank || 999) - (b.Overall_Rank || 999))
+    // Always sort by Total_Time so the rank shown matches the visible list,
+    // not the CSV's Overall_Rank (which counts every class). This makes "1st"
+    // mean "first in the current filter" — e.g. first woman is rank 1, not
+    // rank 4, and Adults (Mixed) starts at 1 even when Ungdom is hidden.
+    return [...list].sort((a, b) => (a.Total_Time_Seconds || Infinity) - (b.Total_Time_Seconds || Infinity))
   }, [data, sport, year, category, deferredSearch])
 
   const segs = useMemo(() => {
@@ -100,7 +102,7 @@ export function ResultsTab({ data, splitRanks, lang, onAthleteClick }: Props) {
     ]
     const csvRows = [headers.map(csvEscape).join(',')]
     rows.forEach((a, i) => {
-      const rank = year === 'all' ? i + 1 : a.Overall_Rank
+      const rank = i + 1
       csvRows.push([
         rank,
         csvEscape(a.Name),
@@ -200,7 +202,7 @@ export function ResultsTab({ data, splitRanks, lang, onAthleteClick }: Props) {
             </thead>
             <tbody>
               {rows.map((a, i) => {
-                const rank = year === 'all' ? i + 1 : a.Overall_Rank
+                const rank = i + 1
                 const isMember = a.is_club_member
                 const sr = splitRankLookup?.[athleteKey(a)] ?? {}
                 const bg = rank === 1 ? 'bg-amber-50/60'
