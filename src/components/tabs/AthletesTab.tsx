@@ -2,8 +2,8 @@
 import { useState, useMemo, useDeferredValue } from 'react'
 import dynamic from 'next/dynamic'
 import { t } from '@/lib/translations'
-import { getAthleteEvents, getClubRankings } from '@/lib/data'
-import type { CompetitionsData, Lang } from '@/lib/types'
+import { getAthleteEvents } from '@/lib/data'
+import type { CompetitionsData, Lang, ClubAthlete } from '@/lib/types'
 
 const AthleteRankChart = dynamic(
   () => import('@/components/charts/AthleteCharts').then((m) => m.AthleteRankChart),
@@ -13,6 +13,8 @@ const AthleteRankChart = dynamic(
 interface Props {
   data: CompetitionsData
   athleteNames: string[]
+  /** Precomputed server-side: getClubRankings(data, 'all', 'all') */
+  allTimeRankings: ClubAthlete[]
   lang: Lang
   initialAthlete?: string | null
 }
@@ -30,7 +32,7 @@ function formatDelta(seconds: number): string {
   return `${sign}${s}s`
 }
 
-export function AthletesTab({ data, athleteNames, lang, initialAthlete }: Props) {
+export function AthletesTab({ data, athleteNames, allTimeRankings, lang, initialAthlete }: Props) {
   const [search, setSearch] = useState('')
   const deferredSearch = useDeferredValue(search)
   const [selected, setSelected] = useState<string | null>(initialAthlete ?? null)
@@ -53,16 +55,11 @@ export function AthletesTab({ data, athleteNames, lang, initialAthlete }: Props)
     [data, deferredSelected],
   )
 
-  const allRankings = useMemo(
-    () => getClubRankings(data, 'all', 'all'),
-    [data],
-  )
-
   const clubPos = useMemo(() => {
     if (!selected) return null
-    const idx = allRankings.findIndex((a) => a.name === selected)
-    return idx >= 0 ? { rank: idx + 1, total: allRankings.length, pts: allRankings[idx].total_points } : null
-  }, [allRankings, selected])
+    const idx = allTimeRankings.findIndex((a) => a.name === selected)
+    return idx >= 0 ? { rank: idx + 1, total: allTimeRankings.length, pts: allTimeRankings[idx].total_points } : null
+  }, [allTimeRankings, selected])
 
   const eventList = useMemo(
     () => Object.entries(events).sort(([, a], [, b]) => b.year.localeCompare(a.year)),

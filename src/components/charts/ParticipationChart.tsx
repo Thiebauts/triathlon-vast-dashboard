@@ -14,13 +14,14 @@ const SPORT_COLORS: Record<string, string> = {
   swimrun:   '#00838f',
 }
 
+const SPORTS = ['triathlon', 'duathlon', 'swimming', 'cycling', 'running', 'swimrun'] as const
+
 interface Props {
   data: Array<{ year: string; triathlon: number; duathlon: number; swimming: number; cycling: number; running: number; swimrun: number }>
   lang: Lang
 }
 
 export function ParticipationChart({ data, lang }: Props) {
-  const sports = ['triathlon', 'duathlon', 'swimming', 'cycling', 'running', 'swimrun']
   return (
     <ResponsiveContainer width="100%" height={320} aria-label="Participation trends by sport and year">
       <BarChart data={data} margin={{ top: 10, right: 20, left: 0, bottom: 5 }}>
@@ -29,7 +30,7 @@ export function ParticipationChart({ data, lang }: Props) {
         <YAxis tick={{ fontSize: 13 }} />
         <Tooltip />
         <Legend />
-        {sports.map((s) => (
+        {SPORTS.map((s) => (
           <Bar key={s} dataKey={s} name={t(s, lang)} stackId="a" fill={SPORT_COLORS[s]} />
         ))}
       </BarChart>

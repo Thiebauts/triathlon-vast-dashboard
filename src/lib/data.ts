@@ -25,15 +25,15 @@ export function computeSplitRanks(
   const result = new Map<string, SplitRanks>()
   for (const a of athletes) result.set(athleteKey(a), {})
 
-  const fields: Array<[string, keyof SplitRanks]> =
+  const fields: Array<[keyof AthleteResult, keyof SplitRanks]> =
     sport === 'triathlon'
       ? [['Swim_Seconds', 'swim'], ['T1_Seconds', 't1'], ['Bike_Seconds', 'bike'], ['T2_Seconds', 't2'], ['Run_Seconds', 'run']]
       : [['Run1_Seconds', 'run1'], ['T1_Seconds', 't1'], ['Bike_Seconds', 'bike'], ['T2_Seconds', 't2'], ['Run2_Seconds', 'run2']]
 
   for (const [field, key] of fields) {
     const sorted = athletes
-      .map((a) => ({ a, val: parseFloat(String((a as unknown as Record<string, unknown>)[field] ?? '0')) || Infinity }))
-      .filter((x) => x.val < Infinity)
+      .map((a) => ({ a, val: (a[field] as number | undefined) ?? 0 }))
+      .filter((x) => x.val > 0)
       .sort((a, b) => a.val - b.val)
     sorted.forEach(({ a }, idx) => {
       result.get(athleteKey(a))![key] = idx + 1
@@ -42,11 +42,42 @@ export function computeSplitRanks(
   return result
 }
 
+/**
+ * Build split-rank maps for every (sport, year) tuple in the dataset. Returns
+ * a single merged map; safe because athleteKey includes the year.
+ *
+ * Run server-side and pass to the client to avoid recomputing on each render.
+ */
+export function buildAllSplitRanks(data: CompetitionsData): Record<'triathlon' | 'duathlon', Record<string, SplitRanks>> {
+  const out: Record<'triathlon' | 'duathlon', Record<string, SplitRanks>> = {
+    triathlon: {}, duathlon: {},
+  }
+  for (const sport of ['triathlon', 'duathlon'] as const) {
+    const byYear: Record<string, AthleteResult[]> = {}
+    for (const a of data[sport]) {
+      byYear[a.Competition_Year] = byYear[a.Competition_Year] ?? []
+      byYear[a.Competition_Year].push(a)
+    }
+    for (const group of Object.values(byYear)) {
+      computeSplitRanks(group, sport).forEach((v, k) => { out[sport][k] = v })
+    }
+  }
+  return out
+}
+
 // ─── Club membership ──────────────────────────────────────────────────────────
 
-export function isClubMember(club: string): boolean {
-  const c = (club ?? '').toLowerCase().trim()
-  return ['triväst', 'triathlon väst', 'tv'].includes(c)
+/**
+ * Accepts an AthleteResult (uses the precomputed flag) or a raw club string.
+ * Prefer passing the AthleteResult — the string overload is for one-off lookups
+ * outside the parsed data set.
+ */
+export function isClubMember(a: AthleteResult | string): boolean {
+  if (typeof a === 'string') {
+    const c = a.toLowerCase().trim()
+    return c === 'triväst' || c === 'triathlon väst' || c === 'tv'
+  }
+  return a.is_club_member
 }
 
 // ─── Points system ────────────────────────────────────────────────────────────
@@ -67,9 +98,9 @@ export function calculateClubMemberRank(
   athlete: AthleteResult,
   allInEvent: AthleteResult[],
 ): number {
-  if (!isClubMember(athlete.Club)) return 999
+  if (!athlete.is_club_member) return 999
   const sameClass = allInEvent.filter(
-    (a) => isClubMember(a.Club) && a.Class === athlete.Class,
+    (a) => a.is_club_member && a.Class === athlete.Class,
   )
   const sorted = [...sameClass].sort(
     (a, b) => (a.Total_Time_Seconds ?? Infinity) - (b.Total_Time_Seconds ?? Infinity),
@@ -96,7 +127,7 @@ export function getSummaryStats(data: CompetitionsData): SummaryStats {
     for (const yearGroup of Object.values(byYear)) {
       competitions_count++
       total_participants += yearGroup.length
-      total_club_members += yearGroup.filter((a) => isClubMember(a.Club)).length
+      total_club_members += yearGroup.filter((a) => a.is_club_member).length
     }
   }
 
@@ -145,7 +176,7 @@ export function getAthleteEvents(
       const sameYear = byYear[a.Competition_Year]
       const classTotal = sameYear.filter((x) => x.Class === a.Class).length
       const cmRank = calculateClubMemberRank(a, sameYear)
-      const isMember = isClubMember(a.Club)
+      const isMember = a.is_club_member
       const key = `${sport}_${a.Competition_Year}`
       events[key] = {
         type: sport,
@@ -175,12 +206,22 @@ export function getAthleteEvents(
 
 // ─── Club rankings ────────────────────────────────────────────────────────────
 
+/**
+ * Aggregates points per club member across sports and years.
+ *
+ * Athletes are keyed by `Name`. This assumes member names are unique within
+ * the club — verified true for the current dataset. If two distinct people
+ * ever share a name, points would erroneously merge into one entry. To catch
+ * that case we emit a `console.warn` (visible at build time and in dev) when
+ * an existing entry is hit with a different `Class` than first observed.
+ */
 export function getClubRankings(
   data: CompetitionsData,
   genderFilter: 'all' | 'men' | 'women' = 'all',
   yearFilter: string = 'all',
 ): ClubAthlete[] {
   const map: Record<string, ClubAthlete> = {}
+  const warned = new Set<string>()
 
   for (const [sport, athletes] of Object.entries(data) as [SportType, AthleteResult[]][]) {
     const byYear: Record<string, AthleteResult[]> = {}
@@ -195,9 +236,9 @@ export function getClubRankings(
       // Pre-compute club member ranks per class (avoids repeated filter+sort per athlete)
       const clubRanksByClass = new Map<string, Map<string, number>>()
       for (const a of yearGroup) {
-        if (!isClubMember(a.Club) || clubRanksByClass.has(a.Class)) continue
+        if (!a.is_club_member || clubRanksByClass.has(a.Class)) continue
         const classMembers = yearGroup
-          .filter((x) => isClubMember(x.Club) && x.Class === a.Class)
+          .filter((x) => x.is_club_member && x.Class === a.Class)
           .sort((x, y) => (x.Total_Time_Seconds ?? Infinity) - (y.Total_Time_Seconds ?? Infinity))
         const rankMap = new Map<string, number>()
         classMembers.forEach((x, i) => rankMap.set(x.Name, i + 1))
@@ -205,16 +246,23 @@ export function getClubRankings(
       }
 
       for (const a of yearGroup) {
-        if (!isClubMember(a.Club)) continue
-        const cls = a.Class.toLowerCase()
-        if (genderFilter === 'men' && !['herr', 'man', 'men'].includes(cls)) continue
-        if (genderFilter === 'women' && !['dam', 'woman', 'women'].includes(cls)) continue
+        if (!a.is_club_member) continue
+        const cls = a.class_lower
+        if (genderFilter === 'men' && cls !== 'herr') continue
+        if (genderFilter === 'women' && cls !== 'dam') continue
 
         const cmRank = clubRanksByClass.get(a.Class)?.get(a.Name) ?? 999
         const pts = calculatePoints(cmRank)
 
         if (!map[a.Name]) {
           map[a.Name] = { name: a.Name, gender: cls, total_points: 0, avg_rank: 0, best_rank: 999, competitions: [] }
+        } else if (map[a.Name].gender !== cls && !warned.has(a.Name)) {
+          warned.add(a.Name)
+          console.warn(
+            `[getClubRankings] Name collision: "${a.Name}" appears in classes ` +
+            `"${map[a.Name].gender}" and "${cls}" — points are being merged into one entry. ` +
+            `If these are two different athletes, the keying scheme needs to change.`,
+          )
         }
         map[a.Name].total_points += pts
         map[a.Name].best_rank = Math.min(map[a.Name].best_rank, cmRank)

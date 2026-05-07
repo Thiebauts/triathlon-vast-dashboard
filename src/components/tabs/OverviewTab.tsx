@@ -1,7 +1,9 @@
 'use client'
+import { useMemo } from 'react'
 import dynamic from 'next/dynamic'
 import { t } from '@/lib/translations'
-import type { Lang } from '@/lib/types'
+import { getParticipationByYear } from '@/lib/data'
+import type { CompetitionsData, Lang } from '@/lib/types'
 
 const ParticipationChart = dynamic(
   () => import('@/components/charts/ParticipationChart').then((m) => m.ParticipationChart),
@@ -9,7 +11,7 @@ const ParticipationChart = dynamic(
 )
 
 interface Props {
-  participationByYear: Array<{ year: string; triathlon: number; duathlon: number; swimming: number; cycling: number; running: number; swimrun: number }>
+  data: CompetitionsData
   lang: Lang
 }
 
@@ -61,7 +63,8 @@ const DISCIPLINES: Array<{
   },
 ]
 
-export function OverviewTab({ participationByYear, lang }: Props) {
+export function OverviewTab({ data, lang }: Props) {
+  const participationByYear = useMemo(() => getParticipationByYear(data), [data])
   return (
     <div className="space-y-3">
       {/* Championships overview */}

@@ -2,10 +2,12 @@
 import { useState, useMemo } from 'react'
 import { t } from '@/lib/translations'
 import { getClubRankings } from '@/lib/data'
-import type { CompetitionsData, Lang } from '@/lib/types'
+import type { CompetitionsData, Lang, ClubAthlete } from '@/lib/types'
 
 interface Props {
   data: CompetitionsData
+  /** Precomputed server-side: getClubRankings(data, 'all', 'all') */
+  allTimeRankings: ClubAthlete[]
   lang: Lang
   onAthleteClick?: (name: string) => void
 }
@@ -63,7 +65,7 @@ function RankTable({ data, lang, onAthleteClick }: {
   )
 }
 
-export function RankingsTab({ data, lang, onAthleteClick }: Props) {
+export function RankingsTab({ data, allTimeRankings, lang, onAthleteClick }: Props) {
   const [year, setYear] = useState<string>('all')
 
   const years = useMemo(() => {
@@ -73,8 +75,20 @@ export function RankingsTab({ data, lang, onAthleteClick }: Props) {
     return ['all', ...[...ys].sort().reverse()]
   }, [data])
 
-  const women = useMemo(() => getClubRankings(data, 'women', year), [data, year])
-  const men   = useMemo(() => getClubRankings(data, 'men',   year), [data, year])
+  // For year='all', filter the precomputed all-time list. For specific years,
+  // recompute since gender×year combinations are unique per render.
+  const women = useMemo(
+    () => year === 'all'
+      ? allTimeRankings.filter((a) => a.gender === 'dam')
+      : getClubRankings(data, 'women', year),
+    [data, allTimeRankings, year],
+  )
+  const men = useMemo(
+    () => year === 'all'
+      ? allTimeRankings.filter((a) => a.gender === 'herr')
+      : getClubRankings(data, 'men', year),
+    [data, allTimeRankings, year],
+  )
 
   return (
     <div className="space-y-3">

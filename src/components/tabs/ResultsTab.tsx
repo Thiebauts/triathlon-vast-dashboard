@@ -2,8 +2,7 @@
 import { useState, useMemo, useCallback, useDeferredValue, Fragment } from 'react'
 import { t } from '@/lib/translations'
 import type { CompetitionsData, SportType, Lang } from '@/lib/types'
-import { isClubMember, computeSplitRanks, athleteKey, type SplitRanks } from '@/lib/data'
-import type { AthleteResult } from '@/lib/types'
+import { athleteKey, type SplitRanks } from '@/lib/data'
 
 const SPORTS: SportType[] = ['triathlon', 'duathlon', 'swimming', 'cycling', 'running', 'swimrun']
 
@@ -24,15 +23,28 @@ function fmt(v: string | undefined) {
   return v && v !== 'N/A' ? v : '—'
 }
 
+/**
+ * Quote a CSV cell. Cells starting with `=`, `+`, `-`, `@`, tab, or CR are
+ * prefixed with a leading single-quote so spreadsheet apps treat them as text
+ * instead of evaluating them as formulas (CVE-style "CSV injection").
+ */
+function csvEscape(value: unknown): string {
+  const s = String(value ?? '').replace(/"/g, '""')
+  const needsFormulaGuard = /^[=+\-@\t\r]/.test(s)
+  return needsFormulaGuard ? `"'${s}"` : `"${s}"`
+}
+
 const D = 'hidden sm:table-cell'
 
 interface Props {
   data: CompetitionsData
+  /** Precomputed server-side via buildAllSplitRanks(data). */
+  splitRanks: Record<'triathlon' | 'duathlon', Record<string, SplitRanks>>
   lang: Lang
   onAthleteClick?: (name: string) => void
 }
 
-export function ResultsTab({ data, lang, onAthleteClick }: Props) {
+export function ResultsTab({ data, splitRanks, lang, onAthleteClick }: Props) {
   const [sport, setSport] = useState<SportType>('triathlon')
   const [year, setYear] = useState<string>('all')
   const [category, setCategory] = useState<'all' | 'men' | 'women'>('all')
@@ -47,25 +59,13 @@ export function ResultsTab({ data, lang, onAthleteClick }: Props) {
     return ['all', ...[...ys].sort().reverse()]
   }, [data, sport])
 
-  const splitRankMap = useMemo((): Map<string, SplitRanks> => {
-    if (!isMultiSport) return new Map()
-    const merged = new Map<string, SplitRanks>()
-    const byYear: Record<string, AthleteResult[]> = {}
-    for (const a of data[sport]) {
-      byYear[a.Competition_Year] = byYear[a.Competition_Year] ?? []
-      byYear[a.Competition_Year].push(a)
-    }
-    for (const group of Object.values(byYear)) {
-      computeSplitRanks(group, sport as 'triathlon' | 'duathlon').forEach((v, k) => merged.set(k, v))
-    }
-    return merged
-  }, [data, sport, isMultiSport])
+  const splitRankLookup = isMultiSport ? splitRanks[sport as 'triathlon' | 'duathlon'] : null
 
   const rows = useMemo(() => {
     let list = data[sport]
     if (year !== 'all') list = list.filter((a) => a.Competition_Year === year)
-    if (category === 'men') list = list.filter((a) => ['herr', 'man', 'men'].includes(a.Class.toLowerCase()))
-    if (category === 'women') list = list.filter((a) => ['dam', 'woman', 'women'].includes(a.Class.toLowerCase()))
+    if (category === 'men') list = list.filter((a) => a.class_lower === 'herr')
+    if (category === 'women') list = list.filter((a) => a.class_lower === 'dam')
     if (deferredSearch.trim()) {
       const q = deferredSearch.toLowerCase()
       list = list.filter((a) => a.Name.toLowerCase().includes(q))
@@ -98,14 +98,17 @@ export function ResultsTab({ data, lang, onAthleteClick }: Props) {
       t('overall_rank', lang), t('name', lang), t('club', lang),
       t('gender', lang), t('year', lang), t('total_time', lang),
     ]
-    const csvRows = [headers.join(',')]
+    const csvRows = [headers.map(csvEscape).join(',')]
     rows.forEach((a, i) => {
       const rank = year === 'all' ? i + 1 : a.Overall_Rank
-      const esc = (s: string) => {
-        const escaped = s.replace(/"/g, '""')
-        return /^[=\-+@\t\r]/.test(s) ? `"'${escaped}"` : `"${escaped}"`
-      }
-      csvRows.push([rank, esc(a.Name), esc(a.Club), a.Class, a.Competition_Year, a.Total_Time].join(','))
+      csvRows.push([
+        rank,
+        csvEscape(a.Name),
+        csvEscape(a.Club),
+        csvEscape(a.Class),
+        csvEscape(a.Competition_Year),
+        csvEscape(a.Total_Time),
+      ].join(','))
     })
     const blob = new Blob([csvRows.join('\n')], { type: 'text/csv' })
     const url = URL.createObjectURL(blob)
@@ -198,8 +201,8 @@ export function ResultsTab({ data, lang, onAthleteClick }: Props) {
             <tbody>
               {rows.map((a, i) => {
                 const rank = year === 'all' ? i + 1 : a.Overall_Rank
-                const isMember = isClubMember(a.Club)
-                const sr = isMultiSport ? (splitRankMap.get(athleteKey(a)) ?? {}) : {}
+                const isMember = a.is_club_member
+                const sr = splitRankLookup?.[athleteKey(a)] ?? {}
                 const bg = rank === 1 ? 'bg-amber-50/60'
                          : rank === 2 ? 'bg-slate-50/80'
                          : rank === 3 ? 'bg-orange-50/50'

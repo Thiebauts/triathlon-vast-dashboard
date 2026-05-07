@@ -5,7 +5,11 @@ export interface AthleteResult {
   Name: string
   Bib?: string
   Class: string
+  /** Lowercased + trimmed Class. Precomputed at parse time. */
+  class_lower: string
   Club: string
+  /** Precomputed at parse time. True iff Club matches a known TriVäst alias. */
+  is_club_member: boolean
   Total_Time: string
   Total_Time_Seconds: number
   Status: string
@@ -13,7 +17,7 @@ export interface AthleteResult {
   Class_Rank: number
   Competition_Year: string
   Competition_Type: string
-  // Triathlon / Duathlon segments
+  // Triathlon / Duathlon segments — only fields the UI actually reads.
   Swim_Time?: string
   Swim_Seconds?: number
   T1_Time?: string
@@ -29,7 +33,6 @@ export interface AthleteResult {
   Run2_Time?: string
   Run2_Seconds?: number
   Total_Transition?: string
-  Transition_Seconds?: number
 }
 
 export interface CompetitionsData {

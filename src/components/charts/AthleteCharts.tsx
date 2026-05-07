@@ -68,63 +68,66 @@ export function AthleteRankChart({ events, allData, lang }: RankChartProps) {
     return [...years].sort()
   }, [allData])
 
-  // Athlete's own data for the selected sport
-  const byYear: Record<string, { rank: number; time_seconds: number; gender_class: string }> = {}
-  for (const e of Object.values(events)) {
-    if (e.type !== sport) continue
-    const r = typeof e.rank === 'number' ? e.rank : parseInt(String(e.rank), 10)
-    if (!r || isNaN(r) || r <= 0) continue
-    byYear[e.year] = { rank: r, time_seconds: e.time_seconds, gender_class: e.gender_class }
-  }
-
-  // Derive athlete class for this sport (use any year that has data)
-  const athleteClass = Object.values(byYear)[0]?.gender_class ?? null
+  // Athlete's own data for the selected sport, plus the class derived from it.
+  const { byYear, athleteClass } = useMemo(() => {
+    const map: Record<string, { rank: number; time_seconds: number; gender_class: string }> = {}
+    for (const e of Object.values(events)) {
+      if (e.type !== sport) continue
+      const r = typeof e.rank === 'number' ? e.rank : parseInt(String(e.rank), 10)
+      if (!r || isNaN(r) || r <= 0) continue
+      map[e.year] = { rank: r, time_seconds: e.time_seconds, gender_class: e.gender_class }
+    }
+    return { byYear: map, athleteClass: Object.values(map)[0]?.gender_class ?? null }
+  }, [events, sport])
 
   // Class-wide stats for ALL years where the sport was held (independent of athlete participation)
-  const classStats: Record<string, { minTime: number; maxTime: number; classSize: number }> = {}
-  if (athleteClass) {
+  const classStats = useMemo(() => {
+    const stats: Record<string, { minTime: number; maxTime: number; classSize: number }> = {}
+    if (!athleteClass) return stats
     for (const year of allYears) {
       const peers = allData[sport as SportType].filter(
         (a) => a.Competition_Year === year
           && a.Class === athleteClass
           && a.Total_Time_Seconds > 0
-          && a.Status?.toLowerCase() === 'ok',
+          && a.Status === 'ok',
       )
       if (!peers.length) continue
       const times = peers.map((a) => a.Total_Time_Seconds)
-      classStats[year] = { minTime: Math.min(...times), maxTime: Math.max(...times), classSize: peers.length }
+      stats[year] = { minTime: Math.min(...times), maxTime: Math.max(...times), classSize: peers.length }
     }
-  }
+    return stats
+  }, [allData, sport, athleteClass, allYears])
 
   const hasAthlete = Object.keys(byYear).length > 0
   const hasBand    = Object.keys(classStats).length > 0
 
-  // ── Domains ──────────────────────────────────────────────────────────────────
-  const allSizes    = Object.values(classStats).map((s) => s.classSize)
-  const maxRank     = allSizes.length ? Math.max(...allSizes) : 10
-  // Rank domain: 1 at top, maxRank at bottom (no top padding — rank 1 should be at the very edge)
-  const rankDomain: [number, number] = [1, maxRank + Math.max(1, Math.round(maxRank * 0.05))]
+  // ── Domains + chart rows ─────────────────────────────────────────────────────
+  const { rankDomain, timeDomain, data } = useMemo(() => {
+    const allSizes    = Object.values(classStats).map((s) => s.classSize)
+    const maxRank     = allSizes.length ? Math.max(...allSizes) : 10
+    // Rank domain: 1 at top, maxRank at bottom (no top padding — rank 1 should be at the very edge)
+    const rDomain: [number, number] = [1, maxRank + Math.max(1, Math.round(maxRank * 0.05))]
 
-  const allMin      = Object.values(classStats).map((s) => s.minTime)
-  const allMax      = Object.values(classStats).map((s) => s.maxTime)
-  const globalBest  = allMin.length ? Math.min(...allMin) : 0
-  const globalWorst = allMax.length ? Math.max(...allMax) : 0
-  const timePad     = Math.max(Math.round((globalWorst - globalBest) * 0.05), 60)
-  // Time domain: best time at top (smallest seconds), worst time at bottom
-  const timeDomain: [number, number] = [Math.max(0, globalBest - timePad), globalWorst + timePad]
+    const allMin      = Object.values(classStats).map((s) => s.minTime)
+    const allMax      = Object.values(classStats).map((s) => s.maxTime)
+    const globalBest  = allMin.length ? Math.min(...allMin) : 0
+    const globalWorst = allMax.length ? Math.max(...allMax) : 0
+    const timePad     = Math.max(Math.round((globalWorst - globalBest) * 0.05), 60)
+    const tDomain: [number, number] = [Math.max(0, globalBest - timePad), globalWorst + timePad]
 
-  // ── Data rows (fixed 2021–2025 X-axis) ───────────────────────────────────────
-  const data = allYears.map((year) => {
-    const s = classStats[year]
-    return {
-      year,
-      rank:         byYear[year]?.rank ?? null,
-      time_seconds: (byYear[year]?.time_seconds ?? 0) > 0 ? byYear[year].time_seconds : null,
-      classSize:    s?.classSize ?? null,
-      classMinTime: s?.minTime   ?? null,
-      classMaxTime: s?.maxTime   ?? null,
-    }
-  })
+    const rows = allYears.map((year) => {
+      const s = classStats[year]
+      return {
+        year,
+        rank:         byYear[year]?.rank ?? null,
+        time_seconds: (byYear[year]?.time_seconds ?? 0) > 0 ? byYear[year].time_seconds : null,
+        classSize:    s?.classSize ?? null,
+        classMinTime: s?.minTime   ?? null,
+        classMaxTime: s?.maxTime   ?? null,
+      }
+    })
+    return { rankDomain: rDomain, timeDomain: tDomain, data: rows }
+  }, [allYears, byYear, classStats])
 
   if (!hasAthlete && !hasBand) return (
     <div>
