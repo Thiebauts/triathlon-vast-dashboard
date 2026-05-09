@@ -19,7 +19,70 @@ import sys
 import os
 import pandas as pd
 from datetime import datetime
+from pathlib import Path
 from nytatime_api import NytatimeAPI, format_time, fix_encoding_issues, determine_club_name
+
+
+def load_dotenv():
+    """Tiny dependency-free loader for nytatime/.env. Existing env vars win."""
+    env_path = Path(__file__).parent / '.env'
+    if not env_path.exists():
+        return
+    for raw in env_path.read_text(encoding='utf-8').splitlines():
+        line = raw.strip()
+        if not line or line.startswith('#') or '=' not in line:
+            continue
+        key, _, value = line.partition('=')
+        os.environ.setdefault(key.strip(), value.strip().strip('"').strip("'"))
+
+
+def save_and_summarize(results, race_info, event_type):
+    """Write the processed CSV into ../data/ and print a short summary.
+
+    Returns the path to the written CSV.
+    """
+    df = pd.DataFrame(results)
+
+    race_date = race_info.get('date', datetime.now().strftime('%Y-%m-%d'))
+    if isinstance(race_date, str) and len(race_date) > 10:
+        race_date = race_date[:10]
+
+    script_dir = Path(__file__).parent
+    csv_folder = script_dir.parent / 'data'
+    csv_folder.mkdir(exist_ok=True)
+    csv_path = csv_folder / f"processed_{event_type}_results_{race_date}.csv"
+    df.to_csv(csv_path, index=False, encoding='utf-8')
+
+    print(f"\n💾 Results saved:")
+    print(f"   📄 CSV: {csv_path}")
+
+    print(f"\n📊 {EVENT_CONFIGS[event_type]['description'].upper()} RESULTS SUMMARY")
+    print(f"   Race: {race_info.get('name', 'Unknown')}")
+    print(f"   Date: {race_info.get('date', 'Unknown')}")
+    print(f"   Participants: {len(results)}")
+
+    finishers = [r for r in results if r['Status'] == 'ok']
+    dnf_count = len([r for r in results if r['Status'] == 'dnf'])
+
+    print(f"\n🏆 TOP 3 FINISHERS:")
+    for i in range(min(3, len(finishers))):
+        r = finishers[i]
+        print(f"   {r['Overall_Rank']}. {r['Name']} ({r['Class']}) - {r['Total_Time']}")
+
+    if dnf_count > 0:
+        print(f"\n⚠️  DNF: {dnf_count} participants started but did not finish")
+
+    print(f"\n🏅 CLASS WINNERS:")
+    for class_name in sorted(df['Class'].unique()):
+        class_finishers = df[(df['Class'] == class_name) & (df['Status'] == 'ok')]
+        if len(class_finishers) > 0:
+            w = class_finishers.iloc[0]
+            print(f"   {class_name}: {w['Name']} - {w['Total_Time']}")
+        else:
+            print(f"   {class_name}: No finishers")
+
+    print(f"\n✅ Done. Commit data/ and the dashboard will pick it up on the next build.")
+    return csv_path
 
 # Event type configurations
 EVENT_CONFIGS = {
@@ -384,10 +447,11 @@ def main():
     race_id = sys.argv[1]
     event_type = sys.argv[2].lower()
     
-    # Get access token
+    # Get access token (CLI arg > env var / .env > interactive prompt)
     if len(sys.argv) >= 4:
         access_token = sys.argv[3]
     else:
+        load_dotenv()
         access_token = os.getenv('NYTATIME_TOKEN')
         if not access_token:
             access_token = input("Enter your Nytatime access token: ").strip()
@@ -414,59 +478,8 @@ def main():
         if not results:
             print("❌ No results found")
             sys.exit(1)
-        
-        # Create DataFrame
-        df = pd.DataFrame(results)
-        
-        # Generate filenames with date and event type
-        race_date = race_info.get('date', datetime.now().strftime('%Y-%m-%d'))
-        if isinstance(race_date, str) and len(race_date) > 10:
-            race_date = race_date[:10]  # Take just the date part
-        
-        # Write directly into the dashboard's data/ folder (relative to *this*
-        # script, not the cwd) so the output is picked up by the Next.js loader.
-        script_dir = os.path.dirname(os.path.abspath(__file__))
-        csv_folder = os.path.join(script_dir, '..', 'data')
-        os.makedirs(csv_folder, exist_ok=True)
 
-        csv_filename = os.path.join(csv_folder, f"processed_{event_type}_results_{race_date}.csv")
-        
-        # Save files
-        df.to_csv(csv_filename, index=False, encoding='utf-8')
-        
-        print(f"\n💾 Results saved:")
-        print(f"   📄 CSV: {csv_filename}")
-        
-        # Display summary
-        print(f"\n📊 {EVENT_CONFIGS[event_type]['description'].upper()} RESULTS SUMMARY")
-        print(f"   Race: {race_info.get('name', 'Unknown')}")
-        print(f"   Date: {race_info.get('date', 'Unknown')}")
-        print(f"   Participants: {len(results)}")
-        
-        # Show top 3 overall (finishers only)
-        finishers = [r for r in results if r['Status'] == 'ok']
-        dnf_count = len([r for r in results if r['Status'] == 'dnf'])
-        
-        print(f"\n🏆 TOP 3 FINISHERS:")
-        for i in range(min(3, len(finishers))):
-            result = finishers[i]
-            print(f"   {result['Overall_Rank']}. {result['Name']} ({result['Class']}) - {result['Total_Time']}")
-        
-        if dnf_count > 0:
-            print(f"\n⚠️  DNF: {dnf_count} participants started but did not finish")
-        
-        # Show class winners (finishers only)
-        print(f"\n🏅 CLASS WINNERS:")
-        classes = df['Class'].unique()
-        for class_name in sorted(classes):
-            class_finishers = df[(df['Class'] == class_name) & (df['Status'] == 'ok')]
-            if len(class_finishers) > 0:
-                class_winner = class_finishers.iloc[0]
-                print(f"   {class_name}: {class_winner['Name']} - {class_winner['Total_Time']}")
-            else:
-                print(f"   {class_name}: No finishers")
-        
-        print(f"\n✅ Done. Commit data/ and the dashboard will pick it up on the next build.")
+        save_and_summarize(results, race_info, event_type)
         
     except KeyboardInterrupt:
         print("\n❌ Cancelled by user")
