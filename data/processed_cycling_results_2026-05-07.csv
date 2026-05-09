@@ -2,33 +2,33 @@ Name,Bib,Class,Club,Total_Time,Total_Time_Seconds,Status,Total_Transition,Transi
 Lukas Johansson,2,Ungdom,Gäst,00:14:41,881.8,ok,00:00:00,0,00:00:00,0,1,1
 Pontus Petrelius Risberg,26,Man,TriVäst,00:23:35,1415.8,ok,00:00:00,0,00:00:00,0,2,1
 Jonatan Hägerström,25,Man,TriVäst,00:23:38,1418.1,ok,00:00:00,0,00:00:00,0,3,2
-Fredrik Rosén,27,Man,TriVäst,00:26:07,1567.2,ok,00:00:00,0,00:00:00,0,4,3
-Martin Flinta,20,Man,TriVäst,00:26:17,1577.9,ok,00:00:00,0,00:00:00,0,5,4
-Jan Ljungcrantz,32,Man,TriVäst,00:26:18,1578.7,ok,00:00:00,0,00:00:00,0,6,5
-Daan Gehlen,31,Man,TriVäst,00:27:07,1627.7,ok,00:00:00,0,00:00:00,0,7,6
-Peter Ljungberg,16,Man,TriVäst,00:27:13,1633.0,ok,00:00:00,0,00:00:00,0,8,7
-Greg James rae,33,Man,Gäst,00:27:13,1633.9,ok,00:00:00,0,00:00:00,0,9,8
-Josefine Flod,7,Kvinna,TriVäst,00:27:21,1641.9,ok,00:00:00,0,00:00:00,0,10,1
-Theo Göpel,13,Man,TriVäst,00:27:37,1657.4,ok,00:00:00,0,00:00:00,0,11,9
-Elina Kiviniemi,5,Kvinna,TriVäst,00:28:40,1720.8,ok,00:00:00,0,00:00:00,0,12,2
-Anton Söfting,17,Man,TriVäst,00:28:52,1732.3,ok,00:00:00,0,00:00:00,0,13,10
-Melvin Johansson,23,Man,Medlem,00:29:07,1747.8,ok,00:00:00,0,00:00:00,0,14,11
-Rasmus Johansson,21,Man,TriVäst,00:29:35,1775.4,ok,00:00:00,0,00:00:00,0,15,12
-Elias Wennersten,28,Man,TriVäst,00:29:37,1777.9,ok,00:00:00,0,00:00:00,0,16,13
-Runar Höiom,34,Man,TriVäst,00:30:14,1814.0,ok,00:00:00,0,00:00:00,0,17,14
-Johan Ekbäck,35,Man,TriVäst,00:30:27,1827.5,ok,00:00:00,0,00:00:00,0,18,15
-Michael Kossenjans,19,Man,TriVäst,00:30:59,1859.6,ok,00:00:00,0,00:00:00,0,19,16
-Kristoffer Zietek Krohn,18,Man,TriVäst,00:31:02,1862.9,ok,00:00:00,0,00:00:00,0,20,17
-Filippa Bonorden,3,Kvinna,TriVäst,00:31:07,1867.2,ok,00:00:00,0,00:00:00,0,21,3
-Miriam Degerman,8,Kvinna,TriVäst,00:31:14,1874.8,ok,00:00:00,0,00:00:00,0,22,4
-Sofia Haglund,4,Kvinna,TriVäst,00:31:25,1886.0,ok,00:00:00,0,00:00:00,0,23,5
-Karl Wackerberg,29,Man,Gäst,00:31:33,1893.0,ok,00:00:00,0,00:00:00,0,24,18
-Alex Phu,12,Man,TriVäst,00:31:41,1901.9,ok,00:00:00,0,00:00:00,0,25,19
-Andreas Stennert,15,Man,Gäst,00:31:53,1913.5,ok,00:00:00,0,00:00:00,0,26,20
-Samuel Karlsson,24,Man,TriVäst,00:31:54,1914.7,ok,00:00:00,0,00:00:00,0,27,21
-Joakim Fransson,22,Man,TriVäst,00:33:02,1982.8,ok,00:00:00,0,00:00:00,0,28,22
-Kajsa Holmes,10,Kvinna,TriVäst,00:33:26,2006.8,ok,00:00:00,0,00:00:00,0,29,6
-Stina Haglund,6,Kvinna,TriVäst,00:33:30,2010.8,ok,00:00:00,0,00:00:00,0,30,7
-Amanda Hadenius,9,Kvinna,Medlem,00:34:13,2053.6,ok,00:00:00,0,00:00:00,0,31,8
-Oskar Holmes,36,Man,TriVäst,00:37:03,2223.5,ok,00:00:00,0,00:00:00,0,32,23
+Oskar Holmes,36,Man,TriVäst,00:26:04,1564.0,ok,00:00:00,0,00:00:00,0,4,3
+Fredrik Rosen,27,Man,TriVäst,00:26:07,1567.2,ok,00:00:00,0,00:00:00,0,5,4
+Martin Flinta,20,Man,TriVäst,00:26:13,1573.0,ok,00:00:00,0,00:00:00,0,6,5
+Jan Ljungcrantz,32,Man,TriVäst,00:26:18,1578.7,ok,00:00:00,0,00:00:00,0,7,6
+Daan Gehlen,31,Man,TriVäst,00:26:57,1617.0,ok,00:00:00,0,00:00:00,0,8,7
+Peter Ljungberg,16,Man,TriVäst,00:27:13,1633.0,ok,00:00:00,0,00:00:00,0,9,8
+Greg James rae,33,Man,Gäst,00:27:13,1633.9,ok,00:00:00,0,00:00:00,0,10,9
+Josefine Flod,7,Kvinna,TriVäst,00:27:21,1641.9,ok,00:00:00,0,00:00:00,0,11,1
+Theo Göpel,13,Man,TriVäst,00:27:37,1657.4,ok,00:00:00,0,00:00:00,0,12,10
+Elina Kiviniemi,5,Kvinna,TriVäst,00:28:40,1720.8,ok,00:00:00,0,00:00:00,0,13,2
+Anton Söfting,17,Man,TriVäst,00:28:52,1732.3,ok,00:00:00,0,00:00:00,0,14,11
+Melvin Johansson,23,Man,Medlem,00:29:07,1747.8,ok,00:00:00,0,00:00:00,0,15,12
+Rasmus Johansson,21,Man,TriVäst,00:29:35,1775.4,ok,00:00:00,0,00:00:00,0,16,13
+Elias Wennersten,28,Man,TriVäst,00:29:37,1777.9,ok,00:00:00,0,00:00:00,0,17,14
+Runar Höiom,34,Man,TriVäst,00:30:14,1814.0,ok,00:00:00,0,00:00:00,0,18,15
+Johan Ekbäck,35,Man,TriVäst,00:30:27,1827.5,ok,00:00:00,0,00:00:00,0,19,16
+Michael Kossenjans,19,Man,TriVäst,00:30:59,1859.6,ok,00:00:00,0,00:00:00,0,20,17
+Kristoffer Zietek Krohn,18,Man,TriVäst,00:31:02,1862.9,ok,00:00:00,0,00:00:00,0,21,18
+Filippa Bonorden,3,Kvinna,TriVäst,00:31:07,1867.2,ok,00:00:00,0,00:00:00,0,22,3
+Miriam Degerman,8,Kvinna,TriVäst,00:31:14,1874.8,ok,00:00:00,0,00:00:00,0,23,4
+Sofia Haglund,4,Kvinna,TriVäst,00:31:16,1876.0,ok,00:00:00,0,00:00:00,0,24,5
+Karl Wackerberg,29,Man,Gäst,00:31:33,1893.0,ok,00:00:00,0,00:00:00,0,25,19
+Alex Phu,12,Man,TriVäst,00:31:41,1901.9,ok,00:00:00,0,00:00:00,0,26,20
+Andreas Stennert,15,Man,Gäst,00:31:53,1913.5,ok,00:00:00,0,00:00:00,0,27,21
+Samuel Karlsson,24,Man,TriVäst,00:31:54,1914.7,ok,00:00:00,0,00:00:00,0,28,22
+Joakim Fransson,22,Man,TriVäst,00:33:02,1982.8,ok,00:00:00,0,00:00:00,0,29,23
+Kajsa Holmes,10,Kvinna,TriVäst,00:33:26,2006.8,ok,00:00:00,0,00:00:00,0,30,6
+Stina Haglund,6,Kvinna,TriVäst,00:33:30,2010.8,ok,00:00:00,0,00:00:00,0,31,7
+Amanda Hadenius,9,Kvinna,Medlem,00:34:13,2053.6,ok,00:00:00,0,00:00:00,0,32,8
 Georgios Roditis,30,Man,TriVäst,00:44:43,2683.8,ok,00:00:00,0,00:00:00,0,33,24
