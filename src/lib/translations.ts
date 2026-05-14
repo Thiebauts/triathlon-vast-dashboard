@@ -155,6 +155,8 @@ const TRANSLATIONS: Record<string, { en: string; sv: string }> = {
   export_csv:               { en: 'Export CSV', sv: 'Exportera CSV' },
   improvement:              { en: 'vs prev.', sv: 'jmf föreg.' },
   split_times_hint:         { en: 'Split times and ranks visible on wider screens.', sv: 'Deltider och placeringar visas på bredare skärmar.' },
+  show_guests:              { en: 'Show guests', sv: 'Visa gäster' },
+  youth_no_data_hint:       { en: 'Youth results are currently only available as guests — enable "Show guests" above to see them.', sv: 'Ungdomsresultat finns just nu endast som gäster — aktivera "Visa gäster" ovan för att se dem.' },
 }
 
 export function t(key: string, lang: Lang = 'en'): string {

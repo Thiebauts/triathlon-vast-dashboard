@@ -2,7 +2,7 @@
 import { useState, useMemo, useCallback, useDeferredValue, Fragment } from 'react'
 import { t } from '@/lib/translations'
 import type { CompetitionsData, SportType, Lang } from '@/lib/types'
-import { athleteKey, type SplitRanks } from '@/lib/data'
+import { athleteKey, computeSplitRanks, type SplitRanks } from '@/lib/data'
 
 const SPORTS: SportType[] = ['triathlon', 'duathlon', 'swimming', 'cycling', 'running', 'swimrun']
 
@@ -38,13 +38,11 @@ const D = 'hidden sm:table-cell'
 
 interface Props {
   data: CompetitionsData
-  /** Precomputed server-side via buildAllSplitRanks(data). */
-  splitRanks: Record<'triathlon' | 'duathlon', Record<string, SplitRanks>>
   lang: Lang
   onAthleteClick?: (name: string) => void
 }
 
-export function ResultsTab({ data, splitRanks, lang, onAthleteClick }: Props) {
+export function ResultsTab({ data, lang, onAthleteClick }: Props) {
   const [sport, setSport] = useState<SportType>('triathlon')
   const [year, setYear] = useState<string>('all')
   // 'all' = adults only (Herr + Dam); youth (Ungdom) is its own category
@@ -52,6 +50,7 @@ export function ResultsTab({ data, splitRanks, lang, onAthleteClick }: Props) {
   // alongside adult times.
   const [category, setCategory] = useState<'all' | 'men' | 'women' | 'youth'>('all')
   const [search, setSearch] = useState('')
+  const [showGuests, setShowGuests] = useState(false)
   const deferredSearch = useDeferredValue(search)
 
   const isMultiSport = sport === 'triathlon' || sport === 'duathlon'
@@ -62,7 +61,26 @@ export function ResultsTab({ data, splitRanks, lang, onAthleteClick }: Props) {
     return ['all', ...[...ys].sort().reverse()]
   }, [data, sport])
 
-  const splitRankLookup = isMultiSport ? splitRanks[sport as 'triathlon' | 'duathlon'] : null
+  // Split ranks are computed across the full (sport, year) field of each
+  // event, so search and category filters do NOT change them — typing a name
+  // shouldn't shift anyone's swim rank. Guest toggling DOES change them: with
+  // guests hidden, ranks are recomputed against members-only fields.
+  const splitRankLookup = useMemo(() => {
+    if (!isMultiSport) return null
+    const pool = showGuests
+      ? data[sport]
+      : data[sport].filter((a) => a.Club.toLowerCase().trim() !== 'gäst')
+    const byYear: Record<string, typeof pool> = {}
+    for (const a of pool) {
+      byYear[a.Competition_Year] = byYear[a.Competition_Year] ?? []
+      byYear[a.Competition_Year].push(a)
+    }
+    const out: Record<string, SplitRanks> = {}
+    for (const group of Object.values(byYear)) {
+      computeSplitRanks(group, sport as 'triathlon' | 'duathlon').forEach((v, k) => { out[k] = v })
+    }
+    return out
+  }, [data, sport, isMultiSport, showGuests])
 
   const rows = useMemo(() => {
     let list = data[sport]
@@ -71,16 +89,20 @@ export function ResultsTab({ data, splitRanks, lang, onAthleteClick }: Props) {
     if (category === 'men')   list = list.filter((a) => a.class_lower === 'herr')
     if (category === 'women') list = list.filter((a) => a.class_lower === 'dam')
     if (category === 'youth') list = list.filter((a) => a.class_lower === 'ungdom')
+    if (!showGuests) list = list.filter((a) => a.Club.toLowerCase().trim() !== 'gäst')
+    // Sort and assign rank BEFORE applying search. Year/category/showGuests
+    // define the ranking pool; search is just a lookup that mustn't renumber.
+    // Rank = position in the visible pool, so first woman in "Women Only" is
+    // rank 1 and Adults (Mixed) starts at 1 even when Ungdom is hidden.
+    const ranked = [...list]
+      .sort((a, b) => (a.Total_Time_Seconds || Infinity) - (b.Total_Time_Seconds || Infinity))
+      .map((athlete, i) => ({ athlete, rank: i + 1 }))
     if (deferredSearch.trim()) {
       const q = deferredSearch.toLowerCase()
-      list = list.filter((a) => a.Name.toLowerCase().includes(q))
+      return ranked.filter((r) => r.athlete.Name.toLowerCase().includes(q))
     }
-    // Always sort by Total_Time so the rank shown matches the visible list,
-    // not the CSV's Overall_Rank (which counts every class). This makes "1st"
-    // mean "first in the current filter" — e.g. first woman is rank 1, not
-    // rank 4, and Adults (Mixed) starts at 1 even when Ungdom is hidden.
-    return [...list].sort((a, b) => (a.Total_Time_Seconds || Infinity) - (b.Total_Time_Seconds || Infinity))
-  }, [data, sport, year, category, deferredSearch])
+    return ranked
+  }, [data, sport, year, category, showGuests, deferredSearch])
 
   const segs = useMemo(() => {
     if (sport === 'triathlon') return [
@@ -106,8 +128,7 @@ export function ResultsTab({ data, splitRanks, lang, onAthleteClick }: Props) {
       t('gender', lang), t('year', lang), t('total_time', lang),
     ]
     const csvRows = [headers.map(csvEscape).join(',')]
-    rows.forEach((a, i) => {
-      const rank = i + 1
+    rows.forEach(({ athlete: a, rank }) => {
       csvRows.push([
         rank,
         csvEscape(a.Name),
@@ -169,8 +190,20 @@ export function ResultsTab({ data, splitRanks, lang, onAthleteClick }: Props) {
             className="border border-gray-200 rounded px-2 py-1 text-xs bg-white w-36 focus-visible:ring-2 focus-visible:ring-red-700 focus-visible:ring-offset-1"
           />
         </div>
+        <div>
+          <span aria-hidden="true" className="block text-[11px] mb-1 invisible">·</span>
+          <label className="flex items-center gap-1.5 text-xs text-gray-600 cursor-pointer select-none px-2 py-1 border border-transparent">
+            <input
+              type="checkbox"
+              checked={showGuests}
+              onChange={(e) => setShowGuests(e.target.checked)}
+              className="accent-red-700 focus-visible:ring-2 focus-visible:ring-red-700 focus-visible:ring-offset-1"
+            />
+            {t('show_guests', lang)}
+          </label>
+        </div>
         <div className="flex items-center gap-3 ml-auto self-center">
-          <span className="text-xs text-gray-500" aria-live="polite">{rows.length} {t('total_participants', lang)}</span>
+          <span className="text-xs text-gray-500" aria-live="polite">{rows.length} {t('total_results', lang)}</span>
           <button onClick={exportCsv}
             className="text-[11px] text-gray-500 hover:text-red-700 border border-gray-200 rounded px-2 py-0.5 transition-colors focus-visible:ring-2 focus-visible:ring-red-700 focus-visible:ring-offset-1">
             {t('export_csv', lang)}
@@ -185,7 +218,12 @@ export function ResultsTab({ data, splitRanks, lang, onAthleteClick }: Props) {
       {/* Table */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-100 overflow-x-auto">
         {rows.length === 0 ? (
-          <p className="p-8 text-center text-xs text-gray-400">{t('no_data_available', lang)} {t(sport, lang)}</p>
+          <div className="p-8 text-center space-y-2">
+            <p className="text-xs text-gray-400">{t('no_data_available', lang)} {t(sport, lang)}</p>
+            {category === 'youth' && !showGuests && (
+              <p className="text-[11px] text-gray-500">{t('youth_no_data_hint', lang)}</p>
+            )}
+          </div>
         ) : (
           <table className="min-w-full text-xs">
             <thead>
@@ -207,8 +245,7 @@ export function ResultsTab({ data, splitRanks, lang, onAthleteClick }: Props) {
               </tr>
             </thead>
             <tbody>
-              {rows.map((a, i) => {
-                const rank = i + 1
+              {rows.map(({ athlete: a, rank }, i) => {
                 const isMember = a.is_club_member
                 const sr = splitRankLookup?.[athleteKey(a)] ?? {}
                 const bg = rank === 1 ? 'bg-amber-50/60'

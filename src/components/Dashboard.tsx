@@ -7,7 +7,6 @@ import { ResultsTab } from './tabs/ResultsTab'
 import { AthletesTab } from './tabs/AthletesTab'
 import { RankingsTab } from './tabs/RankingsTab'
 import type { CompetitionsData, ClubAthlete } from '@/lib/types'
-import type { SplitRanks } from '@/lib/data'
 
 type Tab = 'overview' | 'results' | 'athletes' | 'rankings'
 
@@ -15,7 +14,6 @@ interface Props {
   data: CompetitionsData
   athleteNames: string[]
   allTimeRankings: ClubAthlete[]
-  splitRanks: Record<'triathlon' | 'duathlon', Record<string, SplitRanks>>
 }
 
 // Short labels shown on mobile (≤sm), full labels on wider screens
@@ -26,7 +24,7 @@ const SHORT_LABELS: Record<Tab, { en: string; sv: string }> = {
   rankings:  { en: 'Rankings',  sv: 'Ranking' },
 }
 
-export function Dashboard({ data, athleteNames, allTimeRankings, splitRanks }: Props) {
+export function Dashboard({ data, athleteNames, allTimeRankings }: Props) {
   const { lang } = useLang()
   const [tab, setTab] = useState<Tab>('overview')
   const [selectedAthlete, setSelectedAthlete] = useState<string | null>(null)
@@ -73,7 +71,7 @@ export function Dashboard({ data, athleteNames, allTimeRankings, splitRanks }: P
         <OverviewTab data={data} lang={lang} />
       </div>
       <div hidden={tab !== 'results'}>
-        <ResultsTab data={data} lang={lang} splitRanks={splitRanks} onAthleteClick={navigateToAthlete} />
+        <ResultsTab data={data} lang={lang} onAthleteClick={navigateToAthlete} />
       </div>
       <div hidden={tab !== 'athletes'}>
         <AthletesTab data={data} athleteNames={athleteNames} allTimeRankings={allTimeRankings} lang={lang} initialAthlete={selectedAthlete} />
