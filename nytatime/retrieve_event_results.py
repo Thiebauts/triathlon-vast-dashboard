@@ -168,6 +168,29 @@ def process_participant_splits(splits, event_type, race_time=None):
                 segment_times['Run1'] = max(0, run1_t1_combined - estimated_t1)
                 segment_times['T1'] = min(run1_t1_combined, estimated_t1)
                 
+            elif split_times[3] == 0 and split_times[2] > 0:
+                # Missing T2_end checkpoint: T2 and Run2 can't be separated, so
+                # keep T2 unknown and put the combined time in Run2 instead of
+                # computing a negative T2 (mirrors the missing-Run1 handling
+                # above). Flagged so the CSV can be reviewed before publishing.
+                print("  ⚠️  Missing T2 checkpoint for a participant — "
+                      "T2/Run2 left combined in Run2; review the CSV.")
+                segment_times['Run1'] = split_times[0]
+                segment_times['T1'] = split_times[1] - split_times[0]
+                segment_times['Bike'] = split_times[2] - split_times[1]
+                segment_times['T2'] = 0  # not recorded
+                total_race_time = race_time if race_time else split_times[2]
+                segment_times['Run2'] = max(0, total_race_time - split_times[2])
+
+                split_times_formatted.update({
+                    'Run1_In': format_time(split_times[0]),
+                    'T1': format_time(segment_times['T1']),
+                    'Bike_Out': format_time(split_times[1]),
+                    'Bike_In': format_time(split_times[2]),
+                    'T2': '',  # unknown
+                    'Run2_Out': format_time(split_times[2]),
+                })
+
             else:
                 # Normal case: all checkpoints recorded [Run1_end, T1_end, Bike_end, T2_end]
                 segment_times['Run1'] = split_times[0]
