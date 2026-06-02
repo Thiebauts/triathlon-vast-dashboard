@@ -1,7 +1,7 @@
 'use client'
 import { useState, useMemo, useCallback, useDeferredValue, Fragment } from 'react'
 import { t } from '@/lib/translations'
-import type { CompetitionsData, SportType, Lang } from '@/lib/types'
+import type { AthleteResult, CompetitionsData, SportType, Lang } from '@/lib/types'
 import { athleteKey, computeSplitRanks, type SplitRanks } from '@/lib/data'
 
 const SPORTS: SportType[] = ['triathlon', 'duathlon', 'swimming', 'cycling', 'running', 'swimrun']
@@ -36,6 +36,23 @@ function csvEscape(value: unknown): string {
 
 const D = 'hidden sm:table-cell'
 
+type Category = 'all' | 'men' | 'women' | 'youth'
+
+/**
+ * Whether an athlete belongs to the selected category section. `all` is the
+ * adult mixed field (Herr + Dam); `youth` (Ungdom) is its own section because
+ * it races a shorter course. Shared by the visible rows AND the per-split
+ * rankings so both rank over exactly the same pool.
+ */
+function inCategory(a: AthleteResult, category: Category): boolean {
+  switch (category) {
+    case 'men':   return a.class_lower === 'herr'
+    case 'women': return a.class_lower === 'dam'
+    case 'youth': return a.class_lower === 'ungdom'
+    case 'all':   return a.class_lower === 'herr' || a.class_lower === 'dam'
+  }
+}
+
 interface Props {
   data: CompetitionsData
   lang: Lang
@@ -48,7 +65,7 @@ export function ResultsTab({ data, lang, onAthleteClick }: Props) {
   // 'all' = adults only (Herr + Dam); youth (Ungdom) is its own category
   // because it races a different/shorter course and shouldn't be ranked
   // alongside adult times.
-  const [category, setCategory] = useState<'all' | 'men' | 'women' | 'youth'>('all')
+  const [category, setCategory] = useState<Category>('all')
   const [search, setSearch] = useState('')
   const [showGuests, setShowGuests] = useState(false)
   const deferredSearch = useDeferredValue(search)
@@ -61,34 +78,27 @@ export function ResultsTab({ data, lang, onAthleteClick }: Props) {
     return ['all', ...[...ys].sort().reverse()]
   }, [data, sport])
 
-  // Split ranks are computed across the full (sport, year) field of each
-  // event, so search and category filters do NOT change them — typing a name
-  // shouldn't shift anyone's swim rank. Guest toggling DOES change them: with
-  // guests hidden, ranks are recomputed against members-only fields.
+  // Split ranks share the SAME pool as the visible rows: sport, category,
+  // guests, and the year filter. With one year selected, each split is ranked
+  // within that year's field; with "All Years (Combined)" the splits are ranked
+  // across every year at once, so the # columns line up with the all-time
+  // overall rank (one true fastest Run 1, etc.). Category keeps e.g. "Men Only"
+  // ranking among men, not across the whole mixed-distance field. Search is
+  // deliberately excluded — typing a name must not renumber anyone.
   const splitRankLookup = useMemo(() => {
     if (!isMultiSport) return null
-    const pool = showGuests
-      ? data[sport]
-      : data[sport].filter((a) => a.Club.toLowerCase().trim() !== 'gäst')
-    const byYear: Record<string, typeof pool> = {}
-    for (const a of pool) {
-      byYear[a.Competition_Year] = byYear[a.Competition_Year] ?? []
-      byYear[a.Competition_Year].push(a)
-    }
+    let pool = data[sport].filter((a) => inCategory(a, category))
+    if (!showGuests) pool = pool.filter((a) => a.Club.toLowerCase().trim() !== 'gäst')
+    if (year !== 'all') pool = pool.filter((a) => a.Competition_Year === year)
     const out: Record<string, SplitRanks> = {}
-    for (const group of Object.values(byYear)) {
-      computeSplitRanks(group, sport as 'triathlon' | 'duathlon').forEach((v, k) => { out[k] = v })
-    }
+    computeSplitRanks(pool, sport as 'triathlon' | 'duathlon').forEach((v, k) => { out[k] = v })
     return out
-  }, [data, sport, isMultiSport, showGuests])
+  }, [data, sport, isMultiSport, showGuests, category, year])
 
   const rows = useMemo(() => {
     let list = data[sport]
     if (year !== 'all') list = list.filter((a) => a.Competition_Year === year)
-    if (category === 'all')   list = list.filter((a) => a.class_lower === 'herr' || a.class_lower === 'dam')
-    if (category === 'men')   list = list.filter((a) => a.class_lower === 'herr')
-    if (category === 'women') list = list.filter((a) => a.class_lower === 'dam')
-    if (category === 'youth') list = list.filter((a) => a.class_lower === 'ungdom')
+    list = list.filter((a) => inCategory(a, category))
     if (!showGuests) list = list.filter((a) => a.Club.toLowerCase().trim() !== 'gäst')
     // Sort and assign rank BEFORE applying search. Year/category/showGuests
     // define the ranking pool; search is just a lookup that mustn't renumber.
@@ -172,7 +182,7 @@ export function ResultsTab({ data, lang, onAthleteClick }: Props) {
         </div>
         <div>
           <label htmlFor="filter-category" className="block text-[11px] font-medium text-gray-500 uppercase tracking-wide mb-1">{t('select_category', lang)}</label>
-          <select id="filter-category" value={category} onChange={(e) => setCategory(e.target.value as 'all' | 'men' | 'women' | 'youth')}
+          <select id="filter-category" value={category} onChange={(e) => setCategory(e.target.value as Category)}
             className="border border-gray-200 rounded px-2 py-1 text-xs bg-white focus-visible:ring-2 focus-visible:ring-red-700 focus-visible:ring-offset-1">
             <option value="all">{t('all_mixed', lang)}</option>
             <option value="men">{t('men_only', lang)}</option>
