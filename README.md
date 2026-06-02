@@ -10,13 +10,13 @@
   <img src="https://img.shields.io/badge/Status-Active-brightgreen" alt="Status" />
 </p>
 
-> Club results dashboard for Triathlon Väst — explore competition history, athlete rankings, and participation trends across 6 sports from 2021 to 2025.
+> Club results dashboard for Triathlon Väst — explore competition history, athlete rankings, and participation trends across 6 sports from 2021 to 2026.
 
 ## Overview
 
-An internal analytics dashboard for Triathlon Väst members. It aggregates CSV result files from club competitions (triathlon, duathlon, swimming, cycling, running, swimrun) spanning 2021–2025 and makes them searchable and visual. Athletes can look up their personal results, track rankings over time, and compare against the full field.
+An internal analytics dashboard for Triathlon Väst members. It aggregates CSV result files from club competitions (triathlon, duathlon, swimming, cycling, running, swimrun) spanning 2021–2026 and makes them searchable and visual. Athletes can look up their personal results, track rankings over time, and compare against the full field.
 
-The dataset currently covers **25 competitions** across 6 sports (triathlon, duathlon, swimming, cycling, running, swimrun) from **2021–2025**, including 1 swimrun event added in 2025.
+The dataset currently covers **27 competitions** across 6 sports (triathlon, duathlon, swimming, cycling, running, swimrun) from **2021–2026**, including 1 swimrun event added in 2025.
 
 ## Screenshots
 
@@ -38,7 +38,7 @@ Individual athlete pages showing competition history, accumulated points, overal
 
 ### Club Rankings
 
-Annual leaderboards for men and women, based on a points system that rewards consistent participation — 1st place earns 40 pts, 2nd 35 pts, 3rd 30 pts, and so on.
+Annual leaderboards for men and women, based on a points system that rewards consistent participation — 1st place earns 40 pts, 2nd 35 pts, 3rd 30 pts, and so on. Youth (Ungdom) and children (Barn) race shorter courses and don't earn club points.
 
 <p align="center">
   <img src="public/screenshot-club-rankings.png" alt="Club Rankings tab" width="100%" />
@@ -133,9 +133,10 @@ When exporting results from NyTaTime, follow these rules to keep the data consis
 - Keep surname particles lowercase: "van", "du", "de" (e.g., "Stijn van Weegberg")
 - Use the **same spelling** consistently across seasons — check previous files if unsure
 
-**Class (gender)**
-- Only two values allowed: `Herr` or `Dam`
-- Do not use: ~~Herrar~~, ~~Damer~~, ~~Man~~, ~~Male~~, ~~Female~~
+**Class (gender / age group)**
+- Adults: `Herr` or `Dam`
+- Youth: `Ungdom` (teens) or `Barn` (children) — shorter courses, excluded from club points
+- Do not use: ~~Herrar~~, ~~Damer~~, ~~Man~~, ~~Male~~, ~~Female~~, ~~Ungdomar~~, ~~SuperSprint~~
 
 **Club**
 - Only two values allowed: `TriVäst` or `Gäst`
