@@ -92,6 +92,19 @@ export function calculatePoints(rank: number | string): number {
   return 0
 }
 
+/**
+ * Club points are an adult-category ranking: only Herr/Dam results earn points
+ * and enter the club rankings. Youth (Ungdom) and children (Barn) race shorter
+ * courses, so their results earn nothing — this also stops a one-person youth/
+ * barn class from banking a 40-point "class win". Applied in BOTH getClubRankings
+ * and getAthleteEvents so the aggregate total and per-event points always agree.
+ */
+const ADULT_CLASSES: ReadonlySet<string> = new Set(['herr', 'dam'])
+
+function earnsClubPoints(a: AthleteResult): boolean {
+  return a.is_club_member && ADULT_CLASSES.has(a.class_lower)
+}
+
 // ─── Club-member-only rank ────────────────────────────────────────────────────
 
 export function calculateClubMemberRank(
@@ -191,7 +204,7 @@ export function getAthleteEvents(
         overall_total: sameYear.length,
         gender_class: a.Class,
         is_club_member: isMember,
-        points: isMember ? calculatePoints(cmRank) : 0,
+        points: earnsClubPoints(a) ? calculatePoints(cmRank) : 0,
         swim_time: a.Swim_Time,
         bike_time: a.Bike_Time,
         run_time: a.Run_Time,
@@ -207,13 +220,16 @@ export function getAthleteEvents(
 // ─── Club rankings ────────────────────────────────────────────────────────────
 
 /**
- * Aggregates points per club member across sports and years.
+ * Aggregates points per club member across sports and years. Only adult
+ * (Herr/Dam) results count — see `earnsClubPoints`.
  *
  * Athletes are keyed by `Name`. This assumes member names are unique within
  * the club — verified true for the current dataset. If two distinct people
  * ever share a name, points would erroneously merge into one entry. To catch
- * that case we emit a `console.warn` (visible at build time and in dev) when
- * an existing entry is hit with a different `Class` than first observed.
+ * that case we emit a `console.warn` (visible at build time and in dev) when an
+ * existing entry is hit with a different `Class` than first observed. (Youth
+ * who also race adult fields, e.g. Simon Flinta as Herr + Ungdom, no longer
+ * trip this: their Ungdom results are skipped before the check.)
  */
 export function getClubRankings(
   data: CompetitionsData,
@@ -246,7 +262,7 @@ export function getClubRankings(
       }
 
       for (const a of yearGroup) {
-        if (!a.is_club_member) continue
+        if (!earnsClubPoints(a)) continue
         const cls = a.class_lower
         if (genderFilter === 'men' && cls !== 'herr') continue
         if (genderFilter === 'women' && cls !== 'dam') continue
