@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import './globals.css'
 import { LanguageProvider } from '@/components/LanguageProvider'
 import { Header } from '@/components/Header'
+import { Analytics } from '@vercel/analytics/next'
 
 export const metadata: Metadata = {
   metadataBase: process.env.VERCEL_PROJECT_PRODUCTION_URL
@@ -34,6 +35,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <Header />
           {children}
         </LanguageProvider>
+        <Analytics />
       </body>
     </html>
   )
