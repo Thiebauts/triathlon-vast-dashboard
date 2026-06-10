@@ -153,7 +153,8 @@ export function ResultsTab({ data, lang, onAthleteClick }: Props) {
 
   const exportCsv = useCallback(() => {
     const headers = [
-      t('overall_rank', lang), t('name', lang), t('club', lang),
+      year === 'all' ? t('all_time_rank', lang) : t('overall_rank', lang),
+      t('name', lang), t('club', lang),
       t('gender', lang), t('year', lang), t('total_time', lang), t('points', lang),
     ]
     const csvRows = [headers.map(csvEscape).join(',')]
