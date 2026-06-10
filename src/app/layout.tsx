@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import './globals.css'
 import { LanguageProvider } from '@/components/LanguageProvider'
 import { Header } from '@/components/Header'
+import { SkipLink } from '@/components/SkipLink'
 import { Analytics } from '@vercel/analytics/next'
 
 export const metadata: Metadata = {
@@ -28,10 +29,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en">
       <body>
-        <a href="#main" className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-50 focus:bg-white focus:px-4 focus:py-2 focus:text-red-700 focus:rounded focus:shadow">
-          Skip to main content
-        </a>
         <LanguageProvider>
+          <SkipLink />
           <Header />
           {children}
         </LanguageProvider>

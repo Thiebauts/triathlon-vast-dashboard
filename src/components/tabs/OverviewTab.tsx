@@ -15,53 +15,9 @@ interface Props {
   lang: Lang
 }
 
-const DISCIPLINES: Array<{
-  title: { en: string; sv: string }
-  desc:  { en: string; sv: string }
-}> = [
-  {
-    title: { en: 'Running — 5 km Track Race',  sv: 'Löpning — 5 km sprintlopp' },
-    desc:  {
-      en: 'A 5 km race on the track, held at Åby or Slottsskogsvallen.',
-      sv: 'Ett 5 km-lopp på banan, vid Åby eller Slottsskogsvallen.',
-    },
-  },
-  {
-    title: { en: 'Swimming — 2 km Open Water', sv: 'Simning — 2 km öppet vatten' },
-    desc:  {
-      en: 'A 2 km race in the beautiful Delsjön lake.',
-      sv: 'Ett 2 km-lopp i vackra Delsjön.',
-    },
-  },
-  {
-    title: { en: 'Cycling — 20 km Tempo',      sv: 'Cykling — 20 km tempo' },
-    desc:  {
-      en: 'A 20 km individual tempo effort held near Kungsbacka.',
-      sv: 'Ett 20 km individuellt tempolopp nära Kungsbacka.',
-    },
-  },
-  {
-    title: { en: 'Duathlon — Sprint Format',   sv: 'Duathlon — sprintformat' },
-    desc:  {
-      en: '5 km run / 20 km bike / 2.5 km run, located near the iconic Gunnebo Castle.',
-      sv: '5 km löp / 20 km cykel / 2,5 km löp, vid det ikoniska Gunnebo slott.',
-    },
-  },
-  {
-    title: { en: 'Triathlon — Sprint Format',  sv: 'Triathlon — sprintformat' },
-    desc:  {
-      en: '750 m swim / 20 km bike / 5 km run, held at Inseros.',
-      sv: '750 m sim / 20 km cykel / 5 km löp, vid Inseros.',
-    },
-  },
-  {
-    title: { en: 'Swimrun — Sisjön',           sv: 'Swimrun — Sisjön' },
-    desc:  {
-      en: 'A swimrun adventure at Sisjön.',
-      sv: 'Ett swimrun-äventyr vid Sisjön.',
-    },
-  },
-]
+// Card content lives in translations.ts (project rule: all user-facing
+// strings go through the catalogue); this only fixes the display order.
+const DISCIPLINES = ['running', 'swimming', 'cycling', 'duathlon', 'triathlon', 'swimrun'] as const
 
 export function OverviewTab({ data, lang }: Props) {
   const participationByYear = useMemo(() => getParticipationByYear(data), [data])
@@ -73,9 +29,9 @@ export function OverviewTab({ data, lang }: Props) {
         <p className="text-xs text-gray-500 leading-relaxed mb-3">{t('championships_intro', lang)}</p>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
           {DISCIPLINES.map((d) => (
-            <div key={d.title.en} className="border border-gray-100 rounded-lg p-2.5">
-              <div className="text-xs font-semibold text-gray-800 mb-0.5">{d.title[lang]}</div>
-              <div className="text-[11px] text-gray-500 leading-relaxed">{d.desc[lang]}</div>
+            <div key={d} className="border border-gray-100 rounded-lg p-2.5">
+              <div className="text-xs font-semibold text-gray-800 mb-0.5">{t(`discipline_${d}_title`, lang)}</div>
+              <div className="text-[11px] text-gray-500 leading-relaxed">{t(`discipline_${d}_desc`, lang)}</div>
             </div>
           ))}
         </div>

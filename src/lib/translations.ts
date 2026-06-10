@@ -1,10 +1,32 @@
 import type { Lang } from './types'
 
 const TRANSLATIONS: Record<string, { en: string; sv: string }> = {
+  skip_to_content:    { en: 'Skip to main content', sv: 'Hoppa till huvudinnehållet' },
+
   tab_overview:       { en: 'Overview',         sv: 'Översikt' },
   tab_event_results:  { en: 'Event Results',    sv: 'Tävlingsresultat' },
   tab_athletes:       { en: 'Athlete Profiles', sv: 'Idrottarprofiler' },
   tab_rankings:       { en: 'Club Rankings',    sv: 'Klubbranking' },
+
+  // Short tab labels for narrow screens
+  tab_short_overview: { en: 'Overview',  sv: 'Översikt' },
+  tab_short_results:  { en: 'Results',   sv: 'Resultat' },
+  tab_short_athletes: { en: 'Athletes',  sv: 'Idrottare' },
+  tab_short_rankings: { en: 'Rankings',  sv: 'Ranking' },
+
+  // Discipline cards on the Overview tab
+  discipline_running_title:   { en: 'Running — 5 km Track Race',  sv: 'Löpning — 5 km sprintlopp' },
+  discipline_running_desc:    { en: 'A 5 km race on the track, held at Åby or Slottsskogsvallen.', sv: 'Ett 5 km-lopp på banan, vid Åby eller Slottsskogsvallen.' },
+  discipline_swimming_title:  { en: 'Swimming — 2 km Open Water', sv: 'Simning — 2 km öppet vatten' },
+  discipline_swimming_desc:   { en: 'A 2 km race in the beautiful Delsjön lake.', sv: 'Ett 2 km-lopp i vackra Delsjön.' },
+  discipline_cycling_title:   { en: 'Cycling — 20 km Tempo',      sv: 'Cykling — 20 km tempo' },
+  discipline_cycling_desc:    { en: 'A 20 km individual tempo effort held near Kungsbacka.', sv: 'Ett 20 km individuellt tempolopp nära Kungsbacka.' },
+  discipline_duathlon_title:  { en: 'Duathlon — Sprint Format',   sv: 'Duathlon — sprintformat' },
+  discipline_duathlon_desc:   { en: '5 km run / 20 km bike / 2.5 km run, located near the iconic Gunnebo Castle.', sv: '5 km löp / 20 km cykel / 2,5 km löp, vid det ikoniska Gunnebo slott.' },
+  discipline_triathlon_title: { en: 'Triathlon — Sprint Format',  sv: 'Triathlon — sprintformat' },
+  discipline_triathlon_desc:  { en: '750 m swim / 20 km bike / 5 km run, held at Inseros.', sv: '750 m sim / 20 km cykel / 5 km löp, vid Inseros.' },
+  discipline_swimrun_title:   { en: 'Swimrun — Sisjön',           sv: 'Swimrun — Sisjön' },
+  discipline_swimrun_desc:    { en: 'A swimrun adventure at Sisjön.', sv: 'Ett swimrun-äventyr vid Sisjön.' },
 
   championships_title: { en: 'Club Championships – Overview', sv: 'Klubbmästerskap – Översikt' },
   championships_intro: {
