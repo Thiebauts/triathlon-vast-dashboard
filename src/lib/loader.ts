@@ -3,7 +3,10 @@ import fs from 'fs'
 import path from 'path'
 import type { AthleteResult, CompetitionsData, SportType } from './types'
 
-const CLUB_ALIASES = new Set(['triväst', 'triathlon väst', 'tv'])
+// 'medlem' (Swedish for "member") shows up in the Club column when a result
+// sheet records membership status instead of the club name — treat it as the
+// club so those athletes still earn points.
+const CLUB_ALIASES = new Set(['triväst', 'triathlon väst', 'tv', 'medlem'])
 
 const FIELDS_USED: ReadonlySet<string> = new Set([
   'Name', 'Bib', 'Class', 'Club', 'Total_Time', 'Total_Time_Seconds', 'Status',
