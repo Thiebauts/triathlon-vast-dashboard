@@ -3,7 +3,7 @@ import { useMemo } from 'react'
 import dynamic from 'next/dynamic'
 import { t } from '@/lib/translations'
 import { getParticipationByYear } from '@/lib/data'
-import type { CompetitionsData, Lang } from '@/lib/types'
+import type { CompetitionsData, Lang, SportType } from '@/lib/types'
 
 const ParticipationChart = dynamic(
   () => import('@/components/charts/ParticipationChart').then((m) => m.ParticipationChart),
@@ -13,13 +13,17 @@ const ParticipationChart = dynamic(
 interface Props {
   data: CompetitionsData
   lang: Lang
+  /** Switches the dashboard to the Extra Events tab. */
+  onNavigateToExtra?: () => void
+  /** Switches the dashboard to Event Results with the given sport selected. */
+  onNavigateToSport?: (sport: SportType) => void
 }
 
 // Card content lives in translations.ts (project rule: all user-facing
 // strings go through the catalogue); this only fixes the display order.
 const DISCIPLINES = ['running', 'swimming', 'cycling', 'duathlon', 'triathlon', 'swimrun'] as const
 
-export function OverviewTab({ data, lang }: Props) {
+export function OverviewTab({ data, lang, onNavigateToExtra, onNavigateToSport }: Props) {
   const participationByYear = useMemo(() => getParticipationByYear(data), [data])
   return (
     <div className="space-y-3">
@@ -32,9 +36,32 @@ export function OverviewTab({ data, lang }: Props) {
             <div key={d} className="border border-gray-100 rounded-lg p-2.5">
               <div className="text-xs font-semibold text-gray-800 mb-0.5">{t(`discipline_${d}_title`, lang)}</div>
               <div className="text-[11px] text-gray-500 leading-relaxed">{t(`discipline_${d}_desc`, lang)}</div>
+              {onNavigateToSport && (
+                <button
+                  onClick={() => onNavigateToSport(d)}
+                  aria-label={`${t(d, lang)} — ${t('view_km_results', lang)}`}
+                  className="mt-1.5 text-[11px] text-red-700 hover:underline font-medium focus-visible:ring-2 focus-visible:ring-red-700 focus-visible:ring-offset-1 rounded"
+                >
+                  {t('view_km_results', lang)}
+                </button>
+              )}
             </div>
           ))}
         </div>
+      </div>
+
+      {/* Extra events & open trainings */}
+      <div className="bg-white rounded-lg shadow-sm border border-gray-100 px-4 py-3">
+        <h2 className="text-sm font-semibold text-red-700 mb-1">{t('overview_extra_title', lang)}</h2>
+        <p className="text-xs text-gray-500 leading-relaxed">{t('overview_extra_text', lang)}</p>
+        {onNavigateToExtra && (
+          <button
+            onClick={onNavigateToExtra}
+            className="mt-1.5 text-xs text-red-700 hover:underline font-medium focus-visible:ring-2 focus-visible:ring-red-700 focus-visible:ring-offset-1 rounded"
+          >
+            {t('view_extra_results', lang)}
+          </button>
+        )}
       </div>
 
       {/* About */}

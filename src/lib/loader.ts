@@ -4,7 +4,7 @@ import path from 'path'
 // Explicit .ts extension: the node --experimental-strip-types test runner
 // resolves runtime imports literally (type-only imports are stripped).
 import { CLUB_ALIASES } from './data.ts'
-import type { AthleteResult, CompetitionsData, SportType } from './types'
+import type { AthleteResult, CompetitionsData, ExtraEvent, SportType } from './types'
 
 const FIELDS_USED: ReadonlySet<string> = new Set([
   'Name', 'Bib', 'Class', 'Club', 'Total_Time', 'Total_Time_Seconds', 'Status',
@@ -108,4 +108,44 @@ export function loadAllCompetitions(): CompetitionsData {
 
   cached = data
   return data
+}
+
+let cachedExtra: ExtraEvent[] | null = null
+
+/**
+ * Loads non-championship events (timed trainings etc.) from data/extra/.
+ * The events.json manifest lists each event's CSV, date, format, and EN/SV
+ * title; rows reuse the KM AthleteResult shape ('partial' Status rows carry
+ * only the legs the athlete completed). Returns newest first.
+ */
+export function loadExtraEvents(): ExtraEvent[] {
+  if (cachedExtra) return cachedExtra
+
+  const base = path.join(process.cwd(), 'data', 'extra')
+  const manifestPath = path.join(base, 'events.json')
+  if (!fs.existsSync(manifestPath)) {
+    cachedExtra = []
+    return cachedExtra
+  }
+
+  const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf-8')) as Array<
+    Omit<ExtraEvent, 'results'>
+  >
+  const events: ExtraEvent[] = []
+  for (const meta of manifest) {
+    const csvPath = path.join(base, meta.file)
+    if (!fs.existsSync(csvPath)) {
+      console.warn(`[loadExtraEvents] Missing CSV for manifest entry: ${meta.file}`)
+      continue
+    }
+    const year = meta.date.split('-')[0]
+    const results = parseCsv(fs.readFileSync(csvPath, 'utf-8')).map((row) =>
+      rowToAthlete(row, year),
+    )
+    events.push({ ...meta, results })
+  }
+
+  events.sort((a, b) => b.date.localeCompare(a.date))
+  cachedExtra = events
+  return cachedExtra
 }

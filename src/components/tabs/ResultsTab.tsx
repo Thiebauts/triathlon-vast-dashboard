@@ -3,6 +3,7 @@ import { useState, useMemo, useCallback, useDeferredValue, Fragment } from 'reac
 import { t } from '@/lib/translations'
 import type { AthleteResult, CompetitionsData, SportType, Lang } from '@/lib/types'
 import { athleteKey, computeSplitRanks, computeEventPoints, isFinisher, type SplitRanks } from '@/lib/data'
+import { csvEscape } from '@/lib/csv'
 
 const SPORTS: SportType[] = ['triathlon', 'duathlon', 'swimming', 'cycling', 'running', 'swimrun']
 
@@ -21,17 +22,6 @@ function RankCell({ n }: { n: number | undefined }) {
 
 function fmt(v: string | undefined) {
   return v && v !== 'N/A' ? v : '—'
-}
-
-/**
- * Quote a CSV cell. Cells starting with `=`, `+`, `-`, `@`, tab, or CR are
- * prefixed with a leading single-quote so spreadsheet apps treat them as text
- * instead of evaluating them as formulas (CVE-style "CSV injection").
- */
-function csvEscape(value: unknown): string {
-  const s = String(value ?? '').replace(/"/g, '""')
-  const needsFormulaGuard = /^[=+\-@\t\r]/.test(s)
-  return needsFormulaGuard ? `"'${s}"` : `"${s}"`
 }
 
 const D = 'hidden sm:table-cell'
@@ -57,10 +47,12 @@ interface Props {
   data: CompetitionsData
   lang: Lang
   onAthleteClick?: (name: string) => void
+  /** Set by the Overview discipline cards — selects this sport on navigation. */
+  initialSport?: SportType | null
 }
 
-export function ResultsTab({ data, lang, onAthleteClick }: Props) {
-  const [sport, setSport] = useState<SportType>('triathlon')
+export function ResultsTab({ data, lang, onAthleteClick, initialSport }: Props) {
+  const [sport, setSport] = useState<SportType>(initialSport ?? 'triathlon')
   const [year, setYear] = useState<string>('all')
   // 'all' = adults only (Herr + Dam); youth (Ungdom) is its own category
   // because it races a different/shorter course and shouldn't be ranked
@@ -69,6 +61,15 @@ export function ResultsTab({ data, lang, onAthleteClick }: Props) {
   const [search, setSearch] = useState('')
   const [showGuests, setShowGuests] = useState(false)
   const deferredSearch = useDeferredValue(search)
+  const [prevInitialSport, setPrevInitialSport] = useState(initialSport)
+
+  if (initialSport !== prevInitialSport) {
+    setPrevInitialSport(initialSport)
+    if (initialSport) {
+      setSport(initialSport)
+      setYear('all') // same reset as the sport <select> handler
+    }
+  }
 
   const isMultiSport = sport === 'triathlon' || sport === 'duathlon'
 

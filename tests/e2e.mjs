@@ -28,9 +28,12 @@ async function run() {
   const browser = await chromium.launch({ headless: true })
   const page = await browser.newPage()
 
-  // Collect console errors
+  // Collect console errors (with source URL — resource-load failures carry the
+  // failing URL only in the location, not the message text)
   const consoleErrors = []
-  page.on('console', msg => { if (msg.type() === 'error') consoleErrors.push(msg.text()) })
+  page.on('console', msg => {
+    if (msg.type() === 'error') consoleErrors.push(`${msg.text()} [${msg.location()?.url ?? ''}]`)
+  })
   page.on('pageerror', err => consoleErrors.push(err.message))
 
   await page.goto(BASE, { waitUntil: 'networkidle' })
@@ -53,10 +56,10 @@ async function run() {
     await btn.waitFor({ state: 'visible', timeout: 5000 })
   })
 
-  await test('4 tab buttons visible', async () => {
-    const tabs = page.locator('button').filter({ hasText: /Overview|Event Results|Athlete|Rankings/ })
-    const count = await tabs.count()
-    if (count < 4) throw new Error(`Only ${count} tabs found`)
+  await test('5 tab buttons visible', async () => {
+    // role=tab — text matching would also count the Overview navigation links
+    const count = await page.getByRole('tab').count()
+    if (count !== 5) throw new Error(`Found ${count} tabs, expected 5`)
   })
 
   await test('Discipline cards visible', async () => {
@@ -69,6 +72,36 @@ async function run() {
     // Recharts renders an SVG inside the visible Overview subtree
     const svg = page.locator('div:not([hidden]) svg').first()
     await svg.waitFor({ state: 'visible', timeout: 5000 })
+  })
+
+  await test('Extra events block visible', async () => {
+    const block = page.locator('text=Extra events & open trainings')
+    await block.waitFor({ state: 'visible', timeout: 5000 })
+  })
+
+  await test('Extra events link navigates to Extra Events tab', async () => {
+    await page.locator('button', { hasText: 'View the results in the Extra Events tab' }).click()
+    await page.waitForTimeout(600)
+    const header = page.locator('text=Extra events & timed trainings')
+    await header.waitFor({ state: 'visible', timeout: 3000 })
+    // Return to Overview — the following tests expect it to be active
+    await page.locator('button', { hasText: 'Overview' }).click()
+    await page.waitForTimeout(400)
+  })
+
+  await test('Discipline card link opens Event Results with sport preselected', async () => {
+    // Cards render in DISCIPLINES order — Running is first. The card links say
+    // "View the results →"; the extra-events link has different wording.
+    await page.locator('button', { hasText: 'View the results →' }).first().click()
+    await page.waitForTimeout(600)
+    const header = page.locator('text=Event results & all-time rankings')
+    await header.waitFor({ state: 'visible', timeout: 3000 })
+    const sportSelect = page.locator('select:visible').first()
+    const value = await sportSelect.inputValue()
+    if (value !== 'running') throw new Error(`Sport select is "${value}", expected "running"`)
+    // Return to Overview — the following tests expect it to be active
+    await page.getByRole('tab', { name: 'Overview' }).click()
+    await page.waitForTimeout(400)
   })
 
   await test('About section text visible', async () => {
@@ -196,9 +229,10 @@ async function run() {
     const sportSelect = page.locator('select:visible').first()
     await sportSelect.selectOption('triathlon')
     await page.waitForTimeout(500)
-    const swimHeader = page.locator('th', { hasText: /swim/i })
+    // :visible — the Extra Events panel (mounted but hidden) has Swim/Bike headers too
+    const swimHeader = page.locator('th:visible', { hasText: /swim/i }).first()
     await swimHeader.waitFor({ state: 'visible', timeout: 3000 })
-    const bikeHeader = page.locator('th', { hasText: /bike/i })
+    const bikeHeader = page.locator('th:visible', { hasText: /bike/i }).first()
     await bikeHeader.waitFor({ state: 'visible', timeout: 3000 })
   })
 
@@ -362,6 +396,97 @@ async function run() {
     if (count === 0) throw new Error('No rows after resetting year filter')
   })
 
+  // ── EXTRA EVENTS TAB ─────────────────────────────────────────────────────────
+  console.log('\n🎽 Extra Events Tab')
+
+  await test('Click Extra Events tab', async () => {
+    // getByRole('tab') — a plain locator would also match the Overview block's
+    // "View the results in the Extra Events tab" button
+    const tab = page.getByRole('tab', { name: 'Extra Events' })
+    await tab.click()
+    await page.waitForTimeout(800)
+    const header = page.locator('text=Extra events & timed trainings')
+    await header.waitFor({ state: 'visible', timeout: 5000 })
+  })
+
+  await test('Event selector lists the SuperSprint training', async () => {
+    const select = page.locator('select:visible').first()
+    const options = await select.locator('option').allTextContents()
+    if (!options.some(o => /SuperSprint/i.test(o))) throw new Error('No SuperSprint option')
+  })
+
+  await test('Event description with distances visible', async () => {
+    const desc = page.locator('text=400 m swim')
+    await desc.waitFor({ state: 'visible', timeout: 3000 })
+  })
+
+  await test('Ranked finishers start at rank 1', async () => {
+    const firstRank = await page.locator('table tbody tr:visible').first()
+      .locator('th[scope="row"]').first().textContent()
+    if (firstRank?.trim() !== '1') throw new Error(`First rank is "${firstRank}", expected "1"`)
+  })
+
+  await test('Partial participants listed unranked at the bottom', async () => {
+    const lastRank = await page.locator('table tbody tr:visible').last()
+      .locator('th[scope="row"]').textContent()
+    if (lastRank?.trim() !== '—') throw new Error(`Last row rank is "${lastRank}", expected "—"`)
+  })
+
+  await test('No points column on extra events', async () => {
+    const pointsHeaders = page.locator('table:visible th', { hasText: /^Points$/ })
+    const count = await pointsHeaders.count()
+    if (count > 0) throw new Error('Extra events must not show a points column')
+  })
+
+  await test('Split rank (#) columns visible', async () => {
+    const hashHeaders = page.locator('table:visible th', { hasText: /^#$/ })
+    const count = await hashHeaders.count()
+    if (count !== 5) throw new Error(`Expected 5 split-rank columns, found ${count}`)
+  })
+
+  await test('Partial participant has split ranks for completed legs only', async () => {
+    // Last row is a partial (Peter: bike+T2+run) — its swim rank cell must be
+    // a dash while at least one later split rank is numeric.
+    const lastRow = page.locator('table tbody tr:visible').last()
+    const cells = await lastRow.locator('td').allTextContents()
+    if (!cells.some(c => /^\d+$/.test(c.trim()))) throw new Error('No numeric split rank on partial row')
+  })
+
+  await test('Women Only filter renumbers ranks from 1', async () => {
+    const catSelect = page.locator('select:visible').nth(1)
+    await catSelect.selectOption('women')
+    await page.waitForTimeout(400)
+    const firstRow = page.locator('table tbody tr:visible').first()
+    const rank = await firstRow.locator('th[scope="row"]').textContent()
+    if (rank?.trim() !== '1') throw new Error(`First women's rank is "${rank}", expected "1"`)
+    const name = await firstRow.locator('td').first().textContent()
+    console.log(`     (women's #1: ${name?.trim()})`)
+  })
+
+  await test('Reset category to Overall', async () => {
+    const catSelect = page.locator('select:visible').nth(1)
+    await catSelect.selectOption('all')
+    await page.waitForTimeout(400)
+    const rows = page.locator('table tbody tr:visible')
+    const count = await rows.count()
+    if (count === 0) throw new Error('No rows after resetting category')
+  })
+
+  await test('Export CSV button visible on extra events', async () => {
+    const btn = page.locator('button:visible', { hasText: 'Export CSV' }).first()
+    await btn.waitFor({ state: 'visible', timeout: 3000 })
+  })
+
+  await test('Event selector shows localized date', async () => {
+    const select = page.locator('select:visible').first()
+    const options = await select.locator('option').allTextContents()
+    if (!options.some(o => /10 June 2026/.test(o))) throw new Error(`No localized date in: ${options.join(' | ')}`)
+  })
+
+  // Return to Rankings — the language tests below expect it to be active
+  await page.locator('button', { hasText: 'Club Rankings' }).click()
+  await page.waitForTimeout(500)
+
   // ── LANGUAGE IN CONTEXT ───────────────────────────────────────────────────────
   console.log('\n🌐 Language in Rankings context')
 
@@ -409,7 +534,9 @@ async function run() {
   const realErrors = consoleErrors.filter(e =>
     !e.includes('metadataBase') &&
     !e.includes('favicon') &&
-    !e.includes('Download the React DevTools')
+    !e.includes('Download the React DevTools') &&
+    // Vercel Analytics script only exists on Vercel deployments — 404s locally
+    !e.includes('_vercel/insights')
   )
   if (realErrors.length === 0) {
     ok('No JavaScript console errors')

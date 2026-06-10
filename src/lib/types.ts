@@ -66,6 +66,28 @@ export interface EventResult {
   run2_time?: string
 }
 
+/**
+ * A timed event that is not an official club championship (e.g. the Rådasjön
+ * SuperSprint trainings). Loaded from data/extra/events.json + its CSVs.
+ * These earn no club points and stay out of profiles and rankings.
+ */
+export interface ExtraEvent {
+  /** CSV file name within data/extra/ — unique, used as React key. */
+  file: string
+  /** NyTaTime race id — the import script matches manifest entries by it. */
+  race_id?: string
+  /** Full event date (YYYY-MM-DD) — extra events can repeat within a year. */
+  date: string
+  /** Segment layout to display (e.g. 'triathlon' → Swim/T1/Bike/T2/Run). */
+  format: SportType
+  title: { en: string; sv: string }
+  location?: string
+  /** Event context shown above the results: format, distances, who it's for. */
+  description?: { en: string; sv: string }
+  /** Ranked finishers first, then 'partial' rows (some legs only), unranked. */
+  results: AthleteResult[]
+}
+
 export interface ClubAthlete {
   name: string
   gender: string

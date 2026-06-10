@@ -7,12 +7,14 @@ const TRANSLATIONS: Record<string, { en: string; sv: string }> = {
   tab_event_results:  { en: 'Event Results',    sv: 'Tävlingsresultat' },
   tab_athletes:       { en: 'Athlete Profiles', sv: 'Idrottarprofiler' },
   tab_rankings:       { en: 'Club Rankings',    sv: 'Klubbranking' },
+  tab_extra:          { en: 'Extra Events',     sv: 'Extra evenemang' },
 
   // Short tab labels for narrow screens
   tab_short_overview: { en: 'Overview',  sv: 'Översikt' },
   tab_short_results:  { en: 'Results',   sv: 'Resultat' },
   tab_short_athletes: { en: 'Athletes',  sv: 'Idrottare' },
   tab_short_rankings: { en: 'Rankings',  sv: 'Ranking' },
+  tab_short_extra:    { en: 'Extra',     sv: 'Extra' },
 
   // Discipline cards on the Overview tab
   discipline_running_title:   { en: 'Running — 5 km Track Race',  sv: 'Löpning — 5 km sprintlopp' },
@@ -33,6 +35,14 @@ const TRANSLATIONS: Record<string, { en: string; sv: string }> = {
     en: 'Throughout the year, our club organises a series of championships across different disciplines. After every event, the club provides drinks and snacks — members are also welcome to bring a friend along to discover the club!',
     sv: 'Under året arrangerar klubben en serie mästerskap inom olika grenar. Efter varje tävling bjuder klubben på dryck och tilltugg — medlemmar är även välkomna att ta med en vän för att lära känna klubben!',
   },
+
+  overview_extra_title: { en: 'Extra events & open trainings', sv: 'Extra evenemang & öppna träningar' },
+  overview_extra_text:  {
+    en: 'Beyond the club championships, the club also organises open timed sessions — like the SuperSprint triathlon trainings at Rådasjön on Wednesday evenings in June. Everyone is welcome, no club points are at stake, and every session is timed so you can chase your own progress.',
+    sv: 'Utöver klubbmästerskapen arrangerar klubben även öppna tidtagna pass — som SuperSprint-triathlonträningarna vid Rådasjön på onsdagskvällar i juni. Alla är välkomna, inga klubbpoäng står på spel, och varje pass tidtas så att du kan jaga din egen utveckling.',
+  },
+  view_extra_results:   { en: 'View the results in the Extra Events tab →', sv: 'Se resultaten under fliken Extra evenemang →' },
+  view_km_results:      { en: 'View the results →', sv: 'Se resultaten →' },
 
   created_by_title:   { en: 'Created by members, for members', sv: 'Skapad av medlemmar, för medlemmar' },
   created_by_text1:   {
@@ -57,6 +67,16 @@ const TRANSLATIONS: Record<string, { en: string; sv: string }> = {
   club_rankings_text2:  {
     en: 'Points accumulate throughout the year to create annual rankings for men and women, celebrated at Novemberplågan — our end-of-year club gathering.',
     sv: 'Poängen ackumuleras under året och skapar årsrankingar för herrar och damer, som firas vid Novemberplågan — klubbens avslutning för året.',
+  },
+
+  extra_events_title: { en: 'Extra events & timed trainings', sv: 'Extra evenemang & tidtagna träningar' },
+  extra_events_text1: {
+    en: 'Results from timed training sessions and other events that are not official club championships. These are just for fun — no club points are awarded, and the results do not count towards the club rankings or athlete profiles.',
+    sv: 'Resultat från tidtagna träningar och andra evenemang som inte är officiella klubbmästerskap. Dessa är bara för skojs skull — inga klubbpoäng delas ut, och resultaten räknas inte med i klubbrankingen eller idrottarprofilerna.',
+  },
+  extra_events_text2: {
+    en: 'Athletes who completed only some of the legs are listed below the ranked finishers with the legs they did.',
+    sv: 'Idrottare som genomförde endast vissa delmoment listas under de rankade deltagarna med de moment de gjorde.',
   },
 
   athlete_profiles_title: { en: 'Individual athlete profiles', sv: 'Individuella idrottarprofiler' },
@@ -125,6 +145,7 @@ const TRANSLATIONS: Record<string, { en: string; sv: string }> = {
   dnf:           { en: 'DNF',          sv: 'DNF' },
 
   no_data_available:        { en: 'No data available for', sv: 'Ingen data tillgänglig för' },
+  no_extra_events:          { en: 'No extra events yet.', sv: 'Inga extra evenemang ännu.' },
   men:                      { en: 'Men',    sv: 'Herrar' },
   women:                    { en: 'Women',  sv: 'Damer' },
   results:                  { en: 'Results', sv: 'Resultat' },

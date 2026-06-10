@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { parseCsv, loadAllCompetitions } from '../loader.ts'
+import { parseCsv, loadAllCompetitions, loadExtraEvents } from '../loader.ts'
 
 // ─── parseCsv ───────────────────────────────────────────────────────────────
 
@@ -95,4 +95,60 @@ test('loadAllCompetitions: Status is lowercased and trimmed', () => {
       assert.equal(a.Status, a.Status.toLowerCase().trim())
     }
   }
+})
+
+// ─── loadExtraEvents ────────────────────────────────────────────────────────
+// Integration tests against data/extra/. Extra events must never leak into
+// the KM competitions data (they earn no points and stay out of rankings).
+
+test('loadExtraEvents: parses the manifest and its CSVs', () => {
+  const events = loadExtraEvents()
+  assert.ok(events.length > 0, 'should have at least one extra event')
+  for (const e of events) {
+    assert.match(e.date, /^\d{4}-\d{2}-\d{2}$/)
+    assert.ok(e.title.en.length > 0 && e.title.sv.length > 0)
+    assert.ok(e.results.length > 0, `${e.file} should have rows`)
+  }
+})
+
+test('loadExtraEvents: events are sorted newest first', () => {
+  const events = loadExtraEvents()
+  for (let i = 1; i < events.length; i++) {
+    assert.ok(events[i - 1].date >= events[i].date)
+  }
+})
+
+test('loadExtraEvents: ranked finishers come before partial rows', () => {
+  for (const e of loadExtraEvents()) {
+    const firstPartial = e.results.findIndex((a) => a.Status === 'partial')
+    if (firstPartial === -1) continue
+    for (const a of e.results.slice(firstPartial)) {
+      assert.equal(a.Status, 'partial', `${e.file}: ranked row after partial rows`)
+    }
+  }
+})
+
+test('loadExtraEvents: partial rows carry no total time and no rank', () => {
+  for (const e of loadExtraEvents()) {
+    for (const a of e.results.filter((x) => x.Status === 'partial')) {
+      assert.equal(a.Total_Time_Seconds, 0, `${e.file}: ${a.Name}`)
+      assert.equal(a.Overall_Rank, 0, `${e.file}: ${a.Name}`)
+    }
+  }
+})
+
+test('loadExtraEvents: extra event files are not picked up by loadAllCompetitions', () => {
+  // 'partial' status only exists in extra-event CSVs (KM statuses are
+  // ok/dnf/dns) — if data/extra/ ever leaked into the KM loader, its partial
+  // rows would surface here.
+  const competitions = loadAllCompetitions()
+  for (const sport of Object.keys(competitions) as Array<keyof typeof competitions>) {
+    for (const a of competitions[sport]) {
+      assert.notEqual(a.Status, 'partial', `${sport}: extra-event row leaked into KM data`)
+    }
+  }
+})
+
+test('loadExtraEvents: returns the same reference on repeat call (caching)', () => {
+  assert.equal(loadExtraEvents(), loadExtraEvents())
 })

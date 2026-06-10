@@ -6,19 +6,21 @@ import { OverviewTab } from './tabs/OverviewTab'
 import { ResultsTab } from './tabs/ResultsTab'
 import { AthletesTab } from './tabs/AthletesTab'
 import { RankingsTab } from './tabs/RankingsTab'
-import type { CompetitionsData, ClubAthlete } from '@/lib/types'
+import { ExtraEventsTab } from './tabs/ExtraEventsTab'
+import type { CompetitionsData, ClubAthlete, ExtraEvent, SportType } from '@/lib/types'
 
-type Tab = 'overview' | 'results' | 'athletes' | 'rankings'
+type Tab = 'overview' | 'results' | 'athletes' | 'rankings' | 'extra'
 
-const TAB_ORDER: Tab[] = ['overview', 'results', 'athletes', 'rankings']
+const TAB_ORDER: Tab[] = ['overview', 'results', 'athletes', 'rankings', 'extra']
 
 interface Props {
   data: CompetitionsData
   athleteNames: string[]
   allTimeRankings: ClubAthlete[]
+  extraEvents: ExtraEvent[]
 }
 
-export function Dashboard({ data, athleteNames, allTimeRankings }: Props) {
+export function Dashboard({ data, athleteNames, allTimeRankings, extraEvents }: Props) {
   const { lang } = useLang()
   const [tab, setTab] = useState<Tab>('overview')
   // Panels mount on first visit and then stay mounted: the server renders only
@@ -26,6 +28,7 @@ export function Dashboard({ data, athleteNames, allTimeRankings }: Props) {
   // state, memoized rankings, and Recharts DOM so switching back is instant.
   const [visited, setVisited] = useState<ReadonlySet<Tab>>(() => new Set<Tab>(['overview']))
   const [selectedAthlete, setSelectedAthlete] = useState<string | null>(null)
+  const [selectedSport, setSelectedSport] = useState<SportType | null>(null)
 
   const selectTab = useCallback((id: Tab) => {
     setTab(id)
@@ -35,6 +38,13 @@ export function Dashboard({ data, athleteNames, allTimeRankings }: Props) {
   const navigateToAthlete = useCallback((name: string) => {
     setSelectedAthlete(name)
     selectTab('athletes')
+  }, [selectTab])
+
+  const navigateToExtra = useCallback(() => selectTab('extra'), [selectTab])
+
+  const navigateToSport = useCallback((sport: SportType) => {
+    setSelectedSport(sport)
+    selectTab('results')
   }, [selectTab])
 
   const onTabKeyDown = useCallback((e: React.KeyboardEvent, index: number) => {
@@ -55,6 +65,7 @@ export function Dashboard({ data, athleteNames, allTimeRankings }: Props) {
     { id: 'results',  full: t('tab_event_results', lang), short: t('tab_short_results', lang) },
     { id: 'athletes', full: t('tab_athletes', lang),      short: t('tab_short_athletes', lang) },
     { id: 'rankings', full: t('tab_rankings', lang),      short: t('tab_short_rankings', lang) },
+    { id: 'extra',    full: t('tab_extra', lang),         short: t('tab_short_extra', lang) },
   ], [lang])
 
   return (
@@ -87,16 +98,19 @@ export function Dashboard({ data, athleteNames, allTimeRankings }: Props) {
       </div>
 
       <div role="tabpanel" id="tabpanel-overview" aria-labelledby="tab-overview" hidden={tab !== 'overview'}>
-        {visited.has('overview') && <OverviewTab data={data} lang={lang} />}
+        {visited.has('overview') && <OverviewTab data={data} lang={lang} onNavigateToExtra={navigateToExtra} onNavigateToSport={navigateToSport} />}
       </div>
       <div role="tabpanel" id="tabpanel-results" aria-labelledby="tab-results" hidden={tab !== 'results'}>
-        {visited.has('results') && <ResultsTab data={data} lang={lang} onAthleteClick={navigateToAthlete} />}
+        {visited.has('results') && <ResultsTab data={data} lang={lang} onAthleteClick={navigateToAthlete} initialSport={selectedSport} />}
       </div>
       <div role="tabpanel" id="tabpanel-athletes" aria-labelledby="tab-athletes" hidden={tab !== 'athletes'}>
         {visited.has('athletes') && <AthletesTab data={data} athleteNames={athleteNames} allTimeRankings={allTimeRankings} lang={lang} initialAthlete={selectedAthlete} />}
       </div>
       <div role="tabpanel" id="tabpanel-rankings" aria-labelledby="tab-rankings" hidden={tab !== 'rankings'}>
         {visited.has('rankings') && <RankingsTab data={data} allTimeRankings={allTimeRankings} lang={lang} onAthleteClick={navigateToAthlete} />}
+      </div>
+      <div role="tabpanel" id="tabpanel-extra" aria-labelledby="tab-extra" hidden={tab !== 'extra'}>
+        {visited.has('extra') && <ExtraEventsTab events={extraEvents} lang={lang} />}
       </div>
     </div>
   )
