@@ -6,7 +6,7 @@ export function Header() {
   const { lang, setLang } = useLang()
   return (
     <header className="bg-white border-b-[3px] border-red-700 shadow-sm">
-      <div className="max-w-6xl mx-auto px-4 py-1.5 flex items-center justify-between">
+      <div className="max-w-7xl mx-auto px-4 py-1.5 flex items-center justify-between">
         <Image
           src="/OGLogo-2.png"
           alt="Triathlon Väst"
