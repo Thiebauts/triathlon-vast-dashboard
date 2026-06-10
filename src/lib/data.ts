@@ -122,6 +122,48 @@ export function calculateClubMemberRank(
   return idx >= 0 ? idx + 1 : 999
 }
 
+// ─── Per-event points ─────────────────────────────────────────────────────────
+
+/**
+ * Points each athlete earned in their own event, keyed by athleteKey().
+ *
+ * Mirrors getClubRankings / getAthleteEvents: points are an adult-category club
+ * ranking (Herr/Dam members only) computed over the FULL event field — every
+ * club member in that class and year — so the value is independent of any UI
+ * filtering (category, guests, search) and always agrees across the Results tab,
+ * Rankings tab, and athlete profiles. Non-members and youth/barn map to 0.
+ */
+export function computeEventPoints(athletes: AthleteResult[]): Map<string, number> {
+  const out = new Map<string, number>()
+
+  const byYear: Record<string, AthleteResult[]> = {}
+  for (const a of athletes) {
+    byYear[a.Competition_Year] = byYear[a.Competition_Year] ?? []
+    byYear[a.Competition_Year].push(a)
+  }
+
+  for (const yearGroup of Object.values(byYear)) {
+    // Club-member rank within each class, computed once per class.
+    const ranksByClass = new Map<string, Map<string, number>>()
+    for (const a of yearGroup) {
+      if (!a.is_club_member || ranksByClass.has(a.Class)) continue
+      const rankMap = new Map<string, number>()
+      yearGroup
+        .filter((x) => x.is_club_member && x.Class === a.Class)
+        .sort((x, y) => (x.Total_Time_Seconds ?? Infinity) - (y.Total_Time_Seconds ?? Infinity))
+        .forEach((x, i) => rankMap.set(athleteKey(x), i + 1))
+      ranksByClass.set(a.Class, rankMap)
+    }
+
+    for (const a of yearGroup) {
+      const cmRank = ranksByClass.get(a.Class)?.get(athleteKey(a)) ?? 999
+      out.set(athleteKey(a), earnsClubPoints(a) ? calculatePoints(cmRank) : 0)
+    }
+  }
+
+  return out
+}
+
 // ─── Summary stats ────────────────────────────────────────────────────────────
 
 export function getSummaryStats(data: CompetitionsData): SummaryStats {

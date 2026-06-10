@@ -2,7 +2,7 @@
 import { useState, useMemo, useCallback, useDeferredValue, Fragment } from 'react'
 import { t } from '@/lib/translations'
 import type { AthleteResult, CompetitionsData, SportType, Lang } from '@/lib/types'
-import { athleteKey, computeSplitRanks, type SplitRanks } from '@/lib/data'
+import { athleteKey, computeSplitRanks, computeEventPoints, type SplitRanks } from '@/lib/data'
 
 const SPORTS: SportType[] = ['triathlon', 'duathlon', 'swimming', 'cycling', 'running', 'swimrun']
 
@@ -95,6 +95,17 @@ export function ResultsTab({ data, lang, onAthleteClick }: Props) {
     return out
   }, [data, sport, isMultiSport, showGuests, category, year])
 
+  // Club points each athlete earned in their event, keyed by athleteKey().
+  // Computed over the FULL field for the sport (every member in their adult
+  // class that year), so the number is independent of the category/guest/search
+  // filters here and always matches the Rankings tab and athlete profiles.
+  // Non-members and youth earn 0.
+  const pointsLookup = useMemo(() => {
+    const out: Record<string, number> = {}
+    computeEventPoints(data[sport]).forEach((v, k) => { out[k] = v })
+    return out
+  }, [data, sport])
+
   const rows = useMemo(() => {
     let list = data[sport]
     if (year !== 'all') list = list.filter((a) => a.Competition_Year === year)
@@ -135,7 +146,7 @@ export function ResultsTab({ data, lang, onAthleteClick }: Props) {
   const exportCsv = useCallback(() => {
     const headers = [
       t('overall_rank', lang), t('name', lang), t('club', lang),
-      t('gender', lang), t('year', lang), t('total_time', lang),
+      t('gender', lang), t('year', lang), t('total_time', lang), t('points', lang),
     ]
     const csvRows = [headers.map(csvEscape).join(',')]
     rows.forEach(({ athlete: a, rank }) => {
@@ -146,6 +157,7 @@ export function ResultsTab({ data, lang, onAthleteClick }: Props) {
         csvEscape(a.Class),
         csvEscape(a.Competition_Year),
         csvEscape(a.Total_Time),
+        pointsLookup[athleteKey(a)] ?? 0,
       ].join(','))
     })
     const blob = new Blob([csvRows.join('\n')], { type: 'text/csv' })
@@ -155,7 +167,7 @@ export function ResultsTab({ data, lang, onAthleteClick }: Props) {
     link.download = `${sport}_${year}_${category}.csv`
     link.click()
     URL.revokeObjectURL(url)
-  }, [rows, sport, year, category, lang])
+  }, [rows, sport, year, category, lang, pointsLookup])
 
   return (
     <div className="space-y-3">
@@ -252,11 +264,16 @@ export function ResultsTab({ data, lang, onAthleteClick }: Props) {
                     <th scope="col" className={`px-2 py-2 text-center font-semibold text-gray-300 ${D}`}>#</th>
                   </Fragment>
                 ))}
+                <th scope="col" className="px-3 py-2 text-right font-semibold border-l border-gray-100">{t('points', lang)}</th>
               </tr>
             </thead>
             <tbody>
               {rows.map(({ athlete: a, rank }, i) => {
                 const isMember = a.is_club_member
+                // Only adult (Herr/Dam) members earn club points; everyone else
+                // shows a dash. A member can still earn 0 (ranked past 32nd).
+                const earnsPoints = isMember && (a.class_lower === 'herr' || a.class_lower === 'dam')
+                const points = pointsLookup[athleteKey(a)] ?? 0
                 const sr = splitRankLookup?.[athleteKey(a)] ?? {}
                 const bg = rank === 1 ? 'bg-amber-50/60'
                          : rank === 2 ? 'bg-slate-50/80'
@@ -292,6 +309,11 @@ export function ResultsTab({ data, lang, onAthleteClick }: Props) {
                         </td>
                       </Fragment>
                     ))}
+                    <td className="px-3 py-1.5 text-right tabular-nums border-l border-gray-100">
+                      {earnsPoints
+                        ? <span className={points > 0 ? 'font-semibold text-red-700' : 'text-gray-400'}>{points}</span>
+                        : <span className="text-gray-300">—</span>}
+                    </td>
                   </tr>
                 )
               })}

@@ -5,6 +5,7 @@ import {
   buildAllSplitRanks,
   calculateClubMemberRank,
   calculatePoints,
+  computeEventPoints,
   computeSplitRanks,
   getAllAthleteNames,
   getAthleteEvents,
@@ -139,6 +140,42 @@ test('calculateClubMemberRank: ranks members by total time within their class', 
   assert.equal(calculateClubMemberRank(a, all), 2)
   assert.equal(calculateClubMemberRank(c, all), 1) // sole woman
   assert.equal(calculateClubMemberRank(guest, all), 999) // not a member
+})
+
+// ─── computeEventPoints ─────────────────────────────────────────────────────
+
+test('computeEventPoints: awards points by club-member rank within each gender class', () => {
+  const a = mk({ Name: 'A', Class: 'Herr', Club: 'TriVäst', Competition_Year: '2024', Total_Time_Seconds: 4000 })
+  const b = mk({ Name: 'B', Class: 'Herr', Club: 'TriVäst', Competition_Year: '2024', Total_Time_Seconds: 3800 })
+  const c = mk({ Name: 'C', Class: 'Dam',  Club: 'TriVäst', Competition_Year: '2024', Total_Time_Seconds: 4500 })
+  const faster_guest = mk({ Name: 'G', Class: 'Herr', Club: 'OtherClub', Competition_Year: '2024', Total_Time_Seconds: 3000 })
+
+  const pts = computeEventPoints([a, b, c, faster_guest])
+  assert.equal(pts.get(athleteKey(b)), 40) // fastest Herr member => 1st
+  assert.equal(pts.get(athleteKey(a)), 35) // 2nd Herr member; guest doesn't displace
+  assert.equal(pts.get(athleteKey(c)), 40) // sole Dam member => 1st in her class
+})
+
+test('computeEventPoints: non-members and youth/barn earn 0', () => {
+  const member = mk({ Name: 'M', Class: 'Herr',   Club: 'TriVäst',  Competition_Year: '2024', Total_Time_Seconds: 1500 })
+  const guest  = mk({ Name: 'G', Class: 'Herr',   Club: 'OtherClub', Competition_Year: '2024', Total_Time_Seconds: 1300 })
+  const youth  = mk({ Name: 'Y', Class: 'Ungdom', Club: 'TriVäst',  Competition_Year: '2024', Total_Time_Seconds: 1400 })
+
+  const pts = computeEventPoints([member, guest, youth])
+  assert.equal(pts.get(athleteKey(member)), 40)
+  assert.equal(pts.get(athleteKey(guest)), 0)
+  assert.equal(pts.get(athleteKey(youth)), 0)
+})
+
+test('computeEventPoints: each year is ranked independently', () => {
+  const a23 = mk({ Name: 'A', Class: 'Herr', Club: 'TriVäst', Competition_Year: '2023', Bib: '1', Total_Time_Seconds: 4000 })
+  const a24 = mk({ Name: 'A', Class: 'Herr', Club: 'TriVäst', Competition_Year: '2024', Bib: '1', Total_Time_Seconds: 4000 })
+  const b24 = mk({ Name: 'B', Class: 'Herr', Club: 'TriVäst', Competition_Year: '2024', Bib: '2', Total_Time_Seconds: 3800 })
+
+  const pts = computeEventPoints([a23, a24, b24])
+  assert.equal(pts.get(athleteKey(a23)), 40) // sole member in 2023
+  assert.equal(pts.get(athleteKey(b24)), 40) // fastest in 2024
+  assert.equal(pts.get(athleteKey(a24)), 35) // 2nd in 2024
 })
 
 // ─── getClubRankings ────────────────────────────────────────────────────────
