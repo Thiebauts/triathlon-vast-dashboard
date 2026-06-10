@@ -18,6 +18,8 @@ An internal analytics dashboard for Triathlon Väst members. It aggregates CSV r
 
 The dataset currently covers **27 competitions** across 6 sports (triathlon, duathlon, swimming, cycling, running, swimrun) from **2021–2026**, including 1 swimrun event added in 2025.
 
+Beyond the championships, the dashboard also tracks **extra events** — timed open training sessions like the Rådasjön SuperSprint series — kept separate from the official results: no club points, no effect on rankings or athlete profiles.
+
 ## Screenshots
 
 ### Event Results
@@ -44,14 +46,23 @@ Annual leaderboards for men and women, based on a points system that rewards con
   <img src="public/screenshot-club-rankings.png" alt="Club Rankings tab" width="100%" />
 </p>
 
+### Extra Events
+
+Timed training sessions and other non-championship events — like the Rådasjön SuperSprint series — each with its own description, split rankings, and Overall/Men/Women category filter. Athletes who completed only some legs are listed unranked with the legs they did. No club points are awarded.
+
+<p align="center">
+  <img src="public/screenshot-extra-events.png" alt="Extra Events tab" width="100%" />
+</p>
+
 ## Highlights
 
 ### Features
 
-- **Overview tab**: Season-level participation trends and summary stats
+- **Overview tab**: Season-level participation trends, summary of all championships, and quick links into each discipline's results
 - **Results tab**: Filter and browse all competition results by sport, year, and category — per-event club points column and CSV export included
 - **Athletes tab**: Individual athlete profiles with full result history, personal bests, year-over-year deltas, and per-event points
 - **Rankings tab**: Club-wide leaderboards (women / men, per year or all-time) based on aggregated points across events
+- **Extra Events tab**: Timed trainings and other non-KM events with split ranks, category filter, bilingual event descriptions, and CSV export — partial participants listed unranked
 - **Bilingual UI**: Swedish / English toggle throughout
 - **Keyboard-accessible tabs**: proper tablist semantics with arrow-key navigation
 
@@ -93,6 +104,9 @@ npm run dev
 ```bash
 npm test          # unit tests (node:test, no build needed)
 npm run test:e2e  # Playwright e2e — needs the app running on :3000 first
+
+# Python data-pipeline tests
+cd nytatime && python3 -m unittest test_extra_events
 ```
 
 ## Project Structure
@@ -104,8 +118,18 @@ triathlon-vast-dashboard/
 ├── next.config.ts
 ├── tsconfig.json
 ├── data/                        # CSV result files (inputs, not edited manually)
-│   └── processed_<sport>_results_<date>.csv
+│   ├── processed_<sport>_results_<date>.csv
+│   └── extra/                   # non-KM events: result CSVs + events.json manifest
+├── nytatime/                    # Python pipeline: NyTaTime API → data/ CSVs
+│   ├── fetch.py                 # one-command KM fetch (year + sport)
+│   ├── fetch_extra.py           # one-command extra-event fetch (year + keyword)
+│   ├── retrieve_event_results.py
+│   ├── retrieve_extra_event_results.py
+│   ├── nytatime_api.py
+│   └── test_extra_events.py     # pipeline unit tests
 ├── public/                      # Static assets (logo, favicon, screenshots)
+├── scripts/
+│   └── capture-screenshots.mjs  # Regenerates the README screenshots
 ├── tests/
 │   └── e2e.mjs                  # Playwright end-to-end suite
 └── src/
@@ -127,10 +151,12 @@ triathlon-vast-dashboard/
     │       ├── OverviewTab.tsx
     │       ├── ResultsTab.tsx
     │       ├── AthletesTab.tsx
-    │       └── RankingsTab.tsx
+    │       ├── RankingsTab.tsx
+    │       └── ExtraEventsTab.tsx
     └── lib/
         ├── loader.ts            # Server-side CSV loading (built-in parser)
         ├── data.ts              # Query helpers: rankings, points, splits
+        ├── csv.ts               # CSV export escaping (formula-injection guard)
         ├── types.ts             # Shared TypeScript types
         ├── translations.ts      # EN/SV string catalogue
         └── __tests__/           # Unit tests (node:test)
@@ -170,6 +196,19 @@ When exporting results from NyTaTime, follow these rules to keep the data consis
 - No trailing whitespace in any field
 - File encoding: **UTF-8**
 - One empty line at end of file maximum
+
+## Extra Events Workflow (non-KM)
+
+Timed trainings and other non-championship events live in `data/extra/` and appear under the dashboard's Extra Events tab. They earn no club points and stay out of the rankings and athlete profiles.
+
+To add one:
+
+1. `cd nytatime && python3 fetch_extra.py 2026 "supersprint training #3"`
+2. Review the script's `Partial:` warnings — a missed chip read would wrongly demote a finisher to partial
+3. Polish the EN/SV `title`, `location`, and `description` in `data/extra/events.json`
+4. Commit `data/extra/` and push — the next deploy picks it up
+
+Participants who skipped legs are stored with `Status: partial` (only the legs they completed, no total time, no rank); participants with no recorded times at all are excluded.
 
 ## Contributing
 

@@ -13,6 +13,7 @@ const SHOTS = [
   { tab: 'results',  file: 'public/screenshot-event-results.png',    width: 1420, height: 635 },
   { tab: 'athletes', file: 'public/screenshot-athlete-profiles.png', width: 1140, height: 577 },
   { tab: 'rankings', file: 'public/screenshot-club-rankings.png',    width: 1140, height: 658 },
+  { tab: 'extra',    file: 'public/screenshot-extra-events.png',     width: 1420, height: 870 },
 ]
 
 const browser = await chromium.launch({ headless: true })
@@ -36,6 +37,9 @@ for (const { tab, file, width, height } of SHOTS) {
   }
   if (tab === 'rankings') {
     await page.waitForSelector('#tabpanel-rankings table')
+  }
+  if (tab === 'extra') {
+    await page.waitForSelector('#tabpanel-extra table')
   }
 
   // Align the tab bar with the top of the viewport so each shot shows the
