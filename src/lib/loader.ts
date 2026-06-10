@@ -8,7 +8,7 @@ import type { AthleteResult, CompetitionsData, SportType } from './types'
 
 const FIELDS_USED: ReadonlySet<string> = new Set([
   'Name', 'Bib', 'Class', 'Club', 'Total_Time', 'Total_Time_Seconds', 'Status',
-  'Overall_Rank', 'Class_Rank', 'Total_Transition',
+  'Overall_Rank', 'Class_Rank',
   'Swim_Time', 'Swim_Seconds', 'T1_Time', 'T1_Seconds',
   'Bike_Time', 'Bike_Seconds', 'T2_Time', 'T2_Seconds',
   'Run_Time', 'Run_Seconds', 'Run1_Time', 'Run1_Seconds', 'Run2_Time', 'Run2_Seconds',
@@ -57,7 +57,6 @@ export function parseCsv(content: string): Record<string, string>[] {
 function rowToAthlete(
   row: Record<string, string>,
   year: string,
-  sport: SportType,
 ): AthleteResult {
   const out: Record<string, unknown> = {}
   for (const [key, raw] of Object.entries(row)) {
@@ -80,7 +79,6 @@ function rowToAthlete(
     is_club_member: CLUB_ALIASES.has(club.toLowerCase().trim()),
     Status: String(out.Status ?? '').toLowerCase().trim(),
     Competition_Year: year,
-    Competition_Type: sport.charAt(0).toUpperCase() + sport.slice(1),
   } as AthleteResult
 }
 
@@ -103,7 +101,7 @@ export function loadAllCompetitions(): CompetitionsData {
       const year = file.match(pattern)![1].split('-')[0]
       const content = fs.readFileSync(path.join(base, file), 'utf-8')
       for (const row of parseCsv(content)) {
-        data[sport].push(rowToAthlete(row, year, sport))
+        data[sport].push(rowToAthlete(row, year))
       }
     }
   }

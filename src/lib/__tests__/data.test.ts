@@ -25,7 +25,6 @@ function mk(partial: Partial<AthleteResult> & { Name: string; Class: string; Clu
     Status: 'ok',
     Overall_Rank: 0,
     Class_Rank: 0,
-    Competition_Type: 'Triathlon',
     class_lower: cls.toLowerCase(),
     is_club_member: ['triväst', 'triathlon väst', 'tv'].includes(partial.Club.toLowerCase().trim()),
     ...partial,

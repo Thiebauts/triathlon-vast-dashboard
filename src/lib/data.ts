@@ -238,7 +238,6 @@ export function getAthleteEvents(
         run_time: a.Run_Time,
         run1_time: a.Run1_Time,
         run2_time: a.Run2_Time,
-        transitions: a.Total_Transition,
       }
     }
   }

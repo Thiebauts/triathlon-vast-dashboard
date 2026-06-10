@@ -16,7 +16,6 @@ export interface AthleteResult {
   Overall_Rank: number
   Class_Rank: number
   Competition_Year: string
-  Competition_Type: string
   // Triathlon / Duathlon segments — only fields the UI actually reads.
   Swim_Time?: string
   Swim_Seconds?: number
@@ -32,7 +31,6 @@ export interface AthleteResult {
   Run1_Seconds?: number
   Run2_Time?: string
   Run2_Seconds?: number
-  Total_Transition?: string
 }
 
 export interface CompetitionsData {
@@ -66,7 +64,6 @@ export interface EventResult {
   run_time?: string
   run1_time?: string
   run2_time?: string
-  transitions?: string
 }
 
 export interface ClubAthlete {
