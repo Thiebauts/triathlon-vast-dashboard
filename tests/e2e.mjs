@@ -529,6 +529,44 @@ async function run() {
   await page.locator('button', { hasText: 'English' }).click()
   await page.waitForTimeout(300)
 
+  // ── DEEP LINKS ───────────────────────────────────────────────────────────────
+  console.log('\n🔗 Deep links')
+
+  await test('Direct link opens the supersprint results', async () => {
+    await page.goto(`${BASE}/#extra/2026-06-10`, { waitUntil: 'networkidle' })
+    await page.waitForTimeout(600)
+    const header = page.locator('text=Extra events & timed trainings')
+    await header.waitFor({ state: 'visible', timeout: 5000 })
+    const value = await page.locator('select:visible').first().inputValue()
+    if (!value.includes('2026-06-10')) throw new Error(`Event selector is "${value}"`)
+  })
+
+  await test('Direct link opens an athlete profile', async () => {
+    await page.goto(`${BASE}/#athletes/${encodeURIComponent('Jonathan Flod')}`, { waitUntil: 'networkidle' })
+    await page.waitForTimeout(600)
+    const nameEl = page.locator('h3', { hasText: 'Jonathan Flod' })
+    await nameEl.waitFor({ state: 'visible', timeout: 5000 })
+  })
+
+  await test('Direct link opens results with sport preselected', async () => {
+    await page.goto(`${BASE}/#results/swimming`, { waitUntil: 'networkidle' })
+    await page.waitForTimeout(600)
+    const value = await page.locator('select:visible').first().inputValue()
+    if (value !== 'swimming') throw new Error(`Sport select is "${value}"`)
+  })
+
+  await test('Tab clicks update the URL hash', async () => {
+    await page.getByRole('tab', { name: 'Club Rankings' }).click()
+    await page.waitForTimeout(400)
+    if (!page.url().includes('#rankings')) throw new Error(`URL is ${page.url()}`)
+  })
+
+  await test('Overview clears the hash', async () => {
+    await page.getByRole('tab', { name: 'Overview' }).click()
+    await page.waitForTimeout(400)
+    if (page.url().includes('#')) throw new Error(`URL still has a hash: ${page.url()}`)
+  })
+
   // ── CONSOLE ERRORS ────────────────────────────────────────────────────────────
   console.log('\n🔍 Console errors check')
   const realErrors = consoleErrors.filter(e =>

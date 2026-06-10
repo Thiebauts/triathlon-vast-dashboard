@@ -1,7 +1,8 @@
 'use client'
-import { useState, useCallback, useMemo } from 'react'
+import { useState, useCallback, useEffect, useMemo, useRef } from 'react'
 import { useLang } from './LanguageProvider'
 import { t } from '@/lib/translations'
+import { buildHash, parseHash, TABS, type Tab } from '@/lib/deeplink'
 import { OverviewTab } from './tabs/OverviewTab'
 import { ResultsTab } from './tabs/ResultsTab'
 import { AthletesTab } from './tabs/AthletesTab'
@@ -9,9 +10,9 @@ import { RankingsTab } from './tabs/RankingsTab'
 import { ExtraEventsTab } from './tabs/ExtraEventsTab'
 import type { CompetitionsData, ClubAthlete, ExtraEvent, SportType } from '@/lib/types'
 
-type Tab = 'overview' | 'results' | 'athletes' | 'rankings' | 'extra'
+const TAB_ORDER = TABS
 
-const TAB_ORDER: Tab[] = ['overview', 'results', 'athletes', 'rankings', 'extra']
+const VALID_SPORTS: readonly string[] = ['triathlon', 'duathlon', 'swimming', 'cycling', 'running', 'swimrun']
 
 interface Props {
   data: CompetitionsData
@@ -29,6 +30,7 @@ export function Dashboard({ data, athleteNames, allTimeRankings, extraEvents }: 
   const [visited, setVisited] = useState<ReadonlySet<Tab>>(() => new Set<Tab>(['overview']))
   const [selectedAthlete, setSelectedAthlete] = useState<string | null>(null)
   const [selectedSport, setSelectedSport] = useState<SportType | null>(null)
+  const [selectedExtraDate, setSelectedExtraDate] = useState<string | null>(null)
 
   const selectTab = useCallback((id: Tab) => {
     setTab(id)
@@ -46,6 +48,52 @@ export function Dashboard({ data, athleteNames, allTimeRankings, extraEvents }: 
     setSelectedSport(sport)
     selectTab('results')
   }, [selectTab])
+
+  // ── Deep links ──────────────────────────────────────────────────────────────
+  // The hash mirrors the current view (#extra/2026-06-10, #athletes/Name, …)
+  // so any view can be bookmarked or shared. Read after mount only — the
+  // server always renders the overview, so reading the hash during the first
+  // render would cause a hydration mismatch (same pattern as the saved
+  // language in LanguageProvider).
+  const applyHash = useCallback(() => {
+    const parsed = parseHash(window.location.hash)
+    if (!parsed) return
+    const { tab: nextTab, param } = parsed
+    if (nextTab === 'results' && param && VALID_SPORTS.includes(param)) {
+      setSelectedSport(param as SportType)
+    } else if (nextTab === 'athletes' && param && athleteNames.includes(param)) {
+      setSelectedAthlete(param)
+    } else if (nextTab === 'extra' && param) {
+      setSelectedExtraDate(param)
+    }
+    selectTab(nextTab)
+  }, [athleteNames, selectTab])
+
+  const urlInitialized = useRef(false)
+  useEffect(() => {
+    // The post-mount re-render is the point: applying the deep link only
+    // after hydration keeps server and client HTML identical (the server
+    // always renders the overview).
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    applyHash()
+    urlInitialized.current = true
+    // Re-apply on hash edits and same-document hash navigations. Our own
+    // replaceState below never fires hashchange, so this cannot loop.
+    window.addEventListener('hashchange', applyHash)
+    return () => window.removeEventListener('hashchange', applyHash)
+  }, [applyHash])
+
+  useEffect(() => {
+    if (!urlInitialized.current) return
+    const param = tab === 'results' ? selectedSport
+      : tab === 'athletes' ? selectedAthlete
+      : tab === 'extra' ? selectedExtraDate
+      : null
+    const hash = buildHash(tab, param)
+    // replaceState (not pushState): the URL stays shareable without turning
+    // every tab click into a browser-history entry.
+    window.history.replaceState(null, '', hash || window.location.pathname + window.location.search)
+  }, [tab, selectedSport, selectedAthlete, selectedExtraDate])
 
   const onTabKeyDown = useCallback((e: React.KeyboardEvent, index: number) => {
     let next: number
@@ -101,16 +149,16 @@ export function Dashboard({ data, athleteNames, allTimeRankings, extraEvents }: 
         {visited.has('overview') && <OverviewTab data={data} lang={lang} onNavigateToExtra={navigateToExtra} onNavigateToSport={navigateToSport} />}
       </div>
       <div role="tabpanel" id="tabpanel-results" aria-labelledby="tab-results" hidden={tab !== 'results'}>
-        {visited.has('results') && <ResultsTab data={data} lang={lang} onAthleteClick={navigateToAthlete} initialSport={selectedSport} />}
+        {visited.has('results') && <ResultsTab data={data} lang={lang} onAthleteClick={navigateToAthlete} initialSport={selectedSport} onSportChange={setSelectedSport} />}
       </div>
       <div role="tabpanel" id="tabpanel-athletes" aria-labelledby="tab-athletes" hidden={tab !== 'athletes'}>
-        {visited.has('athletes') && <AthletesTab data={data} athleteNames={athleteNames} allTimeRankings={allTimeRankings} lang={lang} initialAthlete={selectedAthlete} />}
+        {visited.has('athletes') && <AthletesTab data={data} athleteNames={athleteNames} allTimeRankings={allTimeRankings} lang={lang} initialAthlete={selectedAthlete} onAthleteChange={setSelectedAthlete} />}
       </div>
       <div role="tabpanel" id="tabpanel-rankings" aria-labelledby="tab-rankings" hidden={tab !== 'rankings'}>
         {visited.has('rankings') && <RankingsTab data={data} allTimeRankings={allTimeRankings} lang={lang} onAthleteClick={navigateToAthlete} />}
       </div>
       <div role="tabpanel" id="tabpanel-extra" aria-labelledby="tab-extra" hidden={tab !== 'extra'}>
-        {visited.has('extra') && <ExtraEventsTab events={extraEvents} lang={lang} />}
+        {visited.has('extra') && <ExtraEventsTab events={extraEvents} lang={lang} initialEventDate={selectedExtraDate} onEventChange={setSelectedExtraDate} />}
       </div>
     </div>
   )

@@ -49,9 +49,11 @@ interface Props {
   onAthleteClick?: (name: string) => void
   /** Set by the Overview discipline cards — selects this sport on navigation. */
   initialSport?: SportType | null
+  /** Reports user sport changes so the dashboard can mirror them in the URL. */
+  onSportChange?: (sport: SportType) => void
 }
 
-export function ResultsTab({ data, lang, onAthleteClick, initialSport }: Props) {
+export function ResultsTab({ data, lang, onAthleteClick, initialSport, onSportChange }: Props) {
   const [sport, setSport] = useState<SportType>(initialSport ?? 'triathlon')
   const [year, setYear] = useState<string>('all')
   // 'all' = adults only (Herr + Dam); youth (Ungdom) is its own category
@@ -190,7 +192,13 @@ export function ResultsTab({ data, lang, onAthleteClick, initialSport }: Props) 
       <div className="bg-white rounded-lg shadow-sm border border-gray-100 px-4 py-2.5 flex flex-wrap items-end gap-4">
         <div>
           <label htmlFor="filter-event" className="block text-[11px] font-medium text-gray-500 uppercase tracking-wide mb-1">{t('select_event', lang)}</label>
-          <select id="filter-event" value={sport} onChange={(e) => { setSport(e.target.value as SportType); setYear('all') }}
+          <select id="filter-event" value={sport}
+            onChange={(e) => {
+              const next = e.target.value as SportType
+              setSport(next)
+              setYear('all')
+              onSportChange?.(next)
+            }}
             className="border border-gray-200 rounded px-2 py-1 text-xs bg-white focus-visible:ring-2 focus-visible:ring-red-700 focus-visible:ring-offset-1">
             {SPORTS.map((s) => <option key={s} value={s}>{t(s, lang)}</option>)}
           </select>

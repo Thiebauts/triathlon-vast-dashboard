@@ -80,12 +80,26 @@ function completedLegsLabel(a: AthleteResult, event: ExtraEvent, lang: Lang): st
 interface Props {
   events: ExtraEvent[]
   lang: Lang
+  /** Set from the URL deep link — selects the event with this date. */
+  initialEventDate?: string | null
+  /** Reports user selections so the dashboard can mirror them in the URL. */
+  onEventChange?: (date: string) => void
 }
 
-export function ExtraEventsTab({ events, lang }: Props) {
-  // events arrive newest first — default to the most recent
-  const [selectedFile, setSelectedFile] = useState<string | undefined>(events[0]?.file)
+export function ExtraEventsTab({ events, lang, initialEventDate, onEventChange }: Props) {
+  // events arrive newest first — default to the deep-linked event, else the most recent
+  const [selectedFile, setSelectedFile] = useState<string | undefined>(
+    () => events.find((e) => e.date === initialEventDate)?.file ?? events[0]?.file,
+  )
   const [category, setCategory] = useState<Category>('all')
+  const [prevInitialDate, setPrevInitialDate] = useState(initialEventDate)
+
+  if (initialEventDate !== prevInitialDate) {
+    setPrevInitialDate(initialEventDate)
+    const match = events.find((e) => e.date === initialEventDate)
+    if (match) setSelectedFile(match.file)
+  }
+
   const event = useMemo(
     () => events.find((e) => e.file === selectedFile) ?? events[0],
     [events, selectedFile],
@@ -160,7 +174,12 @@ export function ExtraEventsTab({ events, lang }: Props) {
           <div className="bg-white rounded-lg shadow-sm border border-gray-100 px-4 py-2.5 flex flex-wrap items-end gap-4">
             <div>
               <label htmlFor="extra-event" className="block text-[11px] font-medium text-gray-500 uppercase tracking-wide mb-1">{t('select_event', lang)}</label>
-              <select id="extra-event" value={event.file} onChange={(e) => setSelectedFile(e.target.value)}
+              <select id="extra-event" value={event.file}
+                onChange={(e) => {
+                  setSelectedFile(e.target.value)
+                  const date = events.find((ev) => ev.file === e.target.value)?.date
+                  if (date) onEventChange?.(date)
+                }}
                 className="border border-gray-200 rounded px-2 py-1 text-xs bg-white focus-visible:ring-2 focus-visible:ring-red-700 focus-visible:ring-offset-1">
                 {events.map((e) => (
                   <option key={e.file} value={e.file}>{e.title[lang]} — {formatEventDate(e.date, lang)}</option>

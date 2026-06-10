@@ -17,6 +17,8 @@ interface Props {
   allTimeRankings: ClubAthlete[]
   lang: Lang
   initialAthlete?: string | null
+  /** Reports user selections so the dashboard can mirror them in the URL. */
+  onAthleteChange?: (name: string) => void
 }
 
 function fmt(v: string | undefined) {
@@ -32,7 +34,7 @@ function formatDelta(seconds: number): string {
   return `${sign}${s}s`
 }
 
-export function AthletesTab({ data, athleteNames, allTimeRankings, lang, initialAthlete }: Props) {
+export function AthletesTab({ data, athleteNames, allTimeRankings, lang, initialAthlete, onAthleteChange }: Props) {
   const [search, setSearch] = useState('')
   const deferredSearch = useDeferredValue(search)
   const [selected, setSelected] = useState<string | null>(initialAthlete ?? null)
@@ -137,7 +139,7 @@ export function AthletesTab({ data, athleteNames, allTimeRankings, lang, initial
             {filtered.map((name) => (
               <li key={name}>
                 <button
-                  onClick={() => setSelected(name)}
+                  onClick={() => { setSelected(name); onAthleteChange?.(name) }}
                   className={`w-full text-left px-2 py-2 text-xs transition-colors rounded focus-visible:ring-2 focus-visible:ring-red-700 focus-visible:ring-offset-1 ${
                     selected === name
                       ? 'bg-red-50 font-semibold text-red-700'
