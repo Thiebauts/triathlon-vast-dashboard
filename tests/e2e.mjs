@@ -567,6 +567,28 @@ async function run() {
     if (page.url().includes('#')) throw new Error(`URL still has a hash: ${page.url()}`)
   })
 
+  await test('Refresh keeps the current view (supersprint event)', async () => {
+    // Navigate by clicking (like a real user), then reload the page
+    await page.getByRole('tab', { name: 'Extra Events' }).click()
+    await page.waitForTimeout(400)
+    await page.reload({ waitUntil: 'networkidle' })
+    await page.waitForTimeout(600)
+    const header = page.locator('text=Extra events & timed trainings')
+    await header.waitFor({ state: 'visible', timeout: 5000 })
+    const tab = page.getByRole('tab', { name: 'Extra Events' })
+    const selected = await tab.getAttribute('aria-selected')
+    if (selected !== 'true') throw new Error('Extra Events tab not active after reload')
+  })
+
+  await test('Refresh keeps the selected athlete', async () => {
+    await page.goto(`${BASE}/#athletes/${encodeURIComponent('Anton Söfting')}`, { waitUntil: 'networkidle' })
+    await page.waitForTimeout(600)
+    await page.reload({ waitUntil: 'networkidle' })
+    await page.waitForTimeout(600)
+    const nameEl = page.locator('h3', { hasText: 'Anton Söfting' })
+    await nameEl.waitFor({ state: 'visible', timeout: 5000 })
+  })
+
   // ── CONSOLE ERRORS ────────────────────────────────────────────────────────────
   console.log('\n🔍 Console errors check')
   const realErrors = consoleErrors.filter(e =>
