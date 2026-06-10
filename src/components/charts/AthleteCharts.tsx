@@ -18,12 +18,14 @@ const RIGHT_W = 58   // time axis (labels like "1h21")
 // Shared outer margins
 const MARGIN = { top: 8, right: 12, left: 12, bottom: 4 }
 
-// Axis tick: round to nearest minute → "Xh YY" (e.g. "0h34", "1h21")
+// Axis tick: "M:SS" under an hour (e.g. "19:30"), "XhYY" above (e.g. "1h21")
 function fmtTickTime(totalSeconds: number): string {
-  const mins = Math.round(totalSeconds / 60)
-  const h = Math.floor(mins / 60)
-  const m = mins % 60
-  return `${h}h${String(m).padStart(2, '0')}`
+  const s = Math.round(totalSeconds)
+  if (s < 3600) {
+    return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`
+  }
+  const mins = Math.round(s / 60)
+  return `${Math.floor(mins / 60)}h${String(mins % 60).padStart(2, '0')}`
 }
 
 // Tooltip: exact "H:MM:SS" or "MM:SS"
