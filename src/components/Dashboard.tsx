@@ -10,6 +10,8 @@ import type { CompetitionsData, ClubAthlete } from '@/lib/types'
 
 type Tab = 'overview' | 'results' | 'athletes' | 'rankings'
 
+const TAB_ORDER: Tab[] = ['overview', 'results', 'athletes', 'rankings']
+
 interface Props {
   data: CompetitionsData
   athleteNames: string[]
@@ -27,12 +29,33 @@ const SHORT_LABELS: Record<Tab, { en: string; sv: string }> = {
 export function Dashboard({ data, athleteNames, allTimeRankings }: Props) {
   const { lang } = useLang()
   const [tab, setTab] = useState<Tab>('overview')
+  // Panels mount on first visit and then stay mounted: the server renders only
+  // the Overview tab (smaller HTML), while revisited tabs keep their filter
+  // state, memoized rankings, and Recharts DOM so switching back is instant.
+  const [visited, setVisited] = useState<ReadonlySet<Tab>>(() => new Set<Tab>(['overview']))
   const [selectedAthlete, setSelectedAthlete] = useState<string | null>(null)
+
+  const selectTab = useCallback((id: Tab) => {
+    setTab(id)
+    setVisited((prev) => (prev.has(id) ? prev : new Set(prev).add(id)))
+  }, [])
 
   const navigateToAthlete = useCallback((name: string) => {
     setSelectedAthlete(name)
-    setTab('athletes')
-  }, [])
+    selectTab('athletes')
+  }, [selectTab])
+
+  const onTabKeyDown = useCallback((e: React.KeyboardEvent, index: number) => {
+    let next: number
+    if (e.key === 'ArrowRight') next = (index + 1) % TAB_ORDER.length
+    else if (e.key === 'ArrowLeft') next = (index + TAB_ORDER.length - 1) % TAB_ORDER.length
+    else if (e.key === 'Home') next = 0
+    else if (e.key === 'End') next = TAB_ORDER.length - 1
+    else return
+    e.preventDefault()
+    selectTab(TAB_ORDER[next])
+    document.getElementById(`tab-${TAB_ORDER[next]}`)?.focus()
+  }, [selectTab])
 
   const tabs = useMemo<{ id: Tab; full: string; short: string }[]>(() => [
     { id: 'overview', full: t('tab_overview', lang),      short: SHORT_LABELS.overview[lang] },
@@ -44,12 +67,18 @@ export function Dashboard({ data, athleteNames, allTimeRankings }: Props) {
   return (
     <div className="max-w-6xl mx-auto px-4 py-4">
       {/* Tab bar */}
-      <div className="flex border-b border-gray-200 mb-4 bg-white rounded-t-lg shadow-sm">
-        {tabs.map(({ id, full, short }) => (
+      <div role="tablist" aria-label="Dashboard"
+        className="flex border-b border-gray-200 mb-4 bg-white rounded-t-lg shadow-sm">
+        {tabs.map(({ id, full, short }, i) => (
           <button
             key={id}
-            onClick={() => setTab(id)}
-            aria-pressed={tab === id}
+            id={`tab-${id}`}
+            role="tab"
+            aria-selected={tab === id}
+            aria-controls={`tabpanel-${id}`}
+            tabIndex={tab === id ? 0 : -1}
+            onClick={() => selectTab(id)}
+            onKeyDown={(e) => onTabKeyDown(e, i)}
             className={`flex-1 py-2.5 text-[11px] sm:text-xs font-semibold tracking-wide border-b-2 transition-all text-center uppercase focus-visible:ring-2 focus-visible:ring-red-700 focus-visible:ring-offset-1 ${
               tab === id
                 ? 'border-red-700 text-red-700 bg-red-50/50'
@@ -62,22 +91,17 @@ export function Dashboard({ data, athleteNames, allTimeRankings }: Props) {
         ))}
       </div>
 
-      {/*
-        Tabs stay mounted via `hidden` instead of conditional rendering so
-        switching is instant: filter state, memoized rankings, and Recharts
-        DOM all survive across tab changes.
-      */}
-      <div hidden={tab !== 'overview'}>
-        <OverviewTab data={data} lang={lang} />
+      <div role="tabpanel" id="tabpanel-overview" aria-labelledby="tab-overview" hidden={tab !== 'overview'}>
+        {visited.has('overview') && <OverviewTab data={data} lang={lang} />}
       </div>
-      <div hidden={tab !== 'results'}>
-        <ResultsTab data={data} lang={lang} onAthleteClick={navigateToAthlete} />
+      <div role="tabpanel" id="tabpanel-results" aria-labelledby="tab-results" hidden={tab !== 'results'}>
+        {visited.has('results') && <ResultsTab data={data} lang={lang} onAthleteClick={navigateToAthlete} />}
       </div>
-      <div hidden={tab !== 'athletes'}>
-        <AthletesTab data={data} athleteNames={athleteNames} allTimeRankings={allTimeRankings} lang={lang} initialAthlete={selectedAthlete} />
+      <div role="tabpanel" id="tabpanel-athletes" aria-labelledby="tab-athletes" hidden={tab !== 'athletes'}>
+        {visited.has('athletes') && <AthletesTab data={data} athleteNames={athleteNames} allTimeRankings={allTimeRankings} lang={lang} initialAthlete={selectedAthlete} />}
       </div>
-      <div hidden={tab !== 'rankings'}>
-        <RankingsTab data={data} allTimeRankings={allTimeRankings} lang={lang} onAthleteClick={navigateToAthlete} />
+      <div role="tabpanel" id="tabpanel-rankings" aria-labelledby="tab-rankings" hidden={tab !== 'rankings'}>
+        {visited.has('rankings') && <RankingsTab data={data} allTimeRankings={allTimeRankings} lang={lang} onAthleteClick={navigateToAthlete} />}
       </div>
     </div>
   )

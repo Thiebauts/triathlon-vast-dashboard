@@ -75,20 +75,15 @@ export function RankingsTab({ data, allTimeRankings, lang, onAthleteClick }: Pro
     return ['all', ...[...ys].sort().reverse()]
   }, [data])
 
-  // For year='all', filter the precomputed all-time list. For specific years,
-  // recompute since gender×year combinations are unique per render.
-  const women = useMemo(
-    () => year === 'all'
-      ? allTimeRankings.filter((a) => a.gender === 'dam')
-      : getClubRankings(data, 'women', year),
-    [data, allTimeRankings, year],
-  )
-  const men = useMemo(
-    () => year === 'all'
-      ? allTimeRankings.filter((a) => a.gender === 'herr')
-      : getClubRankings(data, 'men', year),
-    [data, allTimeRankings, year],
-  )
+  // For year='all', reuse the precomputed all-time list; for a specific year
+  // recompute once and split by gender (the list is already sorted by points).
+  const { women, men } = useMemo(() => {
+    const list = year === 'all' ? allTimeRankings : getClubRankings(data, 'all', year)
+    return {
+      women: list.filter((a) => a.gender === 'dam'),
+      men:   list.filter((a) => a.gender === 'herr'),
+    }
+  }, [data, allTimeRankings, year])
 
   return (
     <div className="space-y-3">
