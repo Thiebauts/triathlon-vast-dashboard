@@ -22,7 +22,7 @@ The dataset currently covers **27 competitions** across 6 sports (triathlon, dua
 
 ### Event Results
 
-Browse all competition results filtered by sport, year, and category. Each entry shows overall and class rankings, total time, and individual segment splits.
+Browse all competition results filtered by sport, year, and category. Each entry shows overall and class rankings, total time, individual segment splits, and the club points earned in that event. Results can be exported as CSV.
 
 <p align="center">
   <img src="public/screenshot-event-results.png" alt="Event Results tab" width="100%" />
@@ -38,7 +38,7 @@ Individual athlete pages showing competition history, accumulated points, overal
 
 ### Club Rankings
 
-Annual leaderboards for men and women, based on a points system that rewards consistent participation — 1st place earns 40 pts, 2nd 35 pts, 3rd 30 pts, and so on. Youth (Ungdom) and children (Barn) race shorter courses and don't earn club points.
+Annual leaderboards for men and women, based on a points system that rewards consistent participation — 1st place earns 40 pts, 2nd 35 pts, 3rd 30 pts, then 29, 28, … down to 1 pt for 32nd. Points are awarded by rank among club members within each gender class. Youth (Ungdom) and children (Barn) race shorter courses and don't earn club points; DNF results earn no points; athletes with identical times share the rank and its points.
 
 <p align="center">
   <img src="public/screenshot-club-rankings.png" alt="Club Rankings tab" width="100%" />
@@ -49,21 +49,23 @@ Annual leaderboards for men and women, based on a points system that rewards con
 ### Features
 
 - **Overview tab**: Season-level participation trends and summary stats
-- **Results tab**: Filter and browse all competition results by sport, year, and category
-- **Athletes tab**: Individual athlete profiles with full result history and segment breakdowns
-- **Rankings tab**: Club-wide leaderboard based on aggregated points across events
+- **Results tab**: Filter and browse all competition results by sport, year, and category — per-event club points column and CSV export included
+- **Athletes tab**: Individual athlete profiles with full result history, personal bests, year-over-year deltas, and per-event points
+- **Rankings tab**: Club-wide leaderboards (women / men, per year or all-time) based on aggregated points across events
 - **Bilingual UI**: Swedish / English toggle throughout
+- **Keyboard-accessible tabs**: proper tablist semantics with arrow-key navigation
 
 ## Tech Stack
 
 | Tool | Version |
 |------|---------|
-| Next.js | 16.1 |
+| Next.js | 16.2 |
 | React | 19.2 |
 | Recharts | 3.8 |
-| PapaParse | 5.5 |
 | Tailwind CSS | 4.x |
 | Playwright | 1.58 |
+
+CSV parsing is handled by a small built-in parser in `src/lib/loader.ts` — the data files are author-controlled, so no CSV library is needed.
 
 ## Getting Started
 
@@ -86,23 +88,33 @@ npm run dev
 # Open http://localhost:3000
 ```
 
+### Tests
+
+```bash
+npm test          # unit tests (node:test, no build needed)
+npm run test:e2e  # Playwright e2e — needs the app running on :3000 first
+```
+
 ## Project Structure
 
 ```
 triathlon-vast-dashboard/
-├── CLAUDE.md                    # AI assistant context
 ├── README.md
 ├── package.json
 ├── next.config.ts
-├── test-dashboard.mjs           # Smoke test script (Playwright)
+├── tsconfig.json
 ├── data/                        # CSV result files (inputs, not edited manually)
 │   └── processed_<sport>_results_<date>.csv
-├── public/                      # Static assets (logo, favicon)
+├── public/                      # Static assets (logo, favicon, screenshots)
+├── tests/
+│   └── e2e.mjs                  # Playwright end-to-end suite
 └── src/
     ├── app/                     # Next.js App Router
     │   ├── layout.tsx
     │   ├── page.tsx
     │   ├── globals.css
+    │   ├── robots.ts
+    │   ├── sitemap.ts
     │   └── favicon.ico
     ├── components/
     │   ├── Dashboard.tsx        # Main shell with tab navigation
@@ -117,10 +129,11 @@ triathlon-vast-dashboard/
     │       ├── AthletesTab.tsx
     │       └── RankingsTab.tsx
     └── lib/
-        ├── loader.ts            # Server-side CSV parsing (PapaParse)
-        ├── data.ts              # Query helpers over parsed data
+        ├── loader.ts            # Server-side CSV loading (built-in parser)
+        ├── data.ts              # Query helpers: rankings, points, splits
         ├── types.ts             # Shared TypeScript types
-        └── translations.ts      # EN/SV string catalogue
+        ├── translations.ts      # EN/SV string catalogue
+        └── __tests__/           # Unit tests (node:test)
 ```
 
 ## Data Entry Rules (NyTaTime)
@@ -151,6 +164,7 @@ When exporting results from NyTaTime, follow these rules to keep the data consis
 
 **Status**
 - Only two values: `ok` or `dnf`
+- `dnf` rows appear in the results (listed last, unranked) but earn no club points
 
 **General**
 - No trailing whitespace in any field
