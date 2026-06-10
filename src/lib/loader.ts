@@ -1,12 +1,10 @@
 // SERVER-ONLY: uses fs — import only from Server Components / page.tsx
 import fs from 'fs'
 import path from 'path'
+// Explicit .ts extension: the node --experimental-strip-types test runner
+// resolves runtime imports literally (type-only imports are stripped).
+import { CLUB_ALIASES } from './data.ts'
 import type { AthleteResult, CompetitionsData, SportType } from './types'
-
-// 'medlem' (Swedish for "member") shows up in the Club column when a result
-// sheet records membership status instead of the club name — treat it as the
-// club so those athletes still earn points.
-const CLUB_ALIASES = new Set(['triväst', 'triathlon väst', 'tv', 'medlem'])
 
 const FIELDS_USED: ReadonlySet<string> = new Set([
   'Name', 'Bib', 'Class', 'Club', 'Total_Time', 'Total_Time_Seconds', 'Status',

@@ -2,7 +2,7 @@
 import { useState, useMemo, useCallback, useDeferredValue, Fragment } from 'react'
 import { t } from '@/lib/translations'
 import type { AthleteResult, CompetitionsData, SportType, Lang } from '@/lib/types'
-import { athleteKey, computeSplitRanks, computeEventPoints, type SplitRanks } from '@/lib/data'
+import { athleteKey, computeSplitRanks, computeEventPoints, isFinisher, type SplitRanks } from '@/lib/data'
 
 const SPORTS: SportType[] = ['triathlon', 'duathlon', 'swimming', 'cycling', 'running', 'swimrun']
 
@@ -106,24 +106,32 @@ export function ResultsTab({ data, lang, onAthleteClick }: Props) {
     return out
   }, [data, sport])
 
-  const rows = useMemo(() => {
+  // Sort and assign rank WITHOUT the search applied. Year/category/showGuests
+  // define the ranking pool; search is just a lookup that mustn't renumber.
+  // Rank = position among FINISHERS in the visible pool (DNFs are listed last,
+  // unranked) and equal times share a rank (competition ranking: 1, 1, 3, …).
+  const ranked = useMemo(() => {
     let list = data[sport]
     if (year !== 'all') list = list.filter((a) => a.Competition_Year === year)
     list = list.filter((a) => inCategory(a, category))
     if (!showGuests) list = list.filter((a) => a.Club.toLowerCase().trim() !== 'gäst')
-    // Sort and assign rank BEFORE applying search. Year/category/showGuests
-    // define the ranking pool; search is just a lookup that mustn't renumber.
-    // Rank = position in the visible pool, so first woman in "Women Only" is
-    // rank 1 and Adults (Mixed) starts at 1 even when Ungdom is hidden.
-    const ranked = [...list]
-      .sort((a, b) => (a.Total_Time_Seconds || Infinity) - (b.Total_Time_Seconds || Infinity))
-      .map((athlete, i) => ({ athlete, rank: i + 1 }))
-    if (deferredSearch.trim()) {
-      const q = deferredSearch.toLowerCase()
-      return ranked.filter((r) => r.athlete.Name.toLowerCase().includes(q))
-    }
-    return ranked
-  }, [data, sport, year, category, showGuests, deferredSearch])
+    const finishers = list.filter(isFinisher)
+      .sort((a, b) => a.Total_Time_Seconds - b.Total_Time_Seconds)
+    const out: Array<{ athlete: AthleteResult; rank: number | null }> = []
+    finishers.forEach((athlete, i) => {
+      const tiedWithPrev = i > 0 && athlete.Total_Time_Seconds === finishers[i - 1].Total_Time_Seconds
+      out.push({ athlete, rank: tiedWithPrev ? out[i - 1].rank : i + 1 })
+    })
+    for (const athlete of list.filter((a) => !isFinisher(a))) out.push({ athlete, rank: null })
+    return out
+  }, [data, sport, year, category, showGuests])
+
+  // Search filter kept separate so typing never re-sorts the pool.
+  const rows = useMemo(() => {
+    if (!deferredSearch.trim()) return ranked
+    const q = deferredSearch.toLowerCase()
+    return ranked.filter((r) => r.athlete.Name.toLowerCase().includes(q))
+  }, [ranked, deferredSearch])
 
   const segs = useMemo(() => {
     if (sport === 'triathlon') return [
@@ -151,7 +159,7 @@ export function ResultsTab({ data, lang, onAthleteClick }: Props) {
     const csvRows = [headers.map(csvEscape).join(',')]
     rows.forEach(({ athlete: a, rank }) => {
       csvRows.push([
-        rank,
+        rank ?? 'DNF',
         csvEscape(a.Name),
         csvEscape(a.Club),
         csvEscape(a.Class),
@@ -270,9 +278,11 @@ export function ResultsTab({ data, lang, onAthleteClick }: Props) {
             <tbody>
               {rows.map(({ athlete: a, rank }, i) => {
                 const isMember = a.is_club_member
-                // Only adult (Herr/Dam) members earn club points; everyone else
-                // shows a dash. A member can still earn 0 (ranked past 32nd).
-                const earnsPoints = isMember && (a.class_lower === 'herr' || a.class_lower === 'dam')
+                const finished = rank !== null
+                // Only adult (Herr/Dam) members who finished earn club points;
+                // everyone else shows a dash. A member can still earn 0
+                // (ranked past 32nd).
+                const earnsPoints = finished && isMember && (a.class_lower === 'herr' || a.class_lower === 'dam')
                 const points = pointsLookup[athleteKey(a)] ?? 0
                 const sr = splitRankLookup?.[athleteKey(a)] ?? {}
                 const bg = rank === 1 ? 'bg-amber-50/60'
@@ -285,7 +295,9 @@ export function ResultsTab({ data, lang, onAthleteClick }: Props) {
                   <tr key={`${a.Name}-${a.Competition_Year}-${i}`}
                     className={`${bg} border-b border-gray-100 hover:bg-blue-50/20 transition-colors`}>
                     <th scope="row" className="px-3 py-1.5 font-semibold tabular-nums">
-                      <span style={MEDAL[rank] ?? { color: '#6B7280' }}>{rank}</span>
+                      {rank !== null
+                        ? <span style={MEDAL[rank] ?? { color: '#6B7280' }}>{rank}</span>
+                        : <span className="text-gray-400 font-normal">—</span>}
                     </th>
                     <td className="px-3 py-1.5 whitespace-nowrap font-medium text-gray-800">
                       {onAthleteClick ? (
@@ -298,7 +310,11 @@ export function ResultsTab({ data, lang, onAthleteClick }: Props) {
                     <td className={`px-3 py-1.5 text-gray-500 ${D}`}>{a.Club}</td>
                     <td className={`px-3 py-1.5 text-gray-500 ${D}`}>{a.Class}</td>
                     {year === 'all' && <td className={`px-3 py-1.5 text-gray-400 ${D}`}>{a.Competition_Year}</td>}
-                    <td className="px-3 py-1.5 font-mono font-semibold text-gray-800">{fmt(a.Total_Time)}</td>
+                    <td className="px-3 py-1.5 font-mono font-semibold text-gray-800">
+                      {finished
+                        ? fmt(a.Total_Time)
+                        : <span className="font-sans font-semibold text-gray-400">{t('dnf', lang)}</span>}
+                    </td>
                     {segs.map((s) => (
                       <Fragment key={s.label}>
                         <td className={`px-2 py-1.5 font-mono text-gray-500 border-l border-gray-100 ${D}`}>

@@ -12,7 +12,6 @@ const TRANSLATIONS: Record<string, { en: string; sv: string }> = {
     sv: 'Under året arrangerar klubben en serie mästerskap inom olika grenar. Efter varje tävling bjuder klubben på dryck och tilltugg — medlemmar är även välkomna att ta med en vän för att lära känna klubben!',
   },
 
-  welcome_title:      { en: 'Welcome to the Triathlon Väst dashboard!', sv: 'Välkommen till Triathlon Västs dashboard!' },
   created_by_title:   { en: 'Created by members, for members', sv: 'Skapad av medlemmar, för medlemmar' },
   created_by_text1:   {
     en: 'Welcome to the official Triathlon Väst competition dashboard! This platform has been created by Triathlon Väst members for Triathlon Väst members. Here you can explore all club championship results in an interactive format, making it easy to track collective achievements and individual progress over the years.',
@@ -28,11 +27,6 @@ const TRANSLATIONS: Record<string, { en: string; sv: string }> = {
     en: "In the Event Results section you'll find comprehensive competition data spanning from 2021 to the present. For each discipline — triathlon, running, swimming, cycling, duathlon, or swimrun — we keep detailed records of every participant's performance, including an all-time ranking by best time.",
     sv: 'I sektionen Tävlingsresultat hittar du omfattande tävlingsdata från 2021 till idag. För varje gren — triathlon, löpning, simning, cykling, duathlon eller swimrun — har vi detaljerade register över varje deltagares prestation, inklusive en all-time-ranking efter bästa tid.',
   },
-  event_results_text2: {
-    en: 'You can filter results by year and category (men / women / all). For multi-sport events we provide segment breakdowns: swim, bike, run, and transitions.',
-    sv: 'Du kan filtrera resultat efter år och kategori (herr / dam / alla). För multisporttävlingar visar vi delsträckor: sim, cykel, löp och växlingar.',
-  },
-
   club_rankings_title:  { en: 'Club rankings & points system', sv: 'Klubbranking & poängsystem' },
   club_rankings_text1:  {
     en: 'Our club rankings use a points system that rewards consistent participation. 1st place = 40 pts, 2nd = 35 pts, 3rd = 30 pts, then 29, 28, 27 … down to 1 pt for 32nd place.',
@@ -60,7 +54,6 @@ const TRANSLATIONS: Record<string, { en: string; sv: string }> = {
     sv: 'Om du är bekant med kod kan du även föreslå ändringar direkt på GitHub — öppna ett ärende eller skicka en pull request så granskar vi det tillsammans.',
   },
 
-  competition_statistics:  { en: 'Competition Statistics', sv: 'Tävlingsstatistik' },
   participation_by_year:   { en: 'Participation by Year and Event Type', sv: 'Deltagande per År och Tävlingstyp' },
 
   select_event:    { en: 'Select Event:',    sv: 'Välj Tävling:' },
@@ -79,18 +72,11 @@ const TRANSLATIONS: Record<string, { en: string; sv: string }> = {
   swimrun:   { en: 'Swimrun',   sv: 'Swimrun' },
   triathlon: { en: 'Triathlon', sv: 'Triathlon' },
 
-  athlete_analysis:       { en: 'Individual Athlete Analysis', sv: 'Individuell Idrottaranalys' },
   select_athlete:         { en: 'Select Athlete:', sv: 'Välj Idrottare:' },
   select_athlete_prompt:  { en: 'Please select an athlete to view their profile.', sv: 'Välj en idrottare för att visa profil.' },
-  performance_profile:    { en: 'Performance Profile', sv: 'Prestationsprofil' },
   club_member:            { en: 'TriVäst Member', sv: 'TriVäst-medlem' },
   guest:                  { en: 'Guest', sv: 'Gäst' },
-  club_rankings_summary:  { en: 'Club Rankings Summary', sv: 'Sammanfattning av Klubbranking' },
-  overall_rankings_all_years: { en: 'Overall Rankings (All Years)', sv: 'Övergripande Ranking (Alla År)' },
-  yearly_rankings:        { en: 'Yearly Rankings', sv: 'Årsranking' },
-  individual_event_results: { en: 'Individual Event Results', sv: 'Individuella Tävlingsresultat' },
 
-  club_rankings_points: { en: 'Club Rankings & Points', sv: 'Klubbranking & Poäng' },
   womens_rankings:      { en: "Women's Rankings", sv: 'Damranking' },
   mens_rankings:        { en: "Men's Rankings",   sv: 'Herrranking' },
   rank:         { en: 'Rank',         sv: 'Placering' },
@@ -114,31 +100,13 @@ const TRANSLATIONS: Record<string, { en: string; sv: string }> = {
   run_2:         { en: 'Run 2',        sv: 'Löp 2' },
   t1:            { en: 'T1',           sv: 'V1' },
   t2:            { en: 'T2',           sv: 'V2' },
-  transitions:   { en: 'Transitions',  sv: 'Växlingar' },
+  dnf:           { en: 'DNF',          sv: 'DNF' },
 
   no_data_available:        { en: 'No data available for', sv: 'Ingen data tillgänglig för' },
-  total_participants:       { en: 'total participants', sv: 'totalt antal deltagare' },
-  all_participants:         { en: 'All Participants',   sv: 'Alla Deltagare' },
   men:                      { en: 'Men',    sv: 'Herrar' },
   women:                    { en: 'Women',  sv: 'Damer' },
   results:                  { en: 'Results', sv: 'Resultat' },
-  all_time_best:            { en: 'All-Time Best Performances', sv: 'Alla Tiders Bästa Prestationer' },
-  ranked_by_best_times:     { en: 'Ranked by best times ever across all years', sv: 'Rankad efter bästa tider genom alla år' },
-  combined_results:         { en: 'Combined results from', sv: 'Kombinerade resultat från' },
-  years:                    { en: 'years', sv: 'år' },
   total_results:            { en: 'total results', sv: 'totala resultat' },
-  select_event_year_category: { en: 'Please select an event, year, and category.', sv: 'Välj en tävling, ett år och en kategori.' },
-
-  cycling_championship:  { en: 'Cycling Championship',  sv: 'Cykelmästerskap' },
-  duathlon_championship: { en: 'Duathlon Championship', sv: 'Duathlonmästerskap' },
-  running_championship:  { en: 'Running Championship',  sv: 'Löpmästerskap' },
-  swimming_championship: { en: 'Swimming Championship', sv: 'Simmästerskap' },
-  swimrun_championship:  { en: 'Swimrun Championship',  sv: 'Swimrunmästerskap' },
-  triathlon_championship:{ en: 'Triathlon Championship',sv: 'Triathlonmästerskap' },
-
-  language: { en: 'Language', sv: 'Språk' },
-  english:  { en: 'English',  sv: 'Engelska' },
-  swedish:  { en: 'Swedish',  sv: 'Svenska' },
 
   overall:    { en: 'Overall',    sv: 'Totalt' },
   time:       { en: 'Time',       sv: 'Tid' },
@@ -153,7 +121,6 @@ const TRANSLATIONS: Record<string, { en: string; sv: string }> = {
   search_athlete:           { en: 'Search athlete…', sv: 'Sök idrottare…' },
   personal_best:            { en: 'PB', sv: 'PB' },
   export_csv:               { en: 'Export CSV', sv: 'Exportera CSV' },
-  improvement:              { en: 'vs prev.', sv: 'jmf föreg.' },
   split_times_hint:         { en: 'Split times and ranks visible on wider screens.', sv: 'Deltider och placeringar visas på bredare skärmar.' },
   show_guests:              { en: 'Show guests', sv: 'Visa gäster' },
   youth_no_data_hint:       { en: 'Youth results are currently only available as guests — enable "Show guests" above to see them.', sv: 'Ungdomsresultat finns just nu endast som gäster — aktivera "Visa gäster" ovan för att se dem.' },

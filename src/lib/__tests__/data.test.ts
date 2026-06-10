@@ -2,7 +2,6 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import {
   athleteKey,
-  buildAllSplitRanks,
   calculateClubMemberRank,
   calculatePoints,
   computeEventPoints,
@@ -13,6 +12,7 @@ import {
   getParticipationByYear,
   getSummaryStats,
   isClubMember,
+  isFinisher,
 } from '../data.ts'
 import type { AthleteResult, CompetitionsData } from '../types.ts'
 
@@ -72,8 +72,24 @@ test('isClubMember: string overload accepts all known aliases', () => {
   assert.equal(isClubMember('TriVäst'), true)
   assert.equal(isClubMember('triathlon väst'), true)
   assert.equal(isClubMember('  TV  '), true)
+  assert.equal(isClubMember('Medlem'), true)
   assert.equal(isClubMember('Other Club'), false)
   assert.equal(isClubMember(''), false)
+})
+
+// ─── isFinisher ─────────────────────────────────────────────────────────────
+
+test('isFinisher: ok status with a real time counts', () => {
+  const a = mk({ Name: 'A', Class: 'Herr', Club: 'TriVäst', Competition_Year: '2024', Total_Time_Seconds: 1500 })
+  assert.equal(isFinisher(a), true)
+})
+
+test('isFinisher: rejects dnf/dns status, sentinel times, and missing times', () => {
+  const base = { Name: 'A', Class: 'Herr', Club: 'TriVäst', Competition_Year: '2024' }
+  assert.equal(isFinisher(mk({ ...base, Status: 'dnf', Total_Time_Seconds: 999999 })), false)
+  assert.equal(isFinisher(mk({ ...base, Status: 'dns', Total_Time_Seconds: 1500 })), false)
+  assert.equal(isFinisher(mk({ ...base, Status: 'ok', Total_Time_Seconds: 999999 })), false)
+  assert.equal(isFinisher(mk({ ...base, Status: 'ok', Total_Time_Seconds: 0 })), false)
 })
 
 test('isClubMember: AthleteResult overload reads precomputed flag', () => {
@@ -142,6 +158,29 @@ test('calculateClubMemberRank: ranks members by total time within their class', 
   assert.equal(calculateClubMemberRank(guest, all), 999) // not a member
 })
 
+test('calculateClubMemberRank: DNF members are unranked and excluded from the pool', () => {
+  const dnf = mk({ Name: 'D', Class: 'Herr', Club: 'TriVäst', Competition_Year: '2024',
+    Status: 'dnf', Total_Time: 'DNF', Total_Time_Seconds: 999999 })
+  const a = mk({ Name: 'A', Class: 'Herr', Club: 'TriVäst', Competition_Year: '2024', Total_Time_Seconds: 4000 })
+  const b = mk({ Name: 'B', Class: 'Herr', Club: 'TriVäst', Competition_Year: '2024', Total_Time_Seconds: 3800 })
+
+  const all = [dnf, a, b]
+  assert.equal(calculateClubMemberRank(dnf, all), 999) // did not finish
+  assert.equal(calculateClubMemberRank(b, all), 1)
+  assert.equal(calculateClubMemberRank(a, all), 2) // DNF takes no rank slot
+})
+
+test('calculateClubMemberRank: equal times share the rank (1, 1, 3)', () => {
+  const a = mk({ Name: 'A', Class: 'Herr', Club: 'TriVäst', Competition_Year: '2024', Total_Time_Seconds: 3800 })
+  const b = mk({ Name: 'B', Class: 'Herr', Club: 'TriVäst', Competition_Year: '2024', Total_Time_Seconds: 3800 })
+  const c = mk({ Name: 'C', Class: 'Herr', Club: 'TriVäst', Competition_Year: '2024', Total_Time_Seconds: 4000 })
+
+  const all = [a, b, c]
+  assert.equal(calculateClubMemberRank(a, all), 1)
+  assert.equal(calculateClubMemberRank(b, all), 1)
+  assert.equal(calculateClubMemberRank(c, all), 3) // two athletes ahead
+})
+
 // ─── computeEventPoints ─────────────────────────────────────────────────────
 
 test('computeEventPoints: awards points by club-member rank within each gender class', () => {
@@ -165,6 +204,27 @@ test('computeEventPoints: non-members and youth/barn earn 0', () => {
   assert.equal(pts.get(athleteKey(member)), 40)
   assert.equal(pts.get(athleteKey(guest)), 0)
   assert.equal(pts.get(athleteKey(youth)), 0)
+})
+
+test('computeEventPoints: DNF members earn 0 and do not displace finishers', () => {
+  const dnf = mk({ Name: 'D', Class: 'Herr', Club: 'TriVäst', Competition_Year: '2024',
+    Status: 'dnf', Total_Time: 'DNF', Total_Time_Seconds: 999999 })
+  const a = mk({ Name: 'A', Class: 'Herr', Club: 'TriVäst', Competition_Year: '2024', Total_Time_Seconds: 4000 })
+
+  const pts = computeEventPoints([dnf, a])
+  assert.equal(pts.get(athleteKey(dnf)), 0)
+  assert.equal(pts.get(athleteKey(a)), 40)
+})
+
+test('computeEventPoints: tied members share the points for their rank', () => {
+  const a = mk({ Name: 'A', Class: 'Herr', Club: 'TriVäst', Competition_Year: '2024', Total_Time_Seconds: 3800 })
+  const b = mk({ Name: 'B', Class: 'Herr', Club: 'TriVäst', Competition_Year: '2024', Total_Time_Seconds: 3800 })
+  const c = mk({ Name: 'C', Class: 'Herr', Club: 'TriVäst', Competition_Year: '2024', Total_Time_Seconds: 4000 })
+
+  const pts = computeEventPoints([a, b, c])
+  assert.equal(pts.get(athleteKey(a)), 40) // shared 1st
+  assert.equal(pts.get(athleteKey(b)), 40) // shared 1st
+  assert.equal(pts.get(athleteKey(c)), 30) // rank 3 after the tie
 })
 
 test('computeEventPoints: each year is ranked independently', () => {
@@ -257,6 +317,18 @@ test('getClubRankings: does NOT warn for normal one-class members', () => {
   assert.equal(calls.length, 0)
 })
 
+test('getClubRankings: DNF results earn no points and DNF-only athletes are absent', () => {
+  const data: CompetitionsData = { ...empty }
+  data.running = [
+    mk({ Name: 'Finisher', Class: 'Herr', Club: 'TriVäst', Competition_Year: '2024', Total_Time_Seconds: 1500 }),
+    mk({ Name: 'Quitter',  Class: 'Herr', Club: 'TriVäst', Competition_Year: '2024',
+      Status: 'dnf', Total_Time: 'DNF', Total_Time_Seconds: 999999 }),
+  ]
+  const rankings = getClubRankings(data, 'all', 'all')
+  assert.deepEqual(rankings.map((r) => r.name), ['Finisher'])
+  assert.equal(rankings[0].total_points, 40)
+})
+
 test('getClubRankings: non-members are excluded', () => {
   const data: CompetitionsData = { ...empty }
   data.running = [
@@ -286,6 +358,22 @@ test('getAthleteEvents: returns one event per (sport, year) for the named athlet
   assert.equal(e.points, 40) // first place => 40 points
   assert.equal(e.class_total, 2)
   assert.equal(e.overall_total, 2)
+})
+
+test('getAthleteEvents: DNF events have 0 points, finished=false, N/A club rank', () => {
+  const data: CompetitionsData = { ...empty }
+  data.duathlon = [
+    mk({ Name: 'Ida', Class: 'Dam', Club: 'TriVäst', Competition_Year: '2025',
+      Status: 'dnf', Total_Time: 'DNF', Total_Time_Seconds: 999999 }),
+    mk({ Name: 'Other', Class: 'Dam', Club: 'TriVäst', Competition_Year: '2025',
+      Total_Time: '01:10:00', Total_Time_Seconds: 4200, Class_Rank: 1, Overall_Rank: 1 }),
+  ]
+  const e = getAthleteEvents(data, 'Ida')['duathlon_2025']
+  assert.equal(e.finished, false)
+  assert.equal(e.points, 0)
+  assert.equal(e.club_member_rank, 'N/A')
+  assert.equal(e.class_total, 1)   // denominators count finishers only
+  assert.equal(e.overall_total, 1)
 })
 
 test('getAthleteEvents: guests get 0 points and N/A club rank', () => {
@@ -347,23 +435,4 @@ test('getParticipationByYear: tallies participants per sport per year, sorted as
     { year: '2023', triathlon: 0, duathlon: 0, swimming: 0, cycling: 0, running: 1, swimrun: 0 },
     { year: '2024', triathlon: 2, duathlon: 0, swimming: 0, cycling: 0, running: 0, swimrun: 0 },
   ])
-})
-
-// ─── buildAllSplitRanks ─────────────────────────────────────────────────────
-
-test('buildAllSplitRanks: independently ranks each (sport, year) group', () => {
-  const data: CompetitionsData = { ...empty }
-  data.triathlon = [
-    mk({ Name: 'A', Class: 'Herr', Club: 'TriVäst', Competition_Year: '2024', Bib: '1',
-      Swim_Seconds: 700 }),
-    mk({ Name: 'B', Class: 'Herr', Club: 'TriVäst', Competition_Year: '2024', Bib: '2',
-      Swim_Seconds: 600 }),
-    // Different year — should not affect ranking above
-    mk({ Name: 'C', Class: 'Herr', Club: 'TriVäst', Competition_Year: '2025', Bib: '3',
-      Swim_Seconds: 500 }),
-  ]
-  const out = buildAllSplitRanks(data)
-  assert.equal(out.triathlon[athleteKey(data.triathlon[1])].swim, 1) // B in 2024
-  assert.equal(out.triathlon[athleteKey(data.triathlon[0])].swim, 2) // A in 2024
-  assert.equal(out.triathlon[athleteKey(data.triathlon[2])].swim, 1) // C in 2025
 })

@@ -67,11 +67,11 @@ export function AthletesTab({ data, athleteNames, allTimeRankings, lang, initial
   )
   const isMember = eventList[0]?.[1]?.is_club_member ?? false
 
-  // Personal bests per sport
+  // Personal bests per sport — DNF rows carry a sentinel time, never a PB
   const personalBests = useMemo(() => {
     const bests: Record<string, number> = {}
     for (const [, e] of eventList) {
-      if (e.time_seconds > 0) {
+      if (e.finished && e.time_seconds > 0) {
         if (!bests[e.type] || e.time_seconds < bests[e.type]) {
           bests[e.type] = e.time_seconds
         }
@@ -80,11 +80,13 @@ export function AthletesTab({ data, athleteNames, allTimeRankings, lang, initial
     return bests
   }, [eventList])
 
-  // Previous year time per sport for delta
+  // Previous year time per sport for delta. Only finished races compare —
+  // a DNF's sentinel time would otherwise produce a ±16,000-minute "delta"
+  // on the surrounding years.
   const prevYearTime = useMemo(() => {
     const bySport: Record<string, Array<{ year: string; time_seconds: number }>> = {}
     for (const [, e] of eventList) {
-      if (e.time_seconds > 0) {
+      if (e.finished && e.time_seconds > 0) {
         bySport[e.type] = bySport[e.type] ?? []
         bySport[e.type].push({ year: e.year, time_seconds: e.time_seconds })
       }
@@ -196,12 +198,14 @@ export function AthletesTab({ data, athleteNames, allTimeRankings, lang, initial
                         <tr key={key} className={`border-b border-gray-100 hover:bg-blue-50/20 transition-colors ${i % 2 === 0 ? 'bg-white' : 'bg-gray-50/40'}`}>
                           <th scope="row" className="px-3 py-1.5 text-gray-500 font-normal">{e.year}</th>
                           <td className="px-3 py-1.5 capitalize font-medium text-gray-700">{t(e.type, lang)}</td>
-                          <td className="px-3 py-1.5 text-gray-600">{e.rank}/{e.class_total}</td>
-                          <td className="px-3 py-1.5 text-gray-400 hidden sm:table-cell">{e.overall_rank}/{e.overall_total}</td>
-                          <td className="px-3 py-1.5 text-gray-400 hidden sm:table-cell">{e.is_club_member ? String(e.club_member_rank) : '—'}</td>
-                          <td className="px-3 py-1.5 text-right font-bold text-red-700">{e.points}</td>
+                          <td className="px-3 py-1.5 text-gray-600">{e.finished ? `${e.rank}/${e.class_total}` : '—'}</td>
+                          <td className="px-3 py-1.5 text-gray-400 hidden sm:table-cell">{e.finished ? `${e.overall_rank}/${e.overall_total}` : '—'}</td>
+                          <td className="px-3 py-1.5 text-gray-400 hidden sm:table-cell">{e.finished && e.is_club_member ? String(e.club_member_rank) : '—'}</td>
+                          <td className={`px-3 py-1.5 text-right tabular-nums ${e.points > 0 ? 'font-bold text-red-700' : 'text-gray-400'}`}>{e.points}</td>
                           <td className="px-3 py-1.5 font-mono text-gray-700 whitespace-nowrap">
-                            {fmt(e.time)}
+                            {e.finished
+                              ? fmt(e.time)
+                              : <span className="font-sans font-semibold text-gray-400">{t('dnf', lang)}</span>}
                             {isPB && (
                               <span className="ml-1.5 text-[9px] font-bold text-green-600 bg-green-50 border border-green-200 rounded px-1 py-px">
                                 {t('personal_best', lang)}

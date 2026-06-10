@@ -57,6 +57,8 @@ export interface EventResult {
   overall_total: number
   gender_class: string
   is_club_member: boolean
+  /** False for DNF/DNS rows — they earn no points and show no ranks. */
+  finished: boolean
   points: number
   // Segments
   swim_time?: string
@@ -71,8 +73,6 @@ export interface ClubAthlete {
   name: string
   gender: string
   total_points: number
-  avg_rank: number
-  best_rank: number
   competitions: Array<{
     type: SportType
     rank: number
