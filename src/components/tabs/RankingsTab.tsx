@@ -1,5 +1,5 @@
 'use client'
-import { useState, useMemo } from 'react'
+import { useMemo } from 'react'
 import { t } from '@/lib/translations'
 import { getClubRankings } from '@/lib/data'
 import type { CompetitionsData, Lang, ClubAthlete } from '@/lib/types'
@@ -10,6 +10,9 @@ interface Props {
   allTimeRankings: ClubAthlete[]
   lang: Lang
   onAthleteClick?: (name: string) => void
+  /** Owned by the Dashboard (controlled) so the URL can mirror it: #rankings/<year>. */
+  year: string
+  onYearChange: (year: string) => void
 }
 
 const MEDAL_COLOR: Record<number, string> = {
@@ -65,9 +68,7 @@ function RankTable({ data, lang, onAthleteClick }: {
   )
 }
 
-export function RankingsTab({ data, allTimeRankings, lang, onAthleteClick }: Props) {
-  const [year, setYear] = useState<string>('all')
-
+export function RankingsTab({ data, allTimeRankings, lang, onAthleteClick, year, onYearChange }: Props) {
   const years = useMemo(() => {
     const ys = new Set<string>()
     for (const athletes of Object.values(data))
@@ -95,7 +96,7 @@ export function RankingsTab({ data, allTimeRankings, lang, onAthleteClick }: Pro
 
       <div className="bg-white rounded-lg shadow-sm border border-gray-100 px-4 py-2.5 flex items-center gap-3">
         <label htmlFor="rankings-year" className="text-[11px] font-medium text-gray-500 uppercase tracking-wide">{t('select_year', lang)}</label>
-        <select id="rankings-year" value={year} onChange={(e) => setYear(e.target.value)}
+        <select id="rankings-year" value={year} onChange={(e) => onYearChange(e.target.value)}
           className="border border-gray-200 rounded px-2 py-1 text-xs bg-white focus-visible:ring-2 focus-visible:ring-red-700 focus-visible:ring-offset-1">
           {years.map((y) => (
             <option key={y} value={y}>{y === 'all' ? t('all_years', lang) : y}</option>

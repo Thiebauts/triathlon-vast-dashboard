@@ -1,9 +1,9 @@
 'use client'
-import { useState, useMemo, useCallback, Fragment } from 'react'
+import { useMemo, useCallback, Fragment } from 'react'
 import { t } from '@/lib/translations'
 import { athleteKey, computeSplitRanks, type SplitRanks } from '@/lib/data'
 import { csvEscape } from '@/lib/csv'
-import type { AthleteResult, ExtraEvent, Lang } from '@/lib/types'
+import type { AthleteResult, ExtraCategory, ExtraEvent, Lang } from '@/lib/types'
 
 const MEDAL = {
   1: { color: '#B8970A' },
@@ -33,13 +33,11 @@ function formatEventDate(iso: string, lang: Lang): string {
 
 const D = 'hidden sm:table-cell'
 
-type Category = 'all' | 'men' | 'women'
-
 /**
  * Unlike the KM Results tab, 'all' includes every class: training events run
  * one shared course, so there is no shorter youth course to keep apart.
  */
-function inCategory(a: AthleteResult, category: Category): boolean {
+function inCategory(a: AthleteResult, category: ExtraCategory): boolean {
   switch (category) {
     case 'men':   return a.class_lower === 'herr'
     case 'women': return a.class_lower === 'dam'
@@ -80,29 +78,21 @@ function completedLegsLabel(a: AthleteResult, event: ExtraEvent, lang: Lang): st
 interface Props {
   events: ExtraEvent[]
   lang: Lang
-  /** Set from the URL deep link — selects the event with this date. */
-  initialEventDate?: string | null
-  /** Reports user selections so the dashboard can mirror them in the URL. */
-  onEventChange?: (date: string) => void
+  /**
+   * Event date and category are owned by the Dashboard (controlled) so the
+   * URL can mirror the full selection: #extra/<date>/<category>.
+   */
+  eventDate: string | null
+  category: ExtraCategory
+  onEventChange: (date: string) => void
+  onCategoryChange: (category: ExtraCategory) => void
 }
 
-export function ExtraEventsTab({ events, lang, initialEventDate, onEventChange }: Props) {
-  // events arrive newest first — default to the deep-linked event, else the most recent
-  const [selectedFile, setSelectedFile] = useState<string | undefined>(
-    () => events.find((e) => e.date === initialEventDate)?.file ?? events[0]?.file,
-  )
-  const [category, setCategory] = useState<Category>('all')
-  const [prevInitialDate, setPrevInitialDate] = useState(initialEventDate)
-
-  if (initialEventDate !== prevInitialDate) {
-    setPrevInitialDate(initialEventDate)
-    const match = events.find((e) => e.date === initialEventDate)
-    if (match) setSelectedFile(match.file)
-  }
-
+export function ExtraEventsTab({ events, lang, eventDate, category, onEventChange, onCategoryChange }: Props) {
+  // events arrive newest first — fall back to the most recent
   const event = useMemo(
-    () => events.find((e) => e.file === selectedFile) ?? events[0],
-    [events, selectedFile],
+    () => events.find((e) => e.date === eventDate) ?? events[0],
+    [events, eventDate],
   )
 
   const segs = event ? (FORMAT_SEGMENTS[event.format] ?? []) : []
@@ -176,9 +166,8 @@ export function ExtraEventsTab({ events, lang, initialEventDate, onEventChange }
               <label htmlFor="extra-event" className="block text-[11px] font-medium text-gray-500 uppercase tracking-wide mb-1">{t('select_event', lang)}</label>
               <select id="extra-event" value={event.file}
                 onChange={(e) => {
-                  setSelectedFile(e.target.value)
                   const date = events.find((ev) => ev.file === e.target.value)?.date
-                  if (date) onEventChange?.(date)
+                  if (date) onEventChange(date)
                 }}
                 className="border border-gray-200 rounded px-2 py-1 text-xs bg-white focus-visible:ring-2 focus-visible:ring-red-700 focus-visible:ring-offset-1">
                 {events.map((e) => (
@@ -188,7 +177,7 @@ export function ExtraEventsTab({ events, lang, initialEventDate, onEventChange }
             </div>
             <div>
               <label htmlFor="extra-category" className="block text-[11px] font-medium text-gray-500 uppercase tracking-wide mb-1">{t('select_category', lang)}</label>
-              <select id="extra-category" value={category} onChange={(e) => setCategory(e.target.value as Category)}
+              <select id="extra-category" value={category} onChange={(e) => onCategoryChange(e.target.value as ExtraCategory)}
                 className="border border-gray-200 rounded px-2 py-1 text-xs bg-white focus-visible:ring-2 focus-visible:ring-red-700 focus-visible:ring-offset-1">
                 <option value="all">{t('overall', lang)}</option>
                 <option value="men">{t('men_only', lang)}</option>

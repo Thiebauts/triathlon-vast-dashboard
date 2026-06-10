@@ -1,7 +1,7 @@
 'use client'
 import { useState, useMemo, useCallback, useDeferredValue, Fragment } from 'react'
 import { t } from '@/lib/translations'
-import type { AthleteResult, CompetitionsData, SportType, Lang } from '@/lib/types'
+import type { AthleteResult, CompetitionsData, SportType, Lang, ResultsCategory } from '@/lib/types'
 import { athleteKey, computeSplitRanks, computeEventPoints, isFinisher, type SplitRanks } from '@/lib/data'
 import { csvEscape } from '@/lib/csv'
 
@@ -26,15 +26,13 @@ function fmt(v: string | undefined) {
 
 const D = 'hidden sm:table-cell'
 
-type Category = 'all' | 'men' | 'women' | 'youth'
-
 /**
  * Whether an athlete belongs to the selected category section. `all` is the
  * adult mixed field (Herr + Dam); `youth` (Ungdom) is its own section because
  * it races a shorter course. Shared by the visible rows AND the per-split
  * rankings so both rank over exactly the same pool.
  */
-function inCategory(a: AthleteResult, category: Category): boolean {
+function inCategory(a: AthleteResult, category: ResultsCategory): boolean {
   switch (category) {
     case 'men':   return a.class_lower === 'herr'
     case 'women': return a.class_lower === 'dam'
@@ -47,31 +45,22 @@ interface Props {
   data: CompetitionsData
   lang: Lang
   onAthleteClick?: (name: string) => void
-  /** Set by the Overview discipline cards — selects this sport on navigation. */
-  initialSport?: SportType | null
-  /** Reports user sport changes so the dashboard can mirror them in the URL. */
-  onSportChange?: (sport: SportType) => void
+  /**
+   * Sport/year/category are owned by the Dashboard (controlled) so the URL
+   * can mirror the full selection: #results/<sport>/<year>/<category>.
+   */
+  sport: SportType
+  year: string
+  category: ResultsCategory
+  onSportChange: (sport: SportType) => void
+  onYearChange: (year: string) => void
+  onCategoryChange: (category: ResultsCategory) => void
 }
 
-export function ResultsTab({ data, lang, onAthleteClick, initialSport, onSportChange }: Props) {
-  const [sport, setSport] = useState<SportType>(initialSport ?? 'triathlon')
-  const [year, setYear] = useState<string>('all')
-  // 'all' = adults only (Herr + Dam); youth (Ungdom) is its own category
-  // because it races a different/shorter course and shouldn't be ranked
-  // alongside adult times.
-  const [category, setCategory] = useState<Category>('all')
+export function ResultsTab({ data, lang, onAthleteClick, sport, year, category, onSportChange, onYearChange, onCategoryChange }: Props) {
   const [search, setSearch] = useState('')
   const [showGuests, setShowGuests] = useState(false)
   const deferredSearch = useDeferredValue(search)
-  const [prevInitialSport, setPrevInitialSport] = useState(initialSport)
-
-  if (initialSport !== prevInitialSport) {
-    setPrevInitialSport(initialSport)
-    if (initialSport) {
-      setSport(initialSport)
-      setYear('all') // same reset as the sport <select> handler
-    }
-  }
 
   const isMultiSport = sport === 'triathlon' || sport === 'duathlon'
 
@@ -80,6 +69,9 @@ export function ResultsTab({ data, lang, onAthleteClick, initialSport, onSportCh
     for (const a of data[sport]) ys.add(a.Competition_Year)
     return ['all', ...[...ys].sort().reverse()]
   }, [data, sport])
+
+  // A deep link can name a year this sport never ran — fall back to 'all'
+  const yearValue = years.includes(year) ? year : 'all'
 
   // Split ranks share the SAME pool as the visible rows: sport, category,
   // guests, and the year filter. With one year selected, each split is ranked
@@ -92,11 +84,11 @@ export function ResultsTab({ data, lang, onAthleteClick, initialSport, onSportCh
     if (!isMultiSport) return null
     let pool = data[sport].filter((a) => inCategory(a, category))
     if (!showGuests) pool = pool.filter((a) => a.Club.toLowerCase().trim() !== 'gäst')
-    if (year !== 'all') pool = pool.filter((a) => a.Competition_Year === year)
+    if (yearValue !== 'all') pool = pool.filter((a) => a.Competition_Year === yearValue)
     const out: Record<string, SplitRanks> = {}
     computeSplitRanks(pool, sport as 'triathlon' | 'duathlon').forEach((v, k) => { out[k] = v })
     return out
-  }, [data, sport, isMultiSport, showGuests, category, year])
+  }, [data, sport, isMultiSport, showGuests, category, yearValue])
 
   // Club points each athlete earned in their event, keyed by athleteKey().
   // Computed over the FULL field for the sport (every member in their adult
@@ -115,7 +107,7 @@ export function ResultsTab({ data, lang, onAthleteClick, initialSport, onSportCh
   // unranked) and equal times share a rank (competition ranking: 1, 1, 3, …).
   const ranked = useMemo(() => {
     let list = data[sport]
-    if (year !== 'all') list = list.filter((a) => a.Competition_Year === year)
+    if (yearValue !== 'all') list = list.filter((a) => a.Competition_Year === yearValue)
     list = list.filter((a) => inCategory(a, category))
     if (!showGuests) list = list.filter((a) => a.Club.toLowerCase().trim() !== 'gäst')
     const finishers = list.filter(isFinisher)
@@ -127,7 +119,7 @@ export function ResultsTab({ data, lang, onAthleteClick, initialSport, onSportCh
     })
     for (const athlete of list.filter((a) => !isFinisher(a))) out.push({ athlete, rank: null })
     return out
-  }, [data, sport, year, category, showGuests])
+  }, [data, sport, yearValue, category, showGuests])
 
   // Search filter kept separate so typing never re-sorts the pool.
   const rows = useMemo(() => {
@@ -156,7 +148,7 @@ export function ResultsTab({ data, lang, onAthleteClick, initialSport, onSportCh
 
   const exportCsv = useCallback(() => {
     const headers = [
-      year === 'all' ? t('all_time_rank', lang) : t('overall_rank', lang),
+      yearValue === 'all' ? t('all_time_rank', lang) : t('overall_rank', lang),
       t('name', lang), t('club', lang),
       t('gender', lang), t('year', lang), t('total_time', lang), t('points', lang),
     ]
@@ -176,10 +168,10 @@ export function ResultsTab({ data, lang, onAthleteClick, initialSport, onSportCh
     const url = URL.createObjectURL(blob)
     const link = document.createElement('a')
     link.href = url
-    link.download = `${sport}_${year}_${category}.csv`
+    link.download = `${sport}_${yearValue}_${category}.csv`
     link.click()
     URL.revokeObjectURL(url)
-  }, [rows, sport, year, category, lang, pointsLookup])
+  }, [rows, sport, yearValue, category, lang, pointsLookup])
 
   return (
     <div className="space-y-3">
@@ -193,26 +185,21 @@ export function ResultsTab({ data, lang, onAthleteClick, initialSport, onSportCh
         <div>
           <label htmlFor="filter-event" className="block text-[11px] font-medium text-gray-500 uppercase tracking-wide mb-1">{t('select_event', lang)}</label>
           <select id="filter-event" value={sport}
-            onChange={(e) => {
-              const next = e.target.value as SportType
-              setSport(next)
-              setYear('all')
-              onSportChange?.(next)
-            }}
+            onChange={(e) => onSportChange(e.target.value as SportType)}
             className="border border-gray-200 rounded px-2 py-1 text-xs bg-white focus-visible:ring-2 focus-visible:ring-red-700 focus-visible:ring-offset-1">
             {SPORTS.map((s) => <option key={s} value={s}>{t(s, lang)}</option>)}
           </select>
         </div>
         <div>
           <label htmlFor="filter-year" className="block text-[11px] font-medium text-gray-500 uppercase tracking-wide mb-1">{t('select_year', lang)}</label>
-          <select id="filter-year" value={year} onChange={(e) => setYear(e.target.value)}
+          <select id="filter-year" value={yearValue} onChange={(e) => onYearChange(e.target.value)}
             className="border border-gray-200 rounded px-2 py-1 text-xs bg-white focus-visible:ring-2 focus-visible:ring-red-700 focus-visible:ring-offset-1">
             {years.map((y) => <option key={y} value={y}>{y === 'all' ? t('all_years', lang) : y}</option>)}
           </select>
         </div>
         <div>
           <label htmlFor="filter-category" className="block text-[11px] font-medium text-gray-500 uppercase tracking-wide mb-1">{t('select_category', lang)}</label>
-          <select id="filter-category" value={category} onChange={(e) => setCategory(e.target.value as Category)}
+          <select id="filter-category" value={category} onChange={(e) => onCategoryChange(e.target.value as ResultsCategory)}
             className="border border-gray-200 rounded px-2 py-1 text-xs bg-white focus-visible:ring-2 focus-visible:ring-red-700 focus-visible:ring-offset-1">
             <option value="all">{t('all_mixed', lang)}</option>
             <option value="men">{t('men_only', lang)}</option>
@@ -269,12 +256,12 @@ export function ResultsTab({ data, lang, onAthleteClick, initialSport, onSportCh
             <thead>
               <tr className="bg-gray-50 border-b border-gray-200 text-[11px] uppercase tracking-wider text-gray-500">
                 <th scope="col" className="px-3 py-2 text-left font-semibold">
-                  {year === 'all' ? t('all_time_rank', lang) : t('overall_rank', lang)}
+                  {yearValue === 'all' ? t('all_time_rank', lang) : t('overall_rank', lang)}
                 </th>
                 <th scope="col" className="px-3 py-2 text-left font-semibold">{t('name', lang)}</th>
                 <th scope="col" className={`px-3 py-2 text-left font-semibold ${D}`}>{t('club', lang)}</th>
                 <th scope="col" className={`px-3 py-2 text-left font-semibold ${D}`}>{t('gender', lang)}</th>
-                {year === 'all' && <th scope="col" className={`px-3 py-2 text-left font-semibold ${D}`}>{t('year', lang)}</th>}
+                {yearValue === 'all' && <th scope="col" className={`px-3 py-2 text-left font-semibold ${D}`}>{t('year', lang)}</th>}
                 <th scope="col" className="px-3 py-2 text-left font-semibold">{t('total_time', lang)}</th>
                 {segs.map((s) => (
                   <Fragment key={s.label}>
@@ -319,7 +306,7 @@ export function ResultsTab({ data, lang, onAthleteClick, initialSport, onSportCh
                     </td>
                     <td className={`px-3 py-1.5 text-gray-500 ${D}`}>{a.Club}</td>
                     <td className={`px-3 py-1.5 text-gray-500 ${D}`}>{a.Class}</td>
-                    {year === 'all' && <td className={`px-3 py-1.5 text-gray-400 ${D}`}>{a.Competition_Year}</td>}
+                    {yearValue === 'all' && <td className={`px-3 py-1.5 text-gray-400 ${D}`}>{a.Competition_Year}</td>}
                     <td className="px-3 py-1.5 font-mono font-semibold text-gray-800">
                       {finished
                         ? fmt(a.Total_Time)

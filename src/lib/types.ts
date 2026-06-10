@@ -1,6 +1,11 @@
 export type SportType = 'triathlon' | 'duathlon' | 'swimming' | 'cycling' | 'running' | 'swimrun'
 export type Lang = 'en' | 'sv'
 
+/** Results-tab category filter ('all' = the adult mixed field, Herr + Dam). */
+export type ResultsCategory = 'all' | 'men' | 'women' | 'youth'
+/** Extra-events category filter ('all' = every class — one shared course). */
+export type ExtraCategory = 'all' | 'men' | 'women'
+
 export interface AthleteResult {
   Name: string
   Bib?: string

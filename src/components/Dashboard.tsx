@@ -8,11 +8,14 @@ import { ResultsTab } from './tabs/ResultsTab'
 import { AthletesTab } from './tabs/AthletesTab'
 import { RankingsTab } from './tabs/RankingsTab'
 import { ExtraEventsTab } from './tabs/ExtraEventsTab'
-import type { CompetitionsData, ClubAthlete, ExtraEvent, SportType } from '@/lib/types'
+import type { CompetitionsData, ClubAthlete, ExtraCategory, ExtraEvent, ResultsCategory, SportType } from '@/lib/types'
 
 const TAB_ORDER = TABS
 
 const VALID_SPORTS: readonly string[] = ['triathlon', 'duathlon', 'swimming', 'cycling', 'running', 'swimrun']
+const RESULTS_CATEGORIES: readonly string[] = ['all', 'men', 'women', 'youth']
+const EXTRA_CATEGORIES: readonly string[] = ['all', 'men', 'women']
+const YEAR_RE = /^\d{4}$/
 
 interface Props {
   data: CompetitionsData
@@ -28,9 +31,15 @@ export function Dashboard({ data, athleteNames, allTimeRankings, extraEvents }: 
   // the Overview tab (smaller HTML), while revisited tabs keep their filter
   // state, memoized rankings, and Recharts DOM so switching back is instant.
   const [visited, setVisited] = useState<ReadonlySet<Tab>>(() => new Set<Tab>(['overview']))
+  // Per-tab selections live here (not in the tabs) so the URL hash can mirror
+  // the full view: #results/<sport>/<year>/<category>, #extra/<date>/<category>, …
   const [selectedAthlete, setSelectedAthlete] = useState<string | null>(null)
-  const [selectedSport, setSelectedSport] = useState<SportType | null>(null)
-  const [selectedExtraDate, setSelectedExtraDate] = useState<string | null>(null)
+  const [sport, setSport] = useState<SportType>('triathlon')
+  const [resultsYear, setResultsYear] = useState('all')
+  const [resultsCategory, setResultsCategory] = useState<ResultsCategory>('all')
+  const [extraDate, setExtraDate] = useState<string | null>(extraEvents[0]?.date ?? null)
+  const [extraCategory, setExtraCategory] = useState<ExtraCategory>('all')
+  const [rankingsYear, setRankingsYear] = useState('all')
 
   const selectTab = useCallback((id: Tab) => {
     setTab(id)
@@ -44,10 +53,18 @@ export function Dashboard({ data, athleteNames, allTimeRankings, extraEvents }: 
 
   const navigateToExtra = useCallback(() => selectTab('extra'), [selectTab])
 
-  const navigateToSport = useCallback((sport: SportType) => {
-    setSelectedSport(sport)
+  // Years differ per sport, so switching sport resets the year filter —
+  // the single place for that rule (the sport <select> and the Overview
+  // discipline cards both go through here).
+  const changeSport = useCallback((next: SportType) => {
+    setSport(next)
+    setResultsYear('all')
+  }, [])
+
+  const navigateToSport = useCallback((next: SportType) => {
+    changeSport(next)
     selectTab('results')
-  }, [selectTab])
+  }, [changeSport, selectTab])
 
   // ── Deep links ──────────────────────────────────────────────────────────────
   // The hash mirrors the current view (#extra/2026-06-10, #athletes/Name, …)
@@ -58,15 +75,20 @@ export function Dashboard({ data, athleteNames, allTimeRankings, extraEvents }: 
   const applyHash = useCallback(() => {
     const parsed = parseHash(window.location.hash)
     if (!parsed) return
-    const { tab: nextTab, param } = parsed
-    if (nextTab === 'results' && param && VALID_SPORTS.includes(param)) {
-      setSelectedSport(param as SportType)
-    } else if (nextTab === 'athletes' && param && athleteNames.includes(param)) {
-      setSelectedAthlete(param)
-    } else if (nextTab === 'extra' && param) {
-      setSelectedExtraDate(param)
+    const [p0, p1, p2] = parsed.params
+    if (parsed.tab === 'results') {
+      if (p0 && VALID_SPORTS.includes(p0)) setSport(p0 as SportType)
+      if (p1 && (p1 === 'all' || YEAR_RE.test(p1))) setResultsYear(p1)
+      if (p2 && RESULTS_CATEGORIES.includes(p2)) setResultsCategory(p2 as ResultsCategory)
+    } else if (parsed.tab === 'athletes') {
+      if (p0 && athleteNames.includes(p0)) setSelectedAthlete(p0)
+    } else if (parsed.tab === 'extra') {
+      if (p0) setExtraDate(p0)
+      if (p1 && EXTRA_CATEGORIES.includes(p1)) setExtraCategory(p1 as ExtraCategory)
+    } else if (parsed.tab === 'rankings') {
+      if (p0 && (p0 === 'all' || YEAR_RE.test(p0))) setRankingsYear(p0)
     }
-    selectTab(nextTab)
+    selectTab(parsed.tab)
   }, [athleteNames, selectTab])
 
   const urlInitialized = useRef(false)
@@ -85,15 +107,17 @@ export function Dashboard({ data, athleteNames, allTimeRankings, extraEvents }: 
 
   useEffect(() => {
     if (!urlInitialized.current) return
-    const param = tab === 'results' ? selectedSport
-      : tab === 'athletes' ? selectedAthlete
-      : tab === 'extra' ? selectedExtraDate
-      : null
-    const hash = buildHash(tab, param)
+    const params =
+      tab === 'results' ? [sport, resultsYear, resultsCategory]
+      : tab === 'athletes' ? [selectedAthlete]
+      : tab === 'extra' ? [extraDate, extraCategory]
+      : tab === 'rankings' ? [rankingsYear]
+      : []
+    const hash = buildHash(tab, params)
     // replaceState (not pushState): the URL stays shareable without turning
     // every tab click into a browser-history entry.
     window.history.replaceState(null, '', hash || window.location.pathname + window.location.search)
-  }, [tab, selectedSport, selectedAthlete, selectedExtraDate])
+  }, [tab, sport, resultsYear, resultsCategory, selectedAthlete, extraDate, extraCategory, rankingsYear])
 
   const onTabKeyDown = useCallback((e: React.KeyboardEvent, index: number) => {
     let next: number
@@ -149,16 +173,16 @@ export function Dashboard({ data, athleteNames, allTimeRankings, extraEvents }: 
         {visited.has('overview') && <OverviewTab data={data} lang={lang} onNavigateToExtra={navigateToExtra} onNavigateToSport={navigateToSport} />}
       </div>
       <div role="tabpanel" id="tabpanel-results" aria-labelledby="tab-results" hidden={tab !== 'results'}>
-        {visited.has('results') && <ResultsTab data={data} lang={lang} onAthleteClick={navigateToAthlete} initialSport={selectedSport} onSportChange={setSelectedSport} />}
+        {visited.has('results') && <ResultsTab data={data} lang={lang} onAthleteClick={navigateToAthlete} sport={sport} year={resultsYear} category={resultsCategory} onSportChange={changeSport} onYearChange={setResultsYear} onCategoryChange={setResultsCategory} />}
       </div>
       <div role="tabpanel" id="tabpanel-athletes" aria-labelledby="tab-athletes" hidden={tab !== 'athletes'}>
         {visited.has('athletes') && <AthletesTab data={data} athleteNames={athleteNames} allTimeRankings={allTimeRankings} lang={lang} initialAthlete={selectedAthlete} onAthleteChange={setSelectedAthlete} />}
       </div>
       <div role="tabpanel" id="tabpanel-rankings" aria-labelledby="tab-rankings" hidden={tab !== 'rankings'}>
-        {visited.has('rankings') && <RankingsTab data={data} allTimeRankings={allTimeRankings} lang={lang} onAthleteClick={navigateToAthlete} />}
+        {visited.has('rankings') && <RankingsTab data={data} allTimeRankings={allTimeRankings} lang={lang} onAthleteClick={navigateToAthlete} year={rankingsYear} onYearChange={setRankingsYear} />}
       </div>
       <div role="tabpanel" id="tabpanel-extra" aria-labelledby="tab-extra" hidden={tab !== 'extra'}>
-        {visited.has('extra') && <ExtraEventsTab events={extraEvents} lang={lang} initialEventDate={selectedExtraDate} onEventChange={setSelectedExtraDate} />}
+        {visited.has('extra') && <ExtraEventsTab events={extraEvents} lang={lang} eventDate={extraDate} category={extraCategory} onEventChange={setExtraDate} onCategoryChange={setExtraCategory} />}
       </div>
     </div>
   )

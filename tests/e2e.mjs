@@ -555,6 +555,39 @@ async function run() {
     if (value !== 'swimming') throw new Error(`Sport select is "${value}"`)
   })
 
+  await test('Results deep link restores year and category', async () => {
+    await page.goto(`${BASE}/#results/swimming/2024/women`, { waitUntil: 'networkidle' })
+    await page.waitForTimeout(600)
+    const sport = await page.locator('select:visible').nth(0).inputValue()
+    const year = await page.locator('select:visible').nth(1).inputValue()
+    const category = await page.locator('select:visible').nth(2).inputValue()
+    if (sport !== 'swimming' || year !== '2024' || category !== 'women')
+      throw new Error(`Got ${sport}/${year}/${category}`)
+  })
+
+  await test('Changing results filters updates the URL', async () => {
+    await page.locator('select:visible').nth(1).selectOption('2025')
+    await page.locator('select:visible').nth(2).selectOption('men')
+    await page.waitForTimeout(400)
+    if (!page.url().includes('#results/swimming/2025/men')) throw new Error(`URL is ${page.url()}`)
+  })
+
+  await test('Extra events URL carries the event date and category', async () => {
+    await page.getByRole('tab', { name: 'Extra Events' }).click()
+    await page.waitForTimeout(400)
+    if (!page.url().includes('#extra/2026-06-10')) throw new Error(`URL is ${page.url()}`)
+    await page.locator('select:visible').nth(1).selectOption('women')
+    await page.waitForTimeout(400)
+    if (!page.url().includes('#extra/2026-06-10/women')) throw new Error(`URL is ${page.url()}`)
+  })
+
+  await test('Extra deep link restores the category', async () => {
+    await page.goto(`${BASE}/#extra/2026-06-10/men`, { waitUntil: 'networkidle' })
+    await page.waitForTimeout(600)
+    const category = await page.locator('select:visible').nth(1).inputValue()
+    if (category !== 'men') throw new Error(`Category is "${category}"`)
+  })
+
   await test('Tab clicks update the URL hash', async () => {
     await page.getByRole('tab', { name: 'Club Rankings' }).click()
     await page.waitForTimeout(400)
