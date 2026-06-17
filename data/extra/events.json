@@ -1,5 +1,20 @@
 [
   {
+    "file": "processed_triathlon_results_2026-06-17.csv",
+    "date": "2026-06-17",
+    "format": "triathlon",
+    "title": {
+      "en": "SuperSprint Triathlon Training #3",
+      "sv": "SuperSprint-triathlonträning #3"
+    },
+    "location": "Rådasjön",
+    "description": {
+      "en": "Open triathlon training evening at Rådasjön, held every Wednesday in June. Supersprint distances: ~400 m swim, ~10 km bike, ~3 km run. Everyone is welcome — race the full supersprint, pick a single leg, or do brick training; the session is timed for a bit of extra motivation.",
+      "sv": "Öppen triathlonträningskväll vid Rådasjön, varje onsdag i juni. Supersprint-distanser: ca 400 m simning, ca 10 km cykling, ca 3 km löpning. Alla är välkomna — kör hela supersprinten, välj en enskild gren eller kör brickträning; passet tidtas för lite extra motivation."
+    },
+    "race_id": "BMFntY5ReyjEjMqNF"
+  },
+  {
     "file": "processed_triathlon_results_2026-06-10.csv",
     "date": "2026-06-10",
     "format": "triathlon",
