@@ -23,6 +23,46 @@ from pathlib import Path
 from nytatime_api import NytatimeAPI, format_time, fix_encoding_issues, determine_club_name
 
 
+# Known NyTaTime name variants mapped to the canonical spelling used across the
+# data/ CSVs. A different spelling — or a first-name-only registration — would
+# otherwise fragment an athlete's cross-year profile in the dashboard. Mirrors
+# NAME_CORRECTIONS in retrieve_extra_event_results.py. Keys are the name AFTER
+# fix_encoding_issues + strip. The bare-first-name keys ('andre', 'Göran') are
+# specific to known members — revisit if a namesake ever races.
+NAME_CORRECTIONS = {
+    'Marcelo Tognato Chiaverini': 'Marcelo Chiaverini',
+    'andre': 'André du Rietz',
+    'Göran': 'Göran Hilmersson',
+    'Tim suits': 'Tim Suits',
+    'Alexander berggren': 'Alexander Berggren',
+}
+
+# TriVäst spellings that participants self-enter (case/format varies); collapse
+# them to the canonical club label so the dashboard shows one consistent name
+# and membership detection stays trivial. Mirrors CLUB_ALIASES in
+# src/lib/data.ts. Real guest club names pass through untouched.
+TRIVAST_ALIASES = {'triväst', 'tri väst', 'triathlon väst', 'tv', 'medlem', 'trivästare'}
+
+
+def canonical_club(club_field):
+    """Normalise a raw club field: trim stray whitespace, then collapse known
+    TriVäst spellings to the canonical label (real guest club names survive)."""
+    club = determine_club_name(club_field).strip()
+    return 'TriVäst' if club.lower() in TRIVAST_ALIASES else club
+
+
+def ranks_overall(class_name):
+    """Whether a class competes for an overall placing.
+
+    Youth (Ungdom) and children (Barn) race a shorter course, so they are
+    ranked only within their own class — never given an overall rank against
+    the full-distance adult field. Mirrors the Herr/Dam-only "all mixed" field
+    in the dashboard's ResultsTab and racesOverall() in src/lib/data.ts.
+    """
+    c = (class_name or '').lower()
+    return 'barn' not in c and 'ungdom' not in c and 'youth' not in c
+
+
 def load_dotenv():
     """Tiny dependency-free loader for nytatime/.env. Existing env vars win."""
     env_path = Path(__file__).parent / '.env'
@@ -61,12 +101,16 @@ def save_and_summarize(results, race_info, event_type):
     print(f"   Date: {race_info.get('date', 'Unknown')}")
     print(f"   Participants: {len(results)}")
 
-    finishers = [r for r in results if r['Status'] == 'ok']
     dnf_count = len([r for r in results if r['Status'] == 'dnf'])
+    # Top 3 over the overall-ranked field only (youth/children carry no overall
+    # rank, so they never headline the podium of the full-distance race).
+    overall_ranked = sorted(
+        (r for r in results if isinstance(r['Overall_Rank'], int)),
+        key=lambda r: r['Overall_Rank'],
+    )
 
     print(f"\n🏆 TOP 3 FINISHERS:")
-    for i in range(min(3, len(finishers))):
-        r = finishers[i]
+    for r in overall_ranked[:3]:
         print(f"   {r['Overall_Rank']}. {r['Name']} ({r['Class']}) - {r['Total_Time']}")
 
     if dnf_count > 0:
@@ -336,6 +380,7 @@ def process_event_results(api, race_id, event_type):
         # Basic info — strip whitespace to keep names stable across years
         # (a trailing space would otherwise fragment an athlete's profile).
         name = fix_encoding_issues(participant.get('name', 'Unknown')).strip()
+        name = NAME_CORRECTIONS.get(name, name)
         bib = participant.get('bib', '')
         
         # Determine class
@@ -353,7 +398,7 @@ def process_event_results(api, race_id, event_type):
                 participant_class = 'Unknown'
         
         # Club name
-        club = determine_club_name(participant.get('club', ''))
+        club = canonical_club(participant.get('club', ''))
         
         # Process splits
         splits = participant.get('splitTimesv2', []) or participant.get('splits', [])
@@ -434,14 +479,18 @@ def process_event_results(api, race_id, event_type):
     # Sort by status first (finishers before DNF), then by total time
     processed_results.sort(key=lambda x: (x['Status'] != 'ok', x['Total_Time_Seconds']))
     
-    # Add overall rankings (finishers get normal ranks, DNF get DNF designation)
+    # Add overall rankings. Finishers get normal ranks; DNFs get a 'DNF'
+    # designation; youth/children (shorter course) are ranked within their
+    # class only and carry no overall placing (blank).
     finisher_rank = 1
     for result in processed_results:
-        if result['Status'] == 'ok':
+        if result['Status'] != 'ok':
+            result['Overall_Rank'] = 'DNF'
+        elif not ranks_overall(result['Class']):
+            result['Overall_Rank'] = ''
+        else:
             result['Overall_Rank'] = finisher_rank
             finisher_rank += 1
-        else:
-            result['Overall_Rank'] = 'DNF'
     
     # Add class rankings (same logic: finishers first, then DNF)
     classes = set(result['Class'] for result in processed_results)

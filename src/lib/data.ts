@@ -46,10 +46,11 @@ export function computeSplitRanks(
 
 /**
  * Club-name spellings that count as TriVäst. 'medlem' (Swedish for "member")
- * shows up when a result sheet records membership status instead of the club
- * name. Single source of truth — the loader flags rows against this set.
+ * and 'trivästare' ("TriVäst member") show up when a result sheet records
+ * membership status or a colloquial club name instead of the canonical one.
+ * Single source of truth — the loader flags rows against this set.
  */
-export const CLUB_ALIASES: ReadonlySet<string> = new Set(['triväst', 'triathlon väst', 'tv', 'medlem'])
+export const CLUB_ALIASES: ReadonlySet<string> = new Set(['triväst', 'triathlon väst', 'tv', 'medlem', 'trivästare'])
 
 /**
  * Accepts an AthleteResult (uses the precomputed flag) or a raw club string.
@@ -101,6 +102,17 @@ const ADULT_CLASSES: ReadonlySet<string> = new Set(['herr', 'dam'])
 
 function earnsClubPoints(a: AthleteResult): boolean {
   return a.is_club_member && ADULT_CLASSES.has(a.class_lower) && isFinisher(a)
+}
+
+/**
+ * Whether an athlete competes for an overall placing. Youth (Ungdom) and
+ * children (Barn) race a shorter course, so they are ranked within their class
+ * only — never against the full-distance adult field. Mirrors ranks_overall()
+ * in nytatime/retrieve_event_results.py, which blanks their CSV Overall_Rank.
+ */
+export function racesOverall(a: AthleteResult): boolean {
+  const c = a.class_lower
+  return !c.includes('barn') && !c.includes('ungdom') && !c.includes('youth')
 }
 
 // ─── Club-member-only rank ────────────────────────────────────────────────────
@@ -214,6 +226,10 @@ export function getAthleteEvents(
       // Denominators count finishers only, matching the finisher-based ranks
       // from the result sheets (a DNF carries rank 0, not a place).
       const finishers = sameYear.filter(isFinisher)
+      // The overall placing is contested only among the full-distance (adult)
+      // field, so its denominator excludes youth/children — matching their
+      // blank Overall_Rank.
+      const overallFinishers = finishers.filter(racesOverall)
       const finished = isFinisher(a)
       const cmRank = calculateClubMemberRank(a, sameYear)
       const isMember = a.is_club_member
@@ -228,7 +244,7 @@ export function getAthleteEvents(
         time_seconds: a.Total_Time_Seconds,
         club: a.Club,
         class_total: finishers.filter((x) => x.Class === a.Class).length,
-        overall_total: finishers.length,
+        overall_total: overallFinishers.length,
         gender_class: a.Class,
         is_club_member: isMember,
         finished,

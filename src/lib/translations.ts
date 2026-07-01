@@ -128,6 +128,7 @@ const TRANSLATIONS: Record<string, { en: string; sv: string }> = {
 
   overall_rank:  { en: 'Overall Rank', sv: 'Total Placering' },
   class_rank:    { en: 'Class Rank',   sv: 'Klassplacering' },
+  separate_race: { en: 'separate race', sv: 'separat lopp' },
   all_time_rank: { en: 'All-Time Rank', sv: 'Alla Tiders Placering' },
   name:          { en: 'Name',         sv: 'Namn' },
   gender:        { en: 'Gender',       sv: 'Kön' },

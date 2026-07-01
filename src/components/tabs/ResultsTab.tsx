@@ -27,16 +27,99 @@ function fmt(v: string | undefined) {
 const D = 'hidden sm:table-cell'
 
 /**
+ * Classes that raced a shorter, separate course and are therefore shown as
+ * their own labelled block under Youth — never ranked among the youth field.
+ * Distances are organiser-provided (not part of the NyTaTime export); keyed by
+ * class_lower. Revisit if a class is ever reused at a different distance.
+ */
+const SEPARATE_RACE_DISTANCE: Record<string, string> = {
+  'barn 0-10': '150 m',
+}
+
+/**
+ * One result row. Shared by the main ranked field and the separate-course
+ * blocks so every table renders the exact same columns (and therefore the same
+ * column widths). `rank` is null for a non-finisher; points/split-rank cells
+ * fall back to a dash when they don't apply (e.g. youth/children).
+ */
+function ResultRow({ a, rank, i, lang, yearValue, segs, splitRank, points, onAthleteClick }: {
+  a: AthleteResult
+  rank: number | null
+  i: number
+  lang: Lang
+  yearValue: string
+  segs: readonly { timeKey: string; rankKey: string; label: string }[]
+  splitRank: SplitRanks
+  points: number
+  onAthleteClick?: (name: string) => void
+}) {
+  const isMember = a.is_club_member
+  const finished = rank !== null
+  // Only adult (Herr/Dam) members who finished earn club points; everyone else
+  // shows a dash. A member can still earn 0 (ranked past 32nd).
+  const earnsPoints = finished && isMember && (a.class_lower === 'herr' || a.class_lower === 'dam')
+  const bg = rank === 1 ? 'bg-amber-50/60'
+           : rank === 2 ? 'bg-slate-50/80'
+           : rank === 3 ? 'bg-orange-50/50'
+           : isMember   ? 'bg-red-50/30'
+           : i % 2 === 0 ? 'bg-white' : 'bg-gray-50/40'
+  return (
+    <tr className={`${bg} border-b border-gray-100 hover:bg-blue-50/20 transition-colors`}>
+      <th scope="row" className="px-3 py-1.5 font-semibold tabular-nums">
+        {rank !== null
+          ? <span style={MEDAL[rank] ?? { color: '#6B7280' }}>{rank}</span>
+          : <span className="text-gray-400 font-normal">—</span>}
+      </th>
+      <td className="px-3 py-1.5 whitespace-nowrap font-medium text-gray-800">
+        {onAthleteClick ? (
+          <button onClick={() => onAthleteClick(a.Name)}
+            className="hover:text-red-700 hover:underline transition-colors text-left focus-visible:ring-2 focus-visible:ring-red-700 focus-visible:ring-offset-1 rounded">
+            {a.Name}
+          </button>
+        ) : a.Name}
+      </td>
+      <td className={`px-3 py-1.5 text-gray-500 ${D}`}>{a.Club}</td>
+      <td className={`px-3 py-1.5 text-gray-500 ${D}`}>{a.Class}</td>
+      {yearValue === 'all' && <td className={`px-3 py-1.5 text-gray-400 ${D}`}>{a.Competition_Year}</td>}
+      <td className="px-3 py-1.5 font-mono font-semibold text-gray-800">
+        {finished
+          ? fmt(a.Total_Time)
+          : <span className="font-sans font-semibold text-gray-400">{t('dnf', lang)}</span>}
+      </td>
+      {segs.map((s) => (
+        <Fragment key={s.label}>
+          <td className={`px-2 py-1.5 font-mono text-gray-500 border-l border-gray-100 ${D}`}>
+            {fmt((a as unknown as Record<string, string>)[s.timeKey])}
+          </td>
+          <td className={`px-2 py-1.5 text-center ${D}`}>
+            <RankCell n={(splitRank as Record<string, number | undefined>)[s.rankKey]} />
+          </td>
+        </Fragment>
+      ))}
+      <td className="px-3 py-1.5 text-right tabular-nums border-l border-gray-100">
+        {earnsPoints
+          ? <span className={points > 0 ? 'font-semibold text-red-700' : 'text-gray-400'}>{points}</span>
+          : <span className="text-gray-300">—</span>}
+      </td>
+    </tr>
+  )
+}
+
+/**
  * Whether an athlete belongs to the selected category section. `all` is the
- * adult mixed field (Herr + Dam); `youth` (Ungdom) is its own section because
- * it races a shorter course. Shared by the visible rows AND the per-split
- * rankings so both rank over exactly the same pool.
+ * adult mixed field (Herr + Dam); `youth` is its own section (Ungdom plus the
+ * older children's classes) because it races a shorter course. Children's
+ * classes that swim a *separate*, still-shorter course (SEPARATE_RACE_DISTANCE,
+ * e.g. Barn 0–10) are excluded here — they get their own labelled block instead
+ * of being ranked among the youth field. Shared by the visible rows AND the
+ * per-split rankings so both rank over exactly the same pool.
  */
 function inCategory(a: AthleteResult, category: ResultsCategory): boolean {
   switch (category) {
     case 'men':   return a.class_lower === 'herr'
     case 'women': return a.class_lower === 'dam'
     case 'youth': return a.class_lower === 'ungdom'
+      || (a.class_lower.startsWith('barn') && !Object.hasOwn(SEPARATE_RACE_DISTANCE, a.class_lower))
     case 'all':   return a.class_lower === 'herr' || a.class_lower === 'dam'
   }
 }
@@ -127,6 +210,34 @@ export function ResultsTab({ data, lang, onAthleteClick, sport, year, category, 
     const q = deferredSearch.toLowerCase()
     return ranked.filter((r) => r.athlete.Name.toLowerCase().includes(q))
   }, [ranked, deferredSearch])
+
+  // Separate-course children's classes (e.g. Barn 0–10, a shorter 150 m race)
+  // shown under Youth as their own labelled block, ranked WITHIN their class so
+  // the shorter distance is never compared to the youth field. Same year/guest
+  // pool as the main table.
+  const separateRaces = useMemo(() => {
+    if (category !== 'youth') return []
+    let list = data[sport].filter((a) => Object.hasOwn(SEPARATE_RACE_DISTANCE, a.class_lower))
+    if (yearValue !== 'all') list = list.filter((a) => a.Competition_Year === yearValue)
+    if (!showGuests) list = list.filter((a) => a.Club.toLowerCase().trim() !== 'gäst')
+
+    const byClass = new Map<string, AthleteResult[]>()
+    for (const a of list) {
+      if (!byClass.has(a.Class)) byClass.set(a.Class, [])
+      byClass.get(a.Class)!.push(a)
+    }
+
+    return [...byClass.entries()].map(([cls, members]) => {
+      const finishers = members.filter(isFinisher).sort((a, b) => a.Total_Time_Seconds - b.Total_Time_Seconds)
+      const rows: Array<{ athlete: AthleteResult; rank: number | null }> = []
+      finishers.forEach((athlete, i) => {
+        const tied = i > 0 && athlete.Total_Time_Seconds === finishers[i - 1].Total_Time_Seconds
+        rows.push({ athlete, rank: tied ? rows[i - 1].rank : i + 1 })
+      })
+      for (const athlete of members.filter((a) => !isFinisher(a))) rows.push({ athlete, rank: null })
+      return { cls, distance: SEPARATE_RACE_DISTANCE[members[0].class_lower], rows }
+    })
+  }, [data, sport, yearValue, category, showGuests])
 
   const segs = useMemo(() => {
     if (sport === 'triathlon') return [
@@ -244,7 +355,7 @@ export function ResultsTab({ data, lang, onAthleteClick, sport, year, category, 
 
       {/* Table */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-100 overflow-x-auto">
-        {rows.length === 0 ? (
+        {rows.length === 0 && separateRaces.length === 0 ? (
           <div className="p-8 text-center space-y-2">
             <p className="text-xs text-gray-400">{t('no_data_available', lang)} {t(sport, lang)}</p>
             {category === 'youth' && !showGuests && (
@@ -273,63 +384,32 @@ export function ResultsTab({ data, lang, onAthleteClick, sport, year, category, 
               </tr>
             </thead>
             <tbody>
-              {rows.map(({ athlete: a, rank }, i) => {
-                const isMember = a.is_club_member
-                const finished = rank !== null
-                // Only adult (Herr/Dam) members who finished earn club points;
-                // everyone else shows a dash. A member can still earn 0
-                // (ranked past 32nd).
-                const earnsPoints = finished && isMember && (a.class_lower === 'herr' || a.class_lower === 'dam')
-                const points = pointsLookup[athleteKey(a)] ?? 0
-                const sr = splitRankLookup?.[athleteKey(a)] ?? {}
-                const bg = rank === 1 ? 'bg-amber-50/60'
-                         : rank === 2 ? 'bg-slate-50/80'
-                         : rank === 3 ? 'bg-orange-50/50'
-                         : isMember   ? 'bg-red-50/30'
-                         : i % 2 === 0 ? 'bg-white' : 'bg-gray-50/40'
+              {rows.map(({ athlete: a, rank }, i) => (
+                <ResultRow key={`${a.Name}-${a.Competition_Year}-${i}`}
+                  a={a} rank={rank} i={i} lang={lang} yearValue={yearValue} segs={segs}
+                  splitRank={splitRankLookup?.[athleteKey(a)] ?? {}}
+                  points={pointsLookup[athleteKey(a)] ?? 0}
+                  onAthleteClick={onAthleteClick} />
+              ))}
 
-                return (
-                  <tr key={`${a.Name}-${a.Competition_Year}-${i}`}
-                    className={`${bg} border-b border-gray-100 hover:bg-blue-50/20 transition-colors`}>
-                    <th scope="row" className="px-3 py-1.5 font-semibold tabular-nums">
-                      {rank !== null
-                        ? <span style={MEDAL[rank] ?? { color: '#6B7280' }}>{rank}</span>
-                        : <span className="text-gray-400 font-normal">—</span>}
-                    </th>
-                    <td className="px-3 py-1.5 whitespace-nowrap font-medium text-gray-800">
-                      {onAthleteClick ? (
-                        <button onClick={() => onAthleteClick(a.Name)}
-                          className="hover:text-red-700 hover:underline transition-colors text-left focus-visible:ring-2 focus-visible:ring-red-700 focus-visible:ring-offset-1 rounded">
-                          {a.Name}
-                        </button>
-                      ) : a.Name}
-                    </td>
-                    <td className={`px-3 py-1.5 text-gray-500 ${D}`}>{a.Club}</td>
-                    <td className={`px-3 py-1.5 text-gray-500 ${D}`}>{a.Class}</td>
-                    {yearValue === 'all' && <td className={`px-3 py-1.5 text-gray-400 ${D}`}>{a.Competition_Year}</td>}
-                    <td className="px-3 py-1.5 font-mono font-semibold text-gray-800">
-                      {finished
-                        ? fmt(a.Total_Time)
-                        : <span className="font-sans font-semibold text-gray-400">{t('dnf', lang)}</span>}
-                    </td>
-                    {segs.map((s) => (
-                      <Fragment key={s.label}>
-                        <td className={`px-2 py-1.5 font-mono text-gray-500 border-l border-gray-100 ${D}`}>
-                          {fmt((a as unknown as Record<string, string>)[s.timeKey])}
-                        </td>
-                        <td className={`px-2 py-1.5 text-center ${D}`}>
-                          <RankCell n={(sr as Record<string, number | undefined>)[s.rankKey]} />
-                        </td>
-                      </Fragment>
-                    ))}
-                    <td className="px-3 py-1.5 text-right tabular-nums border-l border-gray-100">
-                      {earnsPoints
-                        ? <span className={points > 0 ? 'font-semibold text-red-700' : 'text-gray-400'}>{points}</span>
-                        : <span className="text-gray-300">—</span>}
+              {/* Separate-course children's classes (e.g. Barn 0–10, 150 m):
+                  a labelled section within the SAME table so the columns line
+                  up, ranked within the class rather than against the youth field. */}
+              {separateRaces.map((group) => (
+                <Fragment key={group.cls}>
+                  <tr className="bg-gray-100/70 border-y border-gray-200">
+                    <td colSpan={6 + (yearValue === 'all' ? 1 : 0) + segs.length * 2} className="px-3 py-1.5">
+                      <span className="text-[11px] font-semibold uppercase tracking-wider text-gray-600">{group.cls}</span>
+                      <span className="text-[11px] text-gray-400 ml-2">{group.distance} · {t('separate_race', lang)}</span>
                     </td>
                   </tr>
-                )
-              })}
+                  {group.rows.map(({ athlete: a, rank }, i) => (
+                    <ResultRow key={`${a.Name}-${a.Competition_Year}-${i}`}
+                      a={a} rank={rank} i={i} lang={lang} yearValue={yearValue} segs={segs}
+                      splitRank={{}} points={0} onAthleteClick={onAthleteClick} />
+                  ))}
+                </Fragment>
+              ))}
             </tbody>
           </table>
         )}

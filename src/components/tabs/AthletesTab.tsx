@@ -201,7 +201,7 @@ export function AthletesTab({ data, athleteNames, allTimeRankings, lang, initial
                           <th scope="row" className="px-3 py-1.5 text-gray-500 font-normal">{e.year}</th>
                           <td className="px-3 py-1.5 capitalize font-medium text-gray-700">{t(e.type, lang)}</td>
                           <td className="px-3 py-1.5 text-gray-600">{e.finished ? `${e.rank}/${e.class_total}` : '—'}</td>
-                          <td className="px-3 py-1.5 text-gray-400 hidden sm:table-cell">{e.finished ? `${e.overall_rank}/${e.overall_total}` : '—'}</td>
+                          <td className="px-3 py-1.5 text-gray-400 hidden sm:table-cell">{e.finished && typeof e.overall_rank === 'number' && e.overall_rank > 0 ? `${e.overall_rank}/${e.overall_total}` : '—'}</td>
                           <td className="px-3 py-1.5 text-gray-400 hidden sm:table-cell">{e.finished && e.is_club_member ? String(e.club_member_rank) : '—'}</td>
                           <td className={`px-3 py-1.5 text-right tabular-nums ${e.points > 0 ? 'font-bold text-red-700' : 'text-gray-400'}`}>{e.points}</td>
                           <td className="px-3 py-1.5 font-mono text-gray-700 whitespace-nowrap">
