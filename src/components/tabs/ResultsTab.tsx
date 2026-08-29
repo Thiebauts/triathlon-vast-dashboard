@@ -2,7 +2,7 @@
 import { useState, useMemo, useCallback, useDeferredValue, Fragment } from 'react'
 import { t } from '@/lib/translations'
 import type { AthleteResult, CompetitionsData, SportType, Lang, ResultsCategory } from '@/lib/types'
-import { athleteKey, computeSplitRanks, computeEventPoints, isFinisher, type SplitRanks } from '@/lib/data'
+import { athleteKey, computeSplitRanks, computeEventPoints, isFinisher, isRelay, type SplitRanks } from '@/lib/data'
 import { csvEscape } from '@/lib/csv'
 
 const SPORTS: SportType[] = ['triathlon', 'duathlon', 'swimming', 'cycling', 'running', 'swimrun']
@@ -34,6 +34,37 @@ const D = 'hidden sm:table-cell'
  */
 const SEPARATE_RACE_DISTANCE: Record<string, string> = {
   'barn 0-10': '150 m',
+}
+
+interface ClassBlock {
+  cls: string
+  /** Small grey caption next to the class name explaining why it sits apart. */
+  note: string
+  rows: Array<{ athlete: AthleteResult; rank: number | null }>
+}
+
+/**
+ * Group results into per-class blocks, ranked WITHIN the class (tied times
+ * share a rank) with non-finishers last and unranked — used for every class
+ * that is shown apart from the main ranked field.
+ */
+function buildClassBlocks(list: AthleteResult[], note: (members: AthleteResult[]) => string): ClassBlock[] {
+  const byClass = new Map<string, AthleteResult[]>()
+  for (const a of list) {
+    if (!byClass.has(a.Class)) byClass.set(a.Class, [])
+    byClass.get(a.Class)!.push(a)
+  }
+
+  return [...byClass.entries()].map(([cls, members]) => {
+    const finishers = members.filter(isFinisher).sort((a, b) => a.Total_Time_Seconds - b.Total_Time_Seconds)
+    const rows: ClassBlock['rows'] = []
+    finishers.forEach((athlete, i) => {
+      const tied = i > 0 && athlete.Total_Time_Seconds === finishers[i - 1].Total_Time_Seconds
+      rows.push({ athlete, rank: tied ? rows[i - 1].rank : i + 1 })
+    })
+    for (const athlete of members.filter((a) => !isFinisher(a))) rows.push({ athlete, rank: null })
+    return { cls, note: note(members), rows }
+  })
 }
 
 /**
@@ -221,23 +252,29 @@ export function ResultsTab({ data, lang, onAthleteClick, sport, year, category, 
     if (yearValue !== 'all') list = list.filter((a) => a.Competition_Year === yearValue)
     if (!showGuests) list = list.filter((a) => a.Club.toLowerCase().trim() !== 'gäst')
 
-    const byClass = new Map<string, AthleteResult[]>()
-    for (const a of list) {
-      if (!byClass.has(a.Class)) byClass.set(a.Class, [])
-      byClass.get(a.Class)!.push(a)
-    }
+    return buildClassBlocks(
+      list,
+      (members) => `${SEPARATE_RACE_DISTANCE[members[0].class_lower]} · ${t('separate_race', lang)}`,
+    )
+  }, [data, sport, yearValue, category, showGuests, lang])
 
-    return [...byClass.entries()].map(([cls, members]) => {
-      const finishers = members.filter(isFinisher).sort((a, b) => a.Total_Time_Seconds - b.Total_Time_Seconds)
-      const rows: Array<{ athlete: AthleteResult; rank: number | null }> = []
-      finishers.forEach((athlete, i) => {
-        const tied = i > 0 && athlete.Total_Time_Seconds === finishers[i - 1].Total_Time_Seconds
-        rows.push({ athlete, rank: tied ? rows[i - 1].rank : i + 1 })
-      })
-      for (const athlete of members.filter((a) => !isFinisher(a))) rows.push({ athlete, rank: null })
-      return { cls, distance: SEPARATE_RACE_DISTANCE[members[0].class_lower], rows }
-    })
-  }, [data, sport, yearValue, category, showGuests])
+  // Relay teams (Staffet): three athletes share the adult course, so the team
+  // is shown as its own labelled block under the mixed field rather than being
+  // ranked against individuals. Same year/guest pool as the main table.
+  const relayTeams = useMemo(() => {
+    if (category !== 'all') return []
+    let list = data[sport].filter(isRelay)
+    if (yearValue !== 'all') list = list.filter((a) => a.Competition_Year === yearValue)
+    if (!showGuests) list = list.filter((a) => a.Club.toLowerCase().trim() !== 'gäst')
+
+    return buildClassBlocks(list, () => t('relay_team', lang))
+  }, [data, sport, yearValue, category, showGuests, lang])
+
+  // Only one of the two applies per category, so they share one rendered list.
+  const classBlocks = useMemo(
+    () => [...separateRaces, ...relayTeams],
+    [separateRaces, relayTeams],
+  )
 
   const segs = useMemo(() => {
     if (sport === 'triathlon') return [
@@ -392,15 +429,16 @@ export function ResultsTab({ data, lang, onAthleteClick, sport, year, category, 
                   onAthleteClick={onAthleteClick} />
               ))}
 
-              {/* Separate-course children's classes (e.g. Barn 0–10, 150 m):
+              {/* Classes shown apart from the ranked field — separate-course
+                  children's classes (e.g. Barn 0–10, 150 m) and relay teams:
                   a labelled section within the SAME table so the columns line
-                  up, ranked within the class rather than against the youth field. */}
-              {separateRaces.map((group) => (
+                  up, ranked within the class rather than against the field. */}
+              {classBlocks.map((group) => (
                 <Fragment key={group.cls}>
                   <tr className="bg-gray-100/70 border-y border-gray-200">
                     <td colSpan={6 + (yearValue === 'all' ? 1 : 0) + segs.length * 2} className="px-3 py-1.5">
                       <span className="text-[11px] font-semibold uppercase tracking-wider text-gray-600">{group.cls}</span>
-                      <span className="text-[11px] text-gray-400 ml-2">{group.distance} · {t('separate_race', lang)}</span>
+                      <span className="text-[11px] text-gray-400 ml-2">{group.note}</span>
                     </td>
                   </tr>
                   {group.rows.map(({ athlete: a, rank }, i) => (

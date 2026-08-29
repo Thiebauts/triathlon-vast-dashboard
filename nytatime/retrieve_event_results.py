@@ -51,15 +51,23 @@ def canonical_club(club_field):
     return 'TriVäst' if club.lower() in TRIVAST_ALIASES else club
 
 
+# Relay classes: a team splits the course between its members, so its time is
+# not comparable with an individual's. Both NyTaTime spellings are matched.
+RELAY_CLASSES = ('staffet', 'stafett', 'relay')
+
+
 def ranks_overall(class_name):
     """Whether a class competes for an overall placing.
 
-    Youth (Ungdom) and children (Barn) race a shorter course, so they are
-    ranked only within their own class — never given an overall rank against
-    the full-distance adult field. Mirrors the Herr/Dam-only "all mixed" field
+    Youth (Ungdom) and children (Barn) race a shorter course and relay teams
+    share the course between three athletes, so all of them are ranked only
+    within their own class — never given an overall rank against the
+    full-distance individual field. Mirrors the Herr/Dam-only "all mixed" field
     in the dashboard's ResultsTab and racesOverall() in src/lib/data.ts.
     """
     c = (class_name or '').lower()
+    if any(r in c for r in RELAY_CLASSES):
+        return False
     return 'barn' not in c and 'ungdom' not in c and 'youth' not in c
 
 

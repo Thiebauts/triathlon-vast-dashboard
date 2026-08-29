@@ -105,12 +105,26 @@ function earnsClubPoints(a: AthleteResult): boolean {
 }
 
 /**
+ * Relay classes: three athletes share one course, so a team's time is never
+ * comparable with an individual's. Mirrors RELAY_CLASSES in
+ * nytatime/retrieve_event_results.py; both NyTaTime spellings are matched.
+ */
+const RELAY_CLASSES = ['staffet', 'stafett', 'relay']
+
+/** Whether this result belongs to a relay team rather than an individual. */
+export function isRelay(a: AthleteResult): boolean {
+  return RELAY_CLASSES.some((r) => a.class_lower.includes(r))
+}
+
+/**
  * Whether an athlete competes for an overall placing. Youth (Ungdom) and
- * children (Barn) race a shorter course, so they are ranked within their class
- * only — never against the full-distance adult field. Mirrors ranks_overall()
- * in nytatime/retrieve_event_results.py, which blanks their CSV Overall_Rank.
+ * children (Barn) race a shorter course and relay teams split the course
+ * between them, so they are ranked within their class only — never against the
+ * full-distance individual field. Mirrors ranks_overall() in
+ * nytatime/retrieve_event_results.py, which blanks their CSV Overall_Rank.
  */
 export function racesOverall(a: AthleteResult): boolean {
+  if (isRelay(a)) return false
   const c = a.class_lower
   return !c.includes('barn') && !c.includes('ungdom') && !c.includes('youth')
 }
@@ -200,7 +214,8 @@ export function getSummaryStats(data: CompetitionsData): SummaryStats {
 export function getAllAthleteNames(data: CompetitionsData): string[] {
   const names = new Set<string>()
   for (const athletes of Object.values(data)) {
-    for (const a of athletes) names.add(a.Name)
+    // Relay teams race under a team name — they are results, not athletes.
+    for (const a of athletes) if (!isRelay(a)) names.add(a.Name)
   }
   return [...names].sort()
 }

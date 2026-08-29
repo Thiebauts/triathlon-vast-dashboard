@@ -106,6 +106,7 @@ const TRANSLATIONS: Record<string, { en: string; sv: string }> = {
   men_only:        { en: 'Men Only',         sv: 'Endast Herrar' },
   women_only:      { en: 'Women Only',       sv: 'Endast Damer' },
   youth_only:      { en: 'Youth Only',       sv: 'Endast Ungdom' },
+  relay_team:      { en: 'Relay team',       sv: 'Stafettlag' },
 
   cycling:   { en: 'Cycling',   sv: 'Cykling' },
   duathlon:  { en: 'Duathlon',  sv: 'Duathlon' },
