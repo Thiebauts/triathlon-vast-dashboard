@@ -1,5 +1,20 @@
 [
   {
+    "file": "processed_triathlon_results_2026-08-26.csv",
+    "date": "2026-08-26",
+    "format": "triathlon",
+    "title": {
+      "en": "Children's Triathlon Club Championship 2026",
+      "sv": "Barnklubbmästerskap i triathlon 2026"
+    },
+    "location": "Rådasjöns badplats",
+    "description": {
+      "en": "Club championship in triathlon for the youngest members, held at Rådasjön beach alongside the regular Wednesday training. The course is built for children: ~200 m swim, then 2–3 bike laps followed by 1 running lap on the same ~1 km trail loop. Open to all children up to and including 14 — first-timers as well as seasoned racers. Transitions are not timed separately on this course; they are included in the bike leg.",
+      "sv": "Klubbmästerskap i triathlon för våra yngsta, vid Rådasjöns badplats i samband med den vanliga onsdagsträningen. Banan är anpassad för barn: ca 200 m simning, därefter 2–3 varv på cykel följt av 1 varv löpning på samma slinga om ca 1 km. Öppen för alla barn till och med 14 år — både för den som aldrig tävlat och för den vane. Växlingarna tidtas inte separat på den här banan utan ingår i cykeltiden."
+    },
+    "race_id": "tWagyC4R7Q8s2AdNW"
+  },
+  {
     "file": "processed_triathlon_results_2026-06-17.csv",
     "date": "2026-06-17",
     "format": "triathlon",
