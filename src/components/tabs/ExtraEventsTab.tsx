@@ -34,13 +34,24 @@ function formatEventDate(iso: string, lang: Lang): string {
 const D = 'hidden sm:table-cell'
 
 /**
- * Unlike the KM Results tab, 'all' includes every class: training events run
- * one shared course, so there is no shorter youth course to keep apart.
+ * Class names behind each gender view. Children's events are split by age as
+ * well as gender (Pojkar/Flickor, Ungdom herr/Ungdom Dam) rather than using the
+ * adult Herr/Dam, so a gender view merges several classes — as the KM Results
+ * tab's youth view does, each athlete keeps their own per-class rank and the
+ * Class column shows which class it belongs to.
+ */
+const MEN_CLASSES = new Set(['herr', 'pojkar', 'ungdom herr'])
+const WOMEN_CLASSES = new Set(['dam', 'flickor', 'ungdom dam'])
+
+/**
+ * Unlike the KM Results tab, 'all' includes every class: every entrant in an
+ * extra event runs the same course, so there is no shorter youth course to
+ * keep apart.
  */
 function inCategory(a: AthleteResult, category: ExtraCategory): boolean {
   switch (category) {
-    case 'men':   return a.class_lower === 'herr'
-    case 'women': return a.class_lower === 'dam'
+    case 'men':   return MEN_CLASSES.has(a.class_lower)
+    case 'women': return WOMEN_CLASSES.has(a.class_lower)
     case 'all':   return true
   }
 }
