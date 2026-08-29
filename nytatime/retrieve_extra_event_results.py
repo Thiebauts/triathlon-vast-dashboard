@@ -21,7 +21,10 @@ Usage (run from the nytatime/ directory):
 Example:
     python3 retrieve_extra_event_results.py jj6c3TnjKrhLnAtpo triathlon
 
-Formats supported: triathlon (Sim IN / Cykel UT / Cykel IN / Löp UT / Mål)
+Formats supported:
+    triathlon       — four intermediate mats (Sim IN / Cykel UT / Cykel IN / Löp UT)
+    triathlon-kids  — the children's KM course: two mats only (Sim IN and the
+                      transition-area mat), mass start, finish time official
 """
 
 import json
@@ -39,6 +42,7 @@ from retrieve_event_results import load_dotenv
 # profile in the dashboard).
 NAME_CORRECTIONS = {
     'Christian Salgueiro frödeberg': 'Christian Salgueiro Frödeberg',
+    'Charlie hellberg': 'Charlie Hellberg',
 }
 
 # Segment layout per format. Checkpoints are cumulative times since the class
@@ -47,6 +51,22 @@ FORMAT_CONFIGS = {
     'triathlon': {
         'segments': ['Swim', 'T1', 'Bike', 'T2', 'Run'],
         'description': 'Triathlon (Swim-Bike-Run)',
+        'compute': 'four_checkpoints',
+        # Training sessions are à la carte: only an athlete with every segment
+        # measured gets a total time and a rank (see module docstring).
+        'finisher': 'all_segments',
+    },
+    'triathlon-kids': {
+        'segments': ['Swim', 'Bike', 'Run'],
+        'description': "Children's triathlon (Swim-Bike-Run, transitions inside the bike leg)",
+        'compute': 'kids_two_checkpoints',
+        # A championship with a mass start: everyone rides the same full course,
+        # so a finish read is what makes the result official.
+        'finisher': 'finish_time',
+        # Written to the CSV name and the manifest: the dashboard renders this
+        # event with the normal triathlon columns, and the untimed T1/T2 ones
+        # simply stay empty.
+        'manifest_format': 'triathlon',
     },
 }
 
@@ -121,6 +141,41 @@ def compute_segments(splits, race_time):
     return seg
 
 
+def compute_segments_kids(splits, race_time):
+    """Compute Swim/Bike/Run for the children's championship course.
+
+    The kids' race is timed with two intermediate mats only — 'Sim In' at the
+    end of the swim and one mat at the transition area — so T1 and T2 are never
+    measured and fall inside the bike leg. Reads at the transition area land on
+    either the 'Löp Ut' or the 'Cykel In' channel; both mats sit at the same
+    physical point on this course, so either one is accepted.
+
+    Args:
+        splits: Cumulative checkpoint seconds [Sim In, Cykel Ut, Cykel In, Löp Ut].
+        race_time: Finish time in seconds since class start (0 if no finish).
+
+    Returns:
+        Dict of segment name -> seconds, containing only measured segments.
+    """
+    s = (list(splits) + [0, 0, 0, 0])[:4]
+    swim_end = s[0]
+    transition = s[3] or s[2]
+    seg = {}
+    if swim_end > 0:
+        seg['Swim'] = swim_end
+    if swim_end > 0 and transition > swim_end:
+        seg['Bike'] = transition - swim_end
+    if transition > 0 and race_time > transition:
+        seg['Run'] = race_time - transition
+    return seg
+
+
+COMPUTE_SEGMENTS = {
+    'four_checkpoints': compute_segments,
+    'kids_two_checkpoints': compute_segments_kids,
+}
+
+
 def process_extra_event(api, race_id, event_format):
     """Fetch and normalise results for one extra event.
 
@@ -128,6 +183,8 @@ def process_extra_event(api, race_id, event_format):
         (results, race_data): list of CSV-ready row dicts and the race info.
     """
     config = FORMAT_CONFIGS[event_format]
+    compute = COMPUTE_SEGMENTS[config['compute']]
+    rank_on_finish_time = config['finisher'] == 'finish_time'
     print(f"🏁 Processing {config['description']} extra event...")
 
     race_data = None
@@ -160,19 +217,28 @@ def process_extra_event(api, race_id, event_format):
         splits = participant.get('splitTimesv2', []) or participant.get('splits', [])
         split_times = [s['time'] if isinstance(s, dict) else s for s in splits]
         race_time = participant.get('raceTime', 0) or 0
-        segment_times = compute_segments(split_times, race_time)
+        segment_times = compute(split_times, race_time)
 
-        if not segment_times:
+        if not segment_times and not (rank_on_finish_time and race_time > 0):
             print(f"  ⚠️  Skipping {name}: no recorded times")
             continue
 
-        is_complete = all(seg in segment_times for seg in segments)
+        if rank_on_finish_time:
+            # A missed intermediate mat costs the athlete a split, not their
+            # placing: the finish read is what makes the result official.
+            is_complete = race_time > 0
+        else:
+            is_complete = all(seg in segment_times for seg in segments)
         status = 'ok' if is_complete else 'partial'
         if status == 'partial':
             done = ' + '.join(seg for seg in segments if seg in segment_times)
             hint = (f"; finish recorded at {format_time(race_time)} — verify the legs were "
                     "truly skipped and not a missed chip read" if race_time > 0 else "")
             print(f"  ℹ️  Partial: {name} ({done}) — listed unranked{hint}")
+        elif len(segment_times) < len(segments):
+            missing = ' + '.join(seg for seg in segments if seg not in segment_times)
+            print(f"  ℹ️  {name}: ranked on finish time, no {missing} split "
+                  "(intermediate mat not read)")
 
         result = {
             'Name': name,
@@ -207,7 +273,7 @@ def process_extra_event(api, race_id, event_format):
     return results, race_data
 
 
-def update_manifest(extra_dir, csv_name, race_data, event_format):
+def update_manifest(extra_dir, csv_name, race_data, manifest_format):
     """Insert or replace this event's entry in events.json (newest first)."""
     manifest_path = extra_dir / 'events.json'
     manifest = []
@@ -221,7 +287,7 @@ def update_manifest(extra_dir, csv_name, race_data, event_format):
         'file': csv_name,
         'race_id': race_id,
         'date': date,
-        'format': event_format,
+        'format': manifest_format,
         'title': {'en': race_name, 'sv': race_name},
     }
 
@@ -237,7 +303,7 @@ def update_manifest(extra_dir, csv_name, race_data, event_format):
             print(f"   ⚠️  Race date changed — manifest now points to {csv_name}; "
                   f"delete the stale CSV data/extra/{old_file}.")
         # Keep manually edited titles/location; only refresh the basics.
-        existing.update({'file': csv_name, 'race_id': race_id, 'date': date, 'format': event_format})
+        existing.update({'file': csv_name, 'race_id': race_id, 'date': date, 'format': manifest_format})
     else:
         manifest.append(entry)
 
@@ -259,13 +325,16 @@ def save_results(results, race_data, event_format):
     extra_dir = script_dir.parent / 'data' / 'extra'
     extra_dir.mkdir(parents=True, exist_ok=True)
 
-    csv_name = f"processed_{event_format}_results_{race_date}.csv"
+    # Import layouts that share a display format (e.g. triathlon-kids) are
+    # named and listed as that format — it is what the dashboard renders.
+    display_format = FORMAT_CONFIGS[event_format].get('manifest_format', event_format)
+    csv_name = f"processed_{display_format}_results_{race_date}.csv"
     csv_path = extra_dir / csv_name
     pd.DataFrame(results).to_csv(csv_path, index=False, encoding='utf-8')
 
     print(f"\n💾 Results saved:")
     print(f"   📄 CSV: {csv_path}")
-    update_manifest(extra_dir, csv_name, race_data, event_format)
+    update_manifest(extra_dir, csv_name, race_data, display_format)
 
     ranked = [r for r in results if r['Status'] == 'ok']
     print(f"\n🏆 TOP 3:")

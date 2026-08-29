@@ -7,7 +7,11 @@ Run from the nytatime/ directory:
 
 import unittest
 
-from retrieve_extra_event_results import assign_ranks, compute_segments
+from retrieve_extra_event_results import (
+    assign_ranks,
+    compute_segments,
+    compute_segments_kids,
+)
 
 
 class ComputeSegmentsTest(unittest.TestCase):
@@ -46,6 +50,48 @@ class ComputeSegmentsTest(unittest.TestCase):
         # segment — it is treated as missing instead.
         seg = compute_segments([480, 400, 1740, 1780], 2380)
         self.assertNotIn('T1', seg)
+        self.assertTrue(all(v > 0 for v in seg.values()))
+
+
+class ComputeSegmentsKidsTest(unittest.TestCase):
+    """The children's KM course: two mats only, transitions inside the bike."""
+
+    def test_full_course(self):
+        # Lukas: swim end 180, transition-area mat 634.8, finish 875.5
+        seg = compute_segments_kids([180.0, 0, 0, 634.8], 875.5)
+        self.assertEqual(set(seg), {'Swim', 'Bike', 'Run'})
+        self.assertAlmostEqual(seg['Swim'], 180.0)
+        self.assertAlmostEqual(seg['Bike'], 454.8, places=3)
+        self.assertAlmostEqual(seg['Run'], 240.7, places=3)
+
+    def test_transition_read_on_cykel_in_channel(self):
+        # The Harry pattern: the transition-area read landed on 'Cykel In'
+        # instead of 'Löp Ut' — same physical mat, so it still counts.
+        seg = compute_segments_kids([158.2, 0, 663.6, 0], 957.8)
+        self.assertEqual(set(seg), {'Swim', 'Bike', 'Run'})
+        self.assertAlmostEqual(seg['Bike'], 505.4, places=3)
+        self.assertAlmostEqual(seg['Run'], 294.2, places=3)
+
+    def test_transition_mat_missed(self):
+        # The Ivar pattern: swim and finish only — a ranked finisher with no
+        # bike/run split (the caller ranks on finish time for this format).
+        seg = compute_segments_kids([243.5, 0, 0, 0], 1286.1)
+        self.assertEqual(set(seg), {'Swim'})
+
+    def test_no_finish(self):
+        # The Elisabeth pattern: swim + transition mat but no finish read
+        seg = compute_segments_kids([185.5, 0, 0, 692.6], 0)
+        self.assertEqual(set(seg), {'Swim', 'Bike'})
+
+    def test_no_data_at_all(self):
+        self.assertEqual(compute_segments_kids([0, 0, 0, 0], 0), {})
+        self.assertEqual(compute_segments_kids([], 0), {})
+
+    def test_non_monotonic_splits_are_dropped(self):
+        # A transition read earlier than the swim exit must not yield a
+        # negative bike split.
+        seg = compute_segments_kids([500.0, 0, 0, 400.0], 900.0)
+        self.assertNotIn('Bike', seg)
         self.assertTrue(all(v > 0 for v in seg.values()))
 
 
