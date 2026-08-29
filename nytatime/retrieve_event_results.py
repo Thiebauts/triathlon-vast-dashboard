@@ -18,7 +18,6 @@ Event types supported: triathlon, duathlon, running, cycling, swimming, swimrun
 import sys
 import os
 import pandas as pd
-from datetime import datetime
 from pathlib import Path
 from nytatime_api import NytatimeAPI, format_time, fix_encoding_issues, determine_club_name
 
@@ -33,15 +32,42 @@ NAME_CORRECTIONS = {
     'Marcelo Tognato Chiaverini': 'Marcelo Chiaverini',
     'andre': 'André du Rietz',
     'Göran': 'Göran Hilmersson',
+    'Kornelia': 'Kornelia Krumkühler',
     'Tim suits': 'Tim Suits',
     'Alexander berggren': 'Alexander Berggren',
+}
+
+# Per-race fixes for fields NyTaTime holds wrong or blank, confirmed with the
+# club. Keyed by race id so a re-fetch keeps them and no other race is touched;
+# fix the entry upstream in NyTaTime and the override becomes a no-op.
+RACE_OVERRIDES = {
+    # Triathlon KM 2026 (Inseros): the club column was left empty for eight
+    # entrants, and the relay team is registered under a team name only.
+    '2iqikGzZZxBt5M7dA': {
+        'date': '2026-08-29',  # race date never filled in in NyTaTime
+        'clubs': {
+            'Karl Wackerberg': 'TriVäst',
+            'Jan Ljungcrantz': 'TriVäst',
+            'Jonatan Hägerström': 'TriVäst',
+            'Ida Stjernkvist': 'TriVäst',
+            'Michael Kossenjans': 'TriVäst',
+            'Jens Lejhall': 'TriVäst',
+            'Rasmus Johansson': 'TriVäst',
+            'Arvid Månesjö': 'Gäst',
+        },
+        'names': {
+            # Swim / bike / run, in race order.
+            'Staffet Gänget': 'Staffet Gänget (Adam Millberg / Josephine Flod / My Försberg)',
+        },
+    },
 }
 
 # TriVäst spellings that participants self-enter (case/format varies); collapse
 # them to the canonical club label so the dashboard shows one consistent name
 # and membership detection stays trivial. Mirrors CLUB_ALIASES in
 # src/lib/data.ts. Real guest club names pass through untouched.
-TRIVAST_ALIASES = {'triväst', 'tri väst', 'triathlon väst', 'tv', 'medlem', 'trivästare'}
+TRIVAST_ALIASES = {'triväst', 'tri väst', 'triathlon väst', 'triathväst', 'tv', 'medlem',
+                   'trivästare'}
 
 
 def canonical_club(club_field):
@@ -91,9 +117,13 @@ def save_and_summarize(results, race_info, event_type):
     """
     df = pd.DataFrame(results)
 
-    race_date = race_info.get('date', datetime.now().strftime('%Y-%m-%d'))
-    if isinstance(race_date, str) and len(race_date) > 10:
-        race_date = race_date[:10]
+    race_date = (race_info.get('date') or '').strip()[:10]
+    if not race_date:
+        sys.exit(
+            "❌ This race has no date in NyTaTime, so the CSV would not carry one either.\n"
+            "   Set the date on the race in NyTaTime and re-run, or add it to "
+            "RACE_OVERRIDES for this race id."
+        )
 
     script_dir = Path(__file__).parent
     csv_folder = script_dir.parent / 'data'
@@ -377,6 +407,14 @@ def process_event_results(api, race_id, event_type):
         print("❌ Could not get race information")
         return [], {}
     
+    overrides = RACE_OVERRIDES.get(race_id, {})
+    if overrides.get('date') and not (race_data.get('date') or '').strip():
+        race_data['date'] = overrides['date']
+        print(f"📌 Race date missing in NyTaTime — using the confirmed date {overrides['date']}")
+    if overrides:
+        print(f"📌 Applying {len(overrides.get('clubs', {}))} club and "
+              f"{len(overrides.get('names', {}))} name override(s) for this race")
+
     print(f"📋 Race: {race_data.get('name', 'Unknown')}")
     print(f"📅 Date: {race_data.get('date', 'Unknown')}")
     
@@ -411,6 +449,7 @@ def process_event_results(api, race_id, event_type):
         # (a trailing space would otherwise fragment an athlete's profile).
         name = fix_encoding_issues(participant.get('name', 'Unknown')).strip()
         name = NAME_CORRECTIONS.get(name, name)
+        name = overrides.get('names', {}).get(name, name)
         bib = participant.get('bib', '')
         
         # Determine class
@@ -427,8 +466,9 @@ def process_event_results(api, race_id, event_type):
             else:
                 participant_class = 'Unknown'
         
-        # Club name
+        # Club name — a per-race override fills in what NyTaTime left blank.
         club = canonical_club(participant.get('club', ''))
+        club = overrides.get('clubs', {}).get(name, club)
         
         # Process splits
         splits = participant.get('splitTimesv2', []) or participant.get('splits', [])

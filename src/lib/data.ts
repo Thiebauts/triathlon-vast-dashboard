@@ -50,7 +50,7 @@ export function computeSplitRanks(
  * membership status or a colloquial club name instead of the canonical one.
  * Single source of truth — the loader flags rows against this set.
  */
-export const CLUB_ALIASES: ReadonlySet<string> = new Set(['triväst', 'triathlon väst', 'tv', 'medlem', 'trivästare'])
+export const CLUB_ALIASES: ReadonlySet<string> = new Set(['triväst', 'triathlon väst', 'triathväst', 'tv', 'medlem', 'trivästare'])
 
 /**
  * Accepts an AthleteResult (uses the precomputed flag) or a raw club string.
