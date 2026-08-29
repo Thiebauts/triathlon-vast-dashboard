@@ -256,7 +256,29 @@ def process_participant_splits(splits, event_type, race_time=None):
             segment_times = {seg: 0 for seg in segments}
     else:
         # Triathlon: Swim -> T1 -> Bike -> T2 -> Run
-        if len(split_times) >= 4:
+        if len(split_times) >= 4 and split_times[3] == 0 and split_times[2] > 0:
+            # Missing T2 checkpoint: T2 and Run can't be separated, so keep T2
+            # unknown and put the combined time in Run instead of computing a
+            # negative T2 and a Run equal to the whole race (mirrors the
+            # missing-T2 handling in the duathlon branch above).
+            print("  ⚠️  Missing T2 checkpoint for a participant — "
+                  "T2/Run left combined in Run; review the CSV.")
+            segment_times['Swim'] = split_times[0]
+            segment_times['T1'] = split_times[1] - split_times[0]
+            segment_times['Bike'] = split_times[2] - split_times[1]
+            segment_times['T2'] = 0  # not recorded
+            total_race_time = race_time if race_time else split_times[2]
+            segment_times['Run'] = max(0, total_race_time - split_times[2])
+
+            split_times_formatted.update({
+                'Swim_In': format_time(split_times[0]),
+                'T1': format_time(segment_times['T1']),
+                'Bike_Out': format_time(split_times[1]),
+                'Bike_In': format_time(split_times[2]),
+                'T2': '',       # not recorded
+                'Run_Out': '',  # not recorded
+            })
+        elif len(split_times) >= 4:
             # Calculate individual segment times from cumulative splits
             segment_times['Swim'] = split_times[0]
             segment_times['T1'] = split_times[1] - split_times[0]
