@@ -477,15 +477,20 @@ def process_event_results(api, race_id, event_type):
         segment_times, split_times_formatted, total_time = process_participant_splits(splits, event_type, race_time)
         
         # Include participants if they:
-        # 1. Finished the race (total_time > 0), OR 
-        # 2. Started but didn't finish but have some split data (DNF with splits), OR
-        # 3. Single discipline events with race time but no splits (common for swimming/running/cycling)
+        # 1. Finished the race (a recorded finish time), OR
+        # 2. Started but didn't finish but have some split data (DNF with splits)
         has_meaningful_splits = splits and any(s.get('time', 0) > 0 if isinstance(s, dict) else s > 0 for s in splits)
         has_race_time = race_time and race_time > 0
-        is_single_discipline = event_type in ['running', 'cycling', 'swimming']
-        
-        if total_time <= 0 and not has_meaningful_splits and not (is_single_discipline and has_race_time):
-            continue  # Skip only if no valid time AND no meaningful splits AND not single discipline with race time
+
+        # A finish time is proof of a finish on its own. Single-discipline races
+        # are usually timed with nothing but a finish mat, and a multi-segment
+        # course can be too (SwimRun KM 2026 had no intermediate mat at all), so
+        # segment splits must never be a condition for being in the results.
+        if total_time <= 0 and has_race_time:
+            total_time = race_time
+
+        if total_time <= 0 and not has_meaningful_splits:
+            continue  # No finish time and no split data: never started.
         
         # For DNF participants, use the last recorded split as "total time" for sorting
         if total_time <= 0 and has_meaningful_splits:
