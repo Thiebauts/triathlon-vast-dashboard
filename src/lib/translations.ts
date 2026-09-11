@@ -27,8 +27,8 @@ const TRANSLATIONS: Record<string, { en: string; sv: string }> = {
   discipline_duathlon_desc:   { en: '5 km run / 20 km bike / 2.5 km run, located near the iconic Gunnebo Castle.', sv: '5 km löp / 20 km cykel / 2,5 km löp, vid det ikoniska Gunnebo slott.' },
   discipline_triathlon_title: { en: 'Triathlon — Sprint Format',  sv: 'Triathlon — sprintformat' },
   discipline_triathlon_desc:  { en: '750 m swim / 20 km bike / 5 km run, held at Inseros.', sv: '750 m sim / 20 km cykel / 5 km löp, vid Inseros.' },
-  discipline_swimrun_title:   { en: 'Swimrun — Sisjön',           sv: 'Swimrun — Sisjön' },
-  discipline_swimrun_desc:    { en: 'A swimrun adventure at Sisjön.', sv: 'Ett swimrun-äventyr vid Sisjön.' },
+  discipline_swimrun_title:   { en: 'Swimrun — Lap Course',       sv: 'Swimrun — varvbana' },
+  discipline_swimrun_desc:    { en: 'A three-lap swimrun at Frökens udde in Mölnlycke (2025: Sisjön).', sv: 'Ett swimrun på tre varv vid Frökens udde i Mölnlycke (2025: Sisjön).' },
 
   championships_title: { en: 'Club Championships – Overview', sv: 'Klubbmästerskap – Översikt' },
   championships_intro: {
