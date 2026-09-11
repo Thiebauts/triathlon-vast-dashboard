@@ -35,6 +35,7 @@ NAME_CORRECTIONS = {
     'Kornelia': 'Kornelia Krumkühler',
     'Tim suits': 'Tim Suits',
     'Alexander berggren': 'Alexander Berggren',
+    'Alberic Duriaux': 'Albéric Duriaux',
 }
 
 # Per-race fixes for fields NyTaTime holds wrong or blank, confirmed with the
