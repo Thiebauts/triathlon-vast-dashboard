@@ -16,7 +16,7 @@
 
 An internal analytics dashboard for Triathlon Väst members. It aggregates CSV result files from club competitions (triathlon, duathlon, swimming, cycling, running, swimrun) spanning 2021–2026 and makes them searchable and visual. Athletes can look up their personal results, track rankings over time, and compare against the full field.
 
-The dataset currently covers **27 competitions** across 6 sports (triathlon, duathlon, swimming, cycling, running, swimrun) from **2021–2026**, including 1 swimrun event added in 2025.
+The dataset currently covers **30 competitions** across 6 sports (triathlon, duathlon, swimming, cycling, running, swimrun) from **2021–2026**, including the swimrun championship first held in 2025.
 
 Beyond the championships, the dashboard also tracks **extra events** — timed open training sessions like the Rådasjön SuperSprint series — kept separate from the official results: no club points, no effect on rankings or athlete profiles.
 
