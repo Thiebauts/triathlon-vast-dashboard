@@ -63,6 +63,15 @@ RACE_OVERRIDES = {
             'Staffet Gänget': 'Staffet Gänget (Adam Millberg / Josephine Flod / My Försberg)',
         },
     },
+    # Running KM 2026: the club column was left blank for 38 of 40 entrants,
+    # so blank carried no membership signal; Miriam Degerman registered as
+    # "Klubblös" but is a member.
+    'pBoPNtenyxfhmyTqv': {
+        'clubs': {
+            'Helena Jakobsson Larsson': 'Gäst',
+            'Nelly Bertilsson': 'Gäst',
+            'Miriam Degerman': 'TriVäst',
+        },
     },
 }
 
