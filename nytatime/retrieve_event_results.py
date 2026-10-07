@@ -36,6 +36,8 @@ NAME_CORRECTIONS = {
     'Tim suits': 'Tim Suits',
     'Alexander berggren': 'Alexander Berggren',
     'Alberic Duriaux': 'Albéric Duriaux',
+    'Sofia Haglund ä': 'Sofia Haglund',
+    'Kristoffer Krohn': 'Kristoffer Zietek Krohn',
 }
 
 # Per-race fixes for fields NyTaTime holds wrong or blank, confirmed with the
@@ -60,6 +62,7 @@ RACE_OVERRIDES = {
             # Swim / bike / run, in race order.
             'Staffet Gänget': 'Staffet Gänget (Adam Millberg / Josephine Flod / My Försberg)',
         },
+    },
     },
 }
 
