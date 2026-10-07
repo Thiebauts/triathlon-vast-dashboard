@@ -53,6 +53,17 @@ test('loadAllCompetitions: precomputes is_club_member and class_lower on every r
   }
 })
 
+test('loadAllCompetitions: applies confirmed club corrections over the CSV', () => {
+  const data = loadAllCompetitions()
+  // Erik Arnström is recorded as Gäst in several pre-2026 result sheets
+  const erik = Object.values(data).flat().filter((a) => a.Name === 'Erik Arnström')
+  assert.ok(erik.length >= 5, 'Erik Arnström should appear in at least five races')
+  for (const a of erik) {
+    assert.equal(a.Club, 'TriVäst')
+    assert.equal(a.is_club_member, true)
+  }
+})
+
 test('loadAllCompetitions: normalizes legacy class names', () => {
   const data = loadAllCompetitions()
   const classes = new Set<string>()

@@ -53,6 +53,17 @@ export function computeSplitRanks(
 export const CLUB_ALIASES: ReadonlySet<string> = new Set(['triväst', 'triathlon väst', 'triathväst', 'tv', 'medlem', 'trivästare'])
 
 /**
+ * Club labels confirmed by the club for athletes whose registrations misstate
+ * their membership (blank, "Klubblös" or a guest label), keyed by name and
+ * applied to every race. Fixes rows already in data/ without hand-editing the
+ * CSVs. Mirrors CLUB_CORRECTIONS in nytatime/retrieve_event_results.py, which
+ * covers fresh fetches.
+ */
+export const CLUB_CORRECTIONS: ReadonlyMap<string, string> = new Map([
+  ['Erik Arnström', 'TriVäst'],
+])
+
+/**
  * Accepts an AthleteResult (uses the precomputed flag) or a raw club string.
  * Prefer passing the AthleteResult — the string overload is for one-off lookups
  * outside the parsed data set.

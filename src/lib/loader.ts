@@ -3,7 +3,7 @@ import fs from 'fs'
 import path from 'path'
 // Explicit .ts extension: the node --experimental-strip-types test runner
 // resolves runtime imports literally (type-only imports are stripped).
-import { CLUB_ALIASES } from './data.ts'
+import { CLUB_ALIASES, CLUB_CORRECTIONS } from './data.ts'
 import type { AthleteResult, CompetitionsData, ExtraEvent, SportType } from './types'
 
 const FIELDS_USED: ReadonlySet<string> = new Set([
@@ -70,7 +70,8 @@ function rowToAthlete(
     }
   }
   const cls = normalizeClass(String(out.Class ?? ''))
-  const club = String(out.Club ?? '')
+  // A confirmed correction wins over what the result sheet recorded
+  const club = CLUB_CORRECTIONS.get(String(out.Name ?? '').trim()) ?? String(out.Club ?? '')
   return {
     ...out,
     Class: cls,
