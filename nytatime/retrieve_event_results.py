@@ -40,6 +40,15 @@ NAME_CORRECTIONS = {
     'Kristoffer Krohn': 'Kristoffer Zietek Krohn',
 }
 
+# Club membership confirmed by the club, applied to every race: for athletes
+# whose registrations don't reflect their membership (blank, "Klubblös", or a
+# guest label). Per-race RACE_OVERRIDES entries still take precedence.
+# Mirrors CLUB_CORRECTIONS in src/lib/data.ts, which fixes rows already in
+# data/.
+CLUB_CORRECTIONS = {
+    'Erik Arnström': 'TriVäst',
+}
+
 # Per-race fixes for fields NyTaTime holds wrong or blank, confirmed with the
 # club. Keyed by race id so a re-fetch keeps them and no other race is touched;
 # fix the entry upstream in NyTaTime and the override becomes a no-op.
@@ -481,6 +490,7 @@ def process_event_results(api, race_id, event_type):
         
         # Club name — a per-race override fills in what NyTaTime left blank.
         club = canonical_club(participant.get('club', ''))
+        club = CLUB_CORRECTIONS.get(name, club)
         club = overrides.get('clubs', {}).get(name, club)
         
         # Process splits
