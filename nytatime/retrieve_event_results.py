@@ -20,6 +20,7 @@ import os
 import pandas as pd
 from pathlib import Path
 from nytatime_api import NytatimeAPI, format_time, fix_encoding_issues, determine_club_name
+from plausibility import find_implausible_times, load_history
 
 
 # Known NyTaTime name variants mapped to the canonical spelling used across the
@@ -195,6 +196,16 @@ def save_and_summarize(results, race_info, event_type):
             print(f"   {class_name}: {w['Name']} - {w['Total_Time']}")
         else:
             print(f"   {class_name}: No finishers")
+
+    # Hand-keyed finish times can land on the wrong bib and still look valid
+    # (Running KM 2026); compare every time with the athlete's past and the field.
+    suspicious = find_implausible_times(results, load_history(csv_folder, event_type, race_date))
+    if suspicious:
+        print(f"\n🚩 {len(suspicious)} TIME(S) TO CHECK BEFORE PUBLISHING:")
+        for warning in suspicious:
+            print(f"   - {warning}")
+        print("   Confirm with the timekeeper; fix in NyTaTime or add a 'times' entry "
+              "to RACE_OVERRIDES.")
 
     print(f"\n✅ Done. Commit data/ and the dashboard will pick it up on the next build.")
     return csv_path

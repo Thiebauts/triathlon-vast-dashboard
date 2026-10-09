@@ -3,6 +3,7 @@
 </p>
 
 <p align="center">
+  <a href="https://github.com/Thiebauts/triathlon-vast-dashboard/actions/workflows/ci.yml"><img src="https://github.com/Thiebauts/triathlon-vast-dashboard/actions/workflows/ci.yml/badge.svg" alt="CI" /></a>
   <img src="https://img.shields.io/badge/TypeScript-5.x-blue" alt="TypeScript" />
   <img src="https://img.shields.io/badge/Next.js-16-black" alt="Next.js" />
   <img src="https://img.shields.io/badge/React-19-blue" alt="React" />
@@ -59,12 +60,13 @@ Timed training sessions and other non-championship events — like the Rådasjö
 ### Features
 
 - **Overview tab**: Season-level participation trends, summary of all championships, and quick links into each discipline's results
-- **Results tab**: Filter and browse all competition results by sport, year, and category — per-event club points column and CSV export included
+- **Results tab**: Filter and browse all competition results by sport, year, and category — per-event club points column, a "results last updated" date with a contact for corrections, and CSV export (opens correctly in Excel)
 - **Athletes tab**: Individual athlete profiles with full result history, personal bests, year-over-year deltas, and per-event points
 - **Rankings tab**: Club-wide leaderboards (women / men, per year or all-time) based on aggregated points across events
 - **Extra Events tab**: Timed trainings and other non-KM events with split ranks, category filter, bilingual event descriptions, and CSV export — partial participants listed unranked
+- **Accent-insensitive search**: "arnstrom" finds Arnström, "thiebaut" finds Thiébaut
 - **Bilingual UI**: Swedish / English toggle throughout
-- **Keyboard-accessible tabs**: proper tablist semantics with arrow-key navigation
+- **Accessible**: WCAG 2.2 AA colour contrast and 24px tap targets, keyboard tablist with arrow-key navigation, and a screen-reader table behind the participation chart
 
 ## Tech Stack
 
@@ -82,7 +84,8 @@ CSV parsing is handled by a small built-in parser in `src/lib/loader.ts` — the
 
 ### Prerequisites
 
-- Node.js 20+
+- Node.js 22+
+- Python 3.11+ with `pandas` and `requests` (only for fetching results: `pip install -r nytatime/requirements.txt`)
 
 ### Installation
 
@@ -107,14 +110,17 @@ npm run test:e2e  # Playwright e2e — needs the app running on :3000 first
 E2E_BASE_URL=https://triathlon-vast-dashboard.vercel.app npm run test:e2e  # or against a deployment
 
 # Python data-pipeline tests
-cd nytatime && python3 -m unittest test_extra_events
+cd nytatime && python3 -m unittest test_extra_events test_plausibility
 ```
+
+GitHub Actions runs all of these — lint, type check, unit tests, build, e2e against the build, and the pipeline tests — on every pull request and push to `main` (`.github/workflows/ci.yml`).
 
 ## Project Structure
 
 ```
 triathlon-vast-dashboard/
 ├── README.md
+├── .github/workflows/ci.yml     # CI: lint, types, tests, build, e2e
 ├── package.json
 ├── next.config.ts
 ├── tsconfig.json
@@ -126,8 +132,10 @@ triathlon-vast-dashboard/
 │   ├── fetch_extra.py           # one-command extra-event fetch (year + keyword)
 │   ├── retrieve_event_results.py
 │   ├── retrieve_extra_event_results.py
+│   ├── plausibility.py          # flags suspicious finish times before publishing
 │   ├── nytatime_api.py
-│   └── test_extra_events.py     # pipeline unit tests
+│   ├── test_extra_events.py     # pipeline unit tests
+│   └── test_plausibility.py
 ├── public/                      # Static assets (logo, favicon, screenshots)
 ├── scripts/
 │   └── capture-screenshots.mjs  # Regenerates the README screenshots
@@ -157,7 +165,9 @@ triathlon-vast-dashboard/
     └── lib/
         ├── loader.ts            # Server-side CSV loading (built-in parser)
         ├── data.ts              # Query helpers: rankings, points, splits
-        ├── csv.ts               # CSV export escaping (formula-injection guard)
+        ├── csv.ts               # CSV export: escaping (formula-injection guard), Excel BOM
+        ├── search.ts            # Accent-insensitive name matching
+        ├── dates.ts             # Localised date formatting
         ├── types.ts             # Shared TypeScript types
         ├── translations.ts      # EN/SV string catalogue
         └── __tests__/           # Unit tests (node:test)
@@ -198,6 +208,16 @@ When exporting results from NyTaTime, follow these rules to keep the data consis
 - File encoding: **UTF-8**
 - One empty line at end of file maximum
 
+## Championship Import Workflow (KM)
+
+1. `cd nytatime && python3 fetch.py 2026 running` — finds the race by year and sport and writes `data/processed_<sport>_results_<date>.csv`
+2. Read the summary, especially **🚩 TIMES TO CHECK BEFORE PUBLISHING**: finish times far from the athlete's own earlier results or from the field median. Hand-keyed times can land on the wrong bib and still look valid
+3. Confirm memberships: a blank club field counts as `TriVäst`, so check entrants with no earlier results
+4. Fix anything wrong at the source in NyTaTime and re-fetch. If that isn't possible, add a per-race entry to `RACE_OVERRIDES` in `retrieve_event_results.py` (`clubs`, `names`, `times`)
+5. Commit `data/` and push
+
+Name variants and memberships that apply across every race (e.g. one athlete registered two ways) go in **both** `NAME_CORRECTIONS` / `CLUB_CORRECTIONS` in `nytatime/retrieve_event_results.py` (future fetches) and `src/lib/data.ts` (applied by the loader to CSVs already in `data/`). Don't re-fetch older races to fix one field: NyTaTime's class labels and name spellings have changed since, so the whole file would shift.
+
 ## Extra Events Workflow (non-KM)
 
 Timed trainings and other non-championship events live in `data/extra/` and appear under the dashboard's Extra Events tab. They earn no club points and stay out of the rankings and athlete profiles.
@@ -220,7 +240,7 @@ Have ideas for new features, spotted a bug, or want to fix something yourself?
 
 ## Deployment
 
-Deployed on Vercel. Push to `main` triggers an automatic production deploy. CSV data files are bundled at build time — update `data/` and redeploy to refresh results.
+Deployed on Vercel. Push to `main` triggers an automatic production deploy; work on a branch and merge once CI passes. CSV data files are bundled at build time — update `data/` and redeploy to refresh results.
 
 ## License
 
