@@ -64,6 +64,16 @@ test('loadAllCompetitions: applies confirmed club corrections over the CSV', () 
   }
 })
 
+test('loadAllCompetitions: merges confirmed name variants into one athlete', () => {
+  const data = loadAllCompetitions()
+  const names = new Set(Object.values(data).flat().map((a) => a.Name))
+  for (const variant of ['Fredrik Rosen', 'Greg James rae', 'Lars Jacobsen']) {
+    assert.ok(!names.has(variant), `${variant} should be merged into its canonical spelling`)
+  }
+  const rosen = Object.values(data).flat().filter((a) => a.Name === 'Fredrik Rosén')
+  assert.ok(rosen.some((a) => a.Competition_Year === '2026'), 'the 2026 "Rosen" row joins Fredrik Rosén')
+})
+
 test('loadAllCompetitions: normalizes legacy class names', () => {
   const data = loadAllCompetitions()
   const classes = new Set<string>()

@@ -38,6 +38,9 @@ NAME_CORRECTIONS = {
     'Alberic Duriaux': 'Albéric Duriaux',
     'Sofia Haglund ä': 'Sofia Haglund',
     'Kristoffer Krohn': 'Kristoffer Zietek Krohn',
+    'Fredrik Rosen': 'Fredrik Rosén',
+    'Greg James rae': 'Greg James-Rae',
+    'Lars Jacobsen': 'Lars Galberg Jacobsen',
 }
 
 # Club membership confirmed by the club, applied to every race: for athletes

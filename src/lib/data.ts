@@ -64,6 +64,19 @@ export const CLUB_CORRECTIONS: ReadonlyMap<string, string> = new Map([
 ])
 
 /**
+ * Name variants confirmed as the same athlete, mapped to the canonical
+ * spelling so one person keeps one profile and one ranking total. Fixes rows
+ * already in data/ (older races can't be re-fetched cleanly). Mirrors
+ * NAME_CORRECTIONS in nytatime/retrieve_event_results.py, which covers fresh
+ * fetches. Club corrections are keyed by the corrected name.
+ */
+export const NAME_CORRECTIONS: ReadonlyMap<string, string> = new Map([
+  ['Fredrik Rosen', 'Fredrik Rosén'],
+  ['Greg James rae', 'Greg James-Rae'],
+  ['Lars Jacobsen', 'Lars Galberg Jacobsen'],
+])
+
+/**
  * Accepts an AthleteResult (uses the precomputed flag) or a raw club string.
  * Prefer passing the AthleteResult — the string overload is for one-off lookups
  * outside the parsed data set.
