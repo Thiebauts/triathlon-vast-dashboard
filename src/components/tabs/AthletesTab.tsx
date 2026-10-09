@@ -134,7 +134,7 @@ export function AthletesTab({ data, athleteNames, allTimeRankings, lang, initial
             placeholder={t('search_athlete', lang)}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full border border-gray-200 rounded px-2 py-1 text-xs mb-1.5 focus-visible:ring-2 focus-visible:ring-red-700 focus-visible:ring-offset-1"
+            className="w-full min-h-6 border border-gray-200 rounded px-2 py-1 text-xs mb-1.5 focus-visible:ring-2 focus-visible:ring-red-700 focus-visible:ring-offset-1"
           />
           <ul className="divide-y divide-gray-50 max-h-[168px] overflow-y-auto">
             {filtered.map((name) => (

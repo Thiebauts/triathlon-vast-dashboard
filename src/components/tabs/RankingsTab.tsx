@@ -53,7 +53,7 @@ function RankTable({ data, lang, onAthleteClick }: {
               <td className="px-3 py-1.5 font-medium text-gray-800">
                 {onAthleteClick ? (
                   <button onClick={() => onAthleteClick(a.name)}
-                    className="hover:text-red-700 hover:underline transition-colors text-left focus-visible:ring-2 focus-visible:ring-red-700 focus-visible:ring-offset-1 rounded">
+                    className="py-1 -my-1 hover:text-red-700 hover:underline transition-colors text-left focus-visible:ring-2 focus-visible:ring-red-700 focus-visible:ring-offset-1 rounded">
                     {a.name}
                   </button>
                 ) : a.name}
@@ -97,7 +97,7 @@ export function RankingsTab({ data, allTimeRankings, lang, onAthleteClick, year,
       <div className="bg-white rounded-lg shadow-sm border border-gray-100 px-4 py-2.5 flex items-center gap-3">
         <label htmlFor="rankings-year" className="text-[11px] font-medium text-gray-500 uppercase tracking-wide">{t('select_year', lang)}</label>
         <select id="rankings-year" value={year} onChange={(e) => onYearChange(e.target.value)}
-          className="border border-gray-200 rounded px-2 py-1 text-xs bg-white focus-visible:ring-2 focus-visible:ring-red-700 focus-visible:ring-offset-1">
+          className="min-h-6 border border-gray-200 rounded px-2 py-1 text-xs bg-white focus-visible:ring-2 focus-visible:ring-red-700 focus-visible:ring-offset-1">
           {years.map((y) => (
             <option key={y} value={y}>{y === 'all' ? t('all_years', lang) : y}</option>
           ))}

@@ -106,7 +106,7 @@ function ResultRow({ a, rank, i, lang, yearValue, segs, splitRank, points, onAth
       <td className="px-3 py-1.5 whitespace-nowrap font-medium text-gray-800">
         {onAthleteClick ? (
           <button onClick={() => onAthleteClick(a.Name)}
-            className="hover:text-red-700 hover:underline transition-colors text-left focus-visible:ring-2 focus-visible:ring-red-700 focus-visible:ring-offset-1 rounded">
+            className="py-1 -my-1 hover:text-red-700 hover:underline transition-colors text-left focus-visible:ring-2 focus-visible:ring-red-700 focus-visible:ring-offset-1 rounded">
             {a.Name}
           </button>
         ) : a.Name}
@@ -341,21 +341,21 @@ export function ResultsTab({ data, lang, lastUpdated, onAthleteClick, sport, yea
           <label htmlFor="filter-event" className="block text-[11px] font-medium text-gray-500 uppercase tracking-wide mb-1">{t('select_event', lang)}</label>
           <select id="filter-event" value={sport}
             onChange={(e) => onSportChange(e.target.value as SportType)}
-            className="border border-gray-200 rounded px-2 py-1 text-xs bg-white focus-visible:ring-2 focus-visible:ring-red-700 focus-visible:ring-offset-1">
+            className="min-h-6 border border-gray-200 rounded px-2 py-1 text-xs bg-white focus-visible:ring-2 focus-visible:ring-red-700 focus-visible:ring-offset-1">
             {SPORTS.map((s) => <option key={s} value={s}>{t(s, lang)}</option>)}
           </select>
         </div>
         <div>
           <label htmlFor="filter-year" className="block text-[11px] font-medium text-gray-500 uppercase tracking-wide mb-1">{t('select_year', lang)}</label>
           <select id="filter-year" value={yearValue} onChange={(e) => onYearChange(e.target.value)}
-            className="border border-gray-200 rounded px-2 py-1 text-xs bg-white focus-visible:ring-2 focus-visible:ring-red-700 focus-visible:ring-offset-1">
+            className="min-h-6 border border-gray-200 rounded px-2 py-1 text-xs bg-white focus-visible:ring-2 focus-visible:ring-red-700 focus-visible:ring-offset-1">
             {years.map((y) => <option key={y} value={y}>{y === 'all' ? t('all_years', lang) : y}</option>)}
           </select>
         </div>
         <div>
           <label htmlFor="filter-category" className="block text-[11px] font-medium text-gray-500 uppercase tracking-wide mb-1">{t('select_category', lang)}</label>
           <select id="filter-category" value={category} onChange={(e) => onCategoryChange(e.target.value as ResultsCategory)}
-            className="border border-gray-200 rounded px-2 py-1 text-xs bg-white focus-visible:ring-2 focus-visible:ring-red-700 focus-visible:ring-offset-1">
+            className="min-h-6 border border-gray-200 rounded px-2 py-1 text-xs bg-white focus-visible:ring-2 focus-visible:ring-red-700 focus-visible:ring-offset-1">
             <option value="all">{t('all_mixed', lang)}</option>
             <option value="men">{t('men_only', lang)}</option>
             <option value="women">{t('women_only', lang)}</option>
@@ -369,7 +369,7 @@ export function ResultsTab({ data, lang, lastUpdated, onAthleteClick, sport, yea
             onChange={(e) => setSearch(e.target.value)}
             placeholder={t('search_athlete', lang)}
             aria-label={t('search_athlete', lang)}
-            className="border border-gray-200 rounded px-2 py-1 text-xs bg-white w-36 focus-visible:ring-2 focus-visible:ring-red-700 focus-visible:ring-offset-1"
+            className="min-h-6 border border-gray-200 rounded px-2 py-1 text-xs bg-white w-36 focus-visible:ring-2 focus-visible:ring-red-700 focus-visible:ring-offset-1"
           />
         </div>
         <div>
@@ -387,7 +387,7 @@ export function ResultsTab({ data, lang, lastUpdated, onAthleteClick, sport, yea
         <div className="flex items-center gap-3 ml-auto self-center">
           <span className="text-xs text-gray-500" aria-live="polite">{rows.length} {t('total_results', lang)}</span>
           <button onClick={exportCsv}
-            className="text-[11px] text-gray-500 hover:text-red-700 border border-gray-200 rounded px-2 py-0.5 transition-colors focus-visible:ring-2 focus-visible:ring-red-700 focus-visible:ring-offset-1">
+            className="text-[11px] text-gray-500 hover:text-red-700 min-h-6 border border-gray-200 rounded px-2 py-1 transition-colors focus-visible:ring-2 focus-visible:ring-red-700 focus-visible:ring-offset-1">
             {t('export_csv', lang)}
           </button>
         </div>

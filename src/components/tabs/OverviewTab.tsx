@@ -43,7 +43,7 @@ export function OverviewTab({ data, lang, lastUpdated, onNavigateToExtra, onNavi
                 <button
                   onClick={() => onNavigateToSport(d)}
                   aria-label={`${t(d, lang)} — ${t('view_km_results', lang)}`}
-                  className="mt-1.5 text-[11px] text-red-700 hover:underline font-medium focus-visible:ring-2 focus-visible:ring-red-700 focus-visible:ring-offset-1 rounded"
+                  className="mt-1 min-h-6 text-[11px] text-red-700 hover:underline font-medium focus-visible:ring-2 focus-visible:ring-red-700 focus-visible:ring-offset-1 rounded"
                 >
                   {t('view_km_results', lang)}
                 </button>
@@ -60,7 +60,7 @@ export function OverviewTab({ data, lang, lastUpdated, onNavigateToExtra, onNavi
         {onNavigateToExtra && (
           <button
             onClick={onNavigateToExtra}
-            className="mt-1.5 text-xs text-red-700 hover:underline font-medium focus-visible:ring-2 focus-visible:ring-red-700 focus-visible:ring-offset-1 rounded"
+            className="mt-1 min-h-6 text-xs text-red-700 hover:underline font-medium focus-visible:ring-2 focus-visible:ring-red-700 focus-visible:ring-offset-1 rounded"
           >
             {t('view_extra_results', lang)}
           </button>

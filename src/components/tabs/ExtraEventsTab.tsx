@@ -176,7 +176,7 @@ export function ExtraEventsTab({ events, lang, eventDate, category, onEventChang
                   const date = events.find((ev) => ev.file === e.target.value)?.date
                   if (date) onEventChange(date)
                 }}
-                className="w-full max-w-full truncate border border-gray-200 rounded px-2 py-1 text-xs bg-white focus-visible:ring-2 focus-visible:ring-red-700 focus-visible:ring-offset-1">
+                className="w-full max-w-full truncate min-h-6 border border-gray-200 rounded px-2 py-1 text-xs bg-white focus-visible:ring-2 focus-visible:ring-red-700 focus-visible:ring-offset-1">
                 {events.map((e) => (
                   <option key={e.file} value={e.file}>{e.title[lang]} — {formatDate(e.date, lang)}</option>
                 ))}
@@ -185,7 +185,7 @@ export function ExtraEventsTab({ events, lang, eventDate, category, onEventChang
             <div>
               <label htmlFor="extra-category" className="block text-[11px] font-medium text-gray-500 uppercase tracking-wide mb-1">{t('select_category', lang)}</label>
               <select id="extra-category" value={category} onChange={(e) => onCategoryChange(e.target.value as ExtraCategory)}
-                className="border border-gray-200 rounded px-2 py-1 text-xs bg-white focus-visible:ring-2 focus-visible:ring-red-700 focus-visible:ring-offset-1">
+                className="min-h-6 border border-gray-200 rounded px-2 py-1 text-xs bg-white focus-visible:ring-2 focus-visible:ring-red-700 focus-visible:ring-offset-1">
                 <option value="all">{t('overall', lang)}</option>
                 <option value="men">{t('men_only', lang)}</option>
                 <option value="women">{t('women_only', lang)}</option>
@@ -195,7 +195,7 @@ export function ExtraEventsTab({ events, lang, eventDate, category, onEventChang
               {event.location && <span className="text-xs text-gray-500">📍 {event.location}</span>}
               <span className="text-xs text-gray-500" aria-live="polite">{rows.length} {t('total_results', lang)}</span>
               <button onClick={exportCsv}
-                className="text-[11px] text-gray-500 hover:text-red-700 border border-gray-200 rounded px-2 py-0.5 transition-colors focus-visible:ring-2 focus-visible:ring-red-700 focus-visible:ring-offset-1">
+                className="text-[11px] text-gray-500 hover:text-red-700 min-h-6 border border-gray-200 rounded px-2 py-1 transition-colors focus-visible:ring-2 focus-visible:ring-red-700 focus-visible:ring-offset-1">
                 {t('export_csv', lang)}
               </button>
             </div>
