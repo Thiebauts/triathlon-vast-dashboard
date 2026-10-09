@@ -1,6 +1,7 @@
 import { chromium } from 'playwright'
 
-const BASE = 'http://localhost:3000'
+// Override to test a deployment: E2E_BASE_URL=https://… npm run test:e2e
+const BASE = process.env.E2E_BASE_URL ?? 'http://localhost:3000'
 let passed = 0
 let failed = 0
 const errors = []
@@ -240,8 +241,10 @@ async function run() {
     const yearSelect = page.locator('select:visible').nth(1)
     await yearSelect.selectOption('all')
     await page.waitForTimeout(500)
-    // Rank cell is `<th scope="row">` for accessibility, not `<td>`.
-    const firstRank = await page.locator('table tbody tr').first().locator('th[scope="row"]').first().textContent()
+    // Rank cell is `<th scope="row">` for accessibility, not `<td>`. Visible
+    // rows only: hidden tab panels (and the Overview chart's screen-reader
+    // table) also hold tables.
+    const firstRank = await page.locator('table tbody tr:visible').first().locator('th[scope="row"]').first().textContent()
     if (firstRank?.trim() !== '1') throw new Error(`First rank is "${firstRank}", expected "1"`)
   })
 
@@ -283,7 +286,19 @@ async function run() {
     const count = await items.count()
     if (count === 0) throw new Error('Search returned 0 results for "Jon"')
     const all = await items.allTextContents()
-    if (!all.every(n => n.toLowerCase().includes('jon'))) throw new Error('Search not filtering correctly')
+    // Search ignores accents, so "Jon" also finds "Jönsson"
+    const fold = (s) => s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    if (!all.every(n => fold(n).includes('jon'))) throw new Error('Search not filtering correctly')
+  })
+
+  await test('Search ignores accents ("arnstrom" finds Arnström)', async () => {
+    const input = page.locator('input[placeholder="Search athlete…"]:visible')
+    await input.fill('arnstrom')
+    await page.waitForTimeout(300)
+    const all = await page.locator('ul li button:visible').allTextContents()
+    if (!all.includes('Erik Arnström')) throw new Error(`Got ${JSON.stringify(all)}`)
+    await input.fill('Jon')
+    await page.waitForTimeout(300)
   })
 
   await test('Select first athlete shows profile', async () => {
@@ -416,7 +431,9 @@ async function run() {
   })
 
   await test('Event description with distances visible', async () => {
-    const desc = page.locator('text=400 m swim')
+    // The tab opens on the newest extra event, so match any swim distance
+    // ("~200 m swim" for the children's KM, "~400 m swim" for a SuperSprint)
+    const desc = page.locator('text=/\\d+ m swim/ >> visible=true').first()
     await desc.waitFor({ state: 'visible', timeout: 3000 })
   })
 

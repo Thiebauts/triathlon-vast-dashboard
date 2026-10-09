@@ -104,6 +104,7 @@ npm run dev
 ```bash
 npm test          # unit tests (node:test, no build needed)
 npm run test:e2e  # Playwright e2e — needs the app running on :3000 first
+E2E_BASE_URL=https://triathlon-vast-dashboard.vercel.app npm run test:e2e  # or against a deployment
 
 # Python data-pipeline tests
 cd nytatime && python3 -m unittest test_extra_events
