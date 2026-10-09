@@ -265,7 +265,9 @@ export function getAthleteEvents(
         year: a.Competition_Year,
         rank: a.Class_Rank,
         club_member_rank: isMember && finished ? cmRank : 'N/A',
-        overall_rank: a.Overall_Rank,
+        // Never trust a youth/children/relay row's CSV overall rank: files
+        // imported before ranks_overall() existed carry one (e.g. duathlon 2026).
+        overall_rank: racesOverall(a) ? a.Overall_Rank : 0,
         time: a.Total_Time,
         time_seconds: a.Total_Time_Seconds,
         club: a.Club,

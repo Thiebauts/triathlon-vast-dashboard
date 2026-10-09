@@ -388,6 +388,18 @@ test('getAthleteEvents: guests get 0 points and N/A club rank', () => {
   assert.equal(e.club_member_rank, 'N/A')
 })
 
+test('getAthleteEvents: youth carry no overall rank even if the CSV has one', () => {
+  const data: CompetitionsData = { ...empty }
+  data.duathlon = [
+    mk({ Name: 'Kid', Class: 'Ungdom', Club: 'TriVäst', Competition_Year: '2026',
+      Total_Time: '00:43:01', Total_Time_Seconds: 2581, Class_Rank: 1, Overall_Rank: 1 }),
+    mk({ Name: 'Adult', Class: 'Herr', Club: 'TriVäst', Competition_Year: '2026',
+      Total_Time: '00:59:16', Total_Time_Seconds: 3556, Class_Rank: 1, Overall_Rank: 1 }),
+  ]
+  assert.equal(getAthleteEvents(data, 'Kid')['duathlon_2026'].overall_rank, 0)
+  assert.equal(getAthleteEvents(data, 'Adult')['duathlon_2026'].overall_rank, 1)
+})
+
 // ─── getSummaryStats ────────────────────────────────────────────────────────
 
 test('getSummaryStats: counts unique years, competitions, and members', () => {
