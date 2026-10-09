@@ -173,14 +173,16 @@ export function ExtraEventsTab({ events, lang, eventDate, category, onEventChang
         <>
           {/* Filters */}
           <div className="bg-white rounded-lg shadow-sm border border-gray-100 px-4 py-2.5 flex flex-wrap items-end gap-4">
-            <div>
+            {/* min-w-0 + w-full: a select is as wide as its longest option, and
+                the event titles are long enough to overflow a phone screen */}
+            <div className="min-w-0 max-w-full">
               <label htmlFor="extra-event" className="block text-[11px] font-medium text-gray-500 uppercase tracking-wide mb-1">{t('select_event', lang)}</label>
               <select id="extra-event" value={event.file}
                 onChange={(e) => {
                   const date = events.find((ev) => ev.file === e.target.value)?.date
                   if (date) onEventChange(date)
                 }}
-                className="border border-gray-200 rounded px-2 py-1 text-xs bg-white focus-visible:ring-2 focus-visible:ring-red-700 focus-visible:ring-offset-1">
+                className="w-full max-w-full truncate border border-gray-200 rounded px-2 py-1 text-xs bg-white focus-visible:ring-2 focus-visible:ring-red-700 focus-visible:ring-offset-1">
                 {events.map((e) => (
                   <option key={e.file} value={e.file}>{e.title[lang]} — {formatEventDate(e.date, lang)}</option>
                 ))}
@@ -195,7 +197,7 @@ export function ExtraEventsTab({ events, lang, eventDate, category, onEventChang
                 <option value="women">{t('women_only', lang)}</option>
               </select>
             </div>
-            <div className="flex items-center gap-3 ml-auto self-center">
+            <div className="flex flex-wrap items-center gap-3 ml-auto self-center">
               {event.location && <span className="text-xs text-gray-500">📍 {event.location}</span>}
               <span className="text-xs text-gray-500" aria-live="polite">{rows.length} {t('total_results', lang)}</span>
               <button onClick={exportCsv}
