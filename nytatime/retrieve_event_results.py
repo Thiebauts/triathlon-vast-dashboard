@@ -81,6 +81,14 @@ RACE_OVERRIDES = {
             'Nelly Bertilsson': 'Gäst',
             'Miriam Degerman': 'TriVäst',
         },
+        # Finish times were keyed in by hand against bibs and four came out
+        # far too slow; corrected times confirmed by Thiebaut on 2026-10-09.
+        'times': {
+            'Anton Söfting': 19 * 60 + 37,
+            'Jan Ljungcrantz': 18 * 60 + 34,
+            'Thiébaut Schirmer': 22 * 60 + 35,
+            'Joakim Fransson': 19 * 60 + 44,
+        },
     },
 }
 
@@ -434,8 +442,9 @@ def process_event_results(api, race_id, event_type):
         race_data['date'] = overrides['date']
         print(f"📌 Race date missing in NyTaTime — using the confirmed date {overrides['date']}")
     if overrides:
-        print(f"📌 Applying {len(overrides.get('clubs', {}))} club and "
-              f"{len(overrides.get('names', {}))} name override(s) for this race")
+        print(f"📌 Applying {len(overrides.get('clubs', {}))} club, "
+              f"{len(overrides.get('names', {}))} name and "
+              f"{len(overrides.get('times', {}))} finish-time override(s) for this race")
 
     print(f"📋 Race: {race_data.get('name', 'Unknown')}")
     print(f"📅 Date: {race_data.get('date', 'Unknown')}")
@@ -495,7 +504,8 @@ def process_event_results(api, race_id, event_type):
         
         # Process splits
         splits = participant.get('splitTimesv2', []) or participant.get('splits', [])
-        race_time = participant.get('raceTime', 0)
+        # A per-race override replaces a finish time NyTaTime holds wrong.
+        race_time = overrides.get('times', {}).get(name, participant.get('raceTime', 0))
         status = participant.get('status', 'unknown')
         segment_times, split_times_formatted, total_time = process_participant_splits(splits, event_type, race_time)
         
