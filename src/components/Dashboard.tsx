@@ -22,9 +22,11 @@ interface Props {
   athleteNames: string[]
   allTimeRankings: ClubAthlete[]
   extraEvents: ExtraEvent[]
+  /** ISO date of the newest result, from getLatestResultDate(). */
+  lastUpdated: string
 }
 
-export function Dashboard({ data, athleteNames, allTimeRankings, extraEvents }: Props) {
+export function Dashboard({ data, athleteNames, allTimeRankings, extraEvents, lastUpdated }: Props) {
   const { lang } = useLang()
   const [tab, setTab] = useState<Tab>('overview')
   // Panels mount on first visit and then stay mounted: the server renders only
@@ -170,10 +172,10 @@ export function Dashboard({ data, athleteNames, allTimeRankings, extraEvents }: 
       </div>
 
       <div role="tabpanel" id="tabpanel-overview" aria-labelledby="tab-overview" hidden={tab !== 'overview'}>
-        {visited.has('overview') && <OverviewTab data={data} lang={lang} onNavigateToExtra={navigateToExtra} onNavigateToSport={navigateToSport} />}
+        {visited.has('overview') && <OverviewTab data={data} lang={lang} lastUpdated={lastUpdated} onNavigateToExtra={navigateToExtra} onNavigateToSport={navigateToSport} />}
       </div>
       <div role="tabpanel" id="tabpanel-results" aria-labelledby="tab-results" hidden={tab !== 'results'}>
-        {visited.has('results') && <ResultsTab data={data} lang={lang} onAthleteClick={navigateToAthlete} sport={sport} year={resultsYear} category={resultsCategory} onSportChange={changeSport} onYearChange={setResultsYear} onCategoryChange={setResultsCategory} />}
+        {visited.has('results') && <ResultsTab data={data} lang={lang} lastUpdated={lastUpdated} onAthleteClick={navigateToAthlete} sport={sport} year={resultsYear} category={resultsCategory} onSportChange={changeSport} onYearChange={setResultsYear} onCategoryChange={setResultsCategory} />}
       </div>
       <div role="tabpanel" id="tabpanel-athletes" aria-labelledby="tab-athletes" hidden={tab !== 'athletes'}>
         {visited.has('athletes') && <AthletesTab data={data} athleteNames={athleteNames} allTimeRankings={allTimeRankings} lang={lang} initialAthlete={selectedAthlete} onAthleteChange={setSelectedAthlete} />}

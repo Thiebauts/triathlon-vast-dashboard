@@ -97,6 +97,11 @@ const TRANSLATIONS: Record<string, { en: string; sv: string }> = {
   },
 
   participation_by_year:   { en: 'Participation by Year and Event Type', sv: 'Deltagande per År och Tävlingstyp' },
+  last_updated:            { en: 'Results last updated:', sv: 'Resultaten senast uppdaterade:' },
+  results_correction:      {
+    en: 'Spotted a wrong time or name? Email schirmer.thiebaut@gmail.com and it will be corrected.',
+    sv: 'Hittat en felaktig tid eller ett felstavat namn? Mejla schirmer.thiebaut@gmail.com så rättar vi det.',
+  },
 
   select_event:    { en: 'Select Event:',    sv: 'Välj Tävling:' },
   select_year:     { en: 'Select Year:',     sv: 'Välj År:' },

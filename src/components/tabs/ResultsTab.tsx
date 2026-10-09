@@ -4,6 +4,7 @@ import { t } from '@/lib/translations'
 import type { AthleteResult, CompetitionsData, SportType, Lang, ResultsCategory } from '@/lib/types'
 import { athleteKey, computeSplitRanks, computeEventPoints, isFinisher, isRelay, type SplitRanks } from '@/lib/data'
 import { matchesSearch } from '@/lib/search'
+import { formatDate } from '@/lib/dates'
 import { csvEscape, toCsvFile } from '@/lib/csv'
 
 const SPORTS: SportType[] = ['triathlon', 'duathlon', 'swimming', 'cycling', 'running', 'swimrun']
@@ -159,6 +160,8 @@ function inCategory(a: AthleteResult, category: ResultsCategory): boolean {
 interface Props {
   data: CompetitionsData
   lang: Lang
+  /** ISO date of the newest result on the dashboard. */
+  lastUpdated: string
   onAthleteClick?: (name: string) => void
   /**
    * Sport/year/category are owned by the Dashboard (controlled) so the URL
@@ -172,7 +175,7 @@ interface Props {
   onCategoryChange: (category: ResultsCategory) => void
 }
 
-export function ResultsTab({ data, lang, onAthleteClick, sport, year, category, onSportChange, onYearChange, onCategoryChange }: Props) {
+export function ResultsTab({ data, lang, lastUpdated, onAthleteClick, sport, year, category, onSportChange, onYearChange, onCategoryChange }: Props) {
   const [search, setSearch] = useState('')
   const [showGuests, setShowGuests] = useState(false)
   const deferredSearch = useDeferredValue(search)
@@ -326,6 +329,10 @@ export function ResultsTab({ data, lang, onAthleteClick, sport, year, category, 
       <div className="bg-white rounded-lg shadow-sm border border-gray-100 px-4 py-3">
         <h2 className="text-sm font-semibold text-red-700 mb-0.5">{t('event_results_title', lang)}</h2>
         <p className="text-xs text-gray-500 leading-relaxed">{t('event_results_text1', lang)}</p>
+        <p className="text-xs text-gray-600 leading-relaxed mt-1">
+          {lastUpdated && <>{t('last_updated', lang)} <strong>{formatDate(lastUpdated, lang)}</strong>. </>}
+          {t('results_correction', lang)}
+        </p>
       </div>
 
       {/* Filters */}

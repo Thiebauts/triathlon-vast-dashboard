@@ -3,6 +3,7 @@ import { useMemo, useCallback, Fragment } from 'react'
 import { t } from '@/lib/translations'
 import { athleteKey, computeSplitRanks, type SplitRanks } from '@/lib/data'
 import { csvEscape, toCsvFile } from '@/lib/csv'
+import { formatDate } from '@/lib/dates'
 import type { AthleteResult, ExtraCategory, ExtraEvent, Lang } from '@/lib/types'
 
 const MEDAL = {
@@ -24,13 +25,6 @@ function fmt(v: string | undefined) {
 
 /** "10 juni 2026" / "10 June 2026" — parsed as local date parts to avoid the
  *  UTC-midnight day shift `new Date('YYYY-MM-DD')` can produce. */
-function formatEventDate(iso: string, lang: Lang): string {
-  const [y, m, d] = iso.split('-').map(Number)
-  return new Intl.DateTimeFormat(lang === 'sv' ? 'sv-SE' : 'en-GB', {
-    day: 'numeric', month: 'long', year: 'numeric',
-  }).format(new Date(y, m - 1, d))
-}
-
 const D = 'hidden sm:table-cell'
 
 /**
@@ -184,7 +178,7 @@ export function ExtraEventsTab({ events, lang, eventDate, category, onEventChang
                 }}
                 className="w-full max-w-full truncate border border-gray-200 rounded px-2 py-1 text-xs bg-white focus-visible:ring-2 focus-visible:ring-red-700 focus-visible:ring-offset-1">
                 {events.map((e) => (
-                  <option key={e.file} value={e.file}>{e.title[lang]} — {formatEventDate(e.date, lang)}</option>
+                  <option key={e.file} value={e.file}>{e.title[lang]} — {formatDate(e.date, lang)}</option>
                 ))}
               </select>
             </div>
@@ -210,7 +204,7 @@ export function ExtraEventsTab({ events, lang, eventDate, category, onEventChang
           {/* Event context: format, distances, who it's for (from the manifest) */}
           {event.description?.[lang] && (
             <div className="bg-white rounded-lg shadow-sm border border-gray-100 px-4 py-3">
-              <h3 className="text-xs font-semibold text-gray-700 mb-0.5">{event.title[lang]} — {formatEventDate(event.date, lang)}</h3>
+              <h3 className="text-xs font-semibold text-gray-700 mb-0.5">{event.title[lang]} — {formatDate(event.date, lang)}</h3>
               <p className="text-xs text-gray-500 leading-relaxed">{event.description[lang]}</p>
             </div>
           )}

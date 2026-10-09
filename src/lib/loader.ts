@@ -111,6 +111,19 @@ export function loadAllCompetitions(): CompetitionsData {
   return data
 }
 
+/**
+ * Date of the newest result on the dashboard (championship CSVs and extra
+ * events alike), shown as "results last updated" so members can tell whether
+ * the latest race is in yet.
+ */
+export function getLatestResultDate(): string {
+  const dates = fs.readdirSync(path.join(process.cwd(), 'data'))
+    .map((f) => f.match(/^processed_\w+_results_(\d{4}-\d{2}-\d{2})\.csv$/)?.[1])
+    .filter((d): d is string => !!d)
+  for (const e of loadExtraEvents()) dates.push(e.date)
+  return dates.sort().at(-1) ?? ''
+}
+
 let cachedExtra: ExtraEvent[] | null = null
 
 /**

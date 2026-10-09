@@ -2,6 +2,7 @@
 import { useMemo } from 'react'
 import dynamic from 'next/dynamic'
 import { t } from '@/lib/translations'
+import { formatDate } from '@/lib/dates'
 import { getParticipationByYear } from '@/lib/data'
 import type { CompetitionsData, Lang, SportType } from '@/lib/types'
 
@@ -13,6 +14,8 @@ const ParticipationChart = dynamic(
 interface Props {
   data: CompetitionsData
   lang: Lang
+  /** ISO date of the newest result on the dashboard. */
+  lastUpdated: string
   /** Switches the dashboard to the Extra Events tab. */
   onNavigateToExtra?: () => void
   /** Switches the dashboard to Event Results with the given sport selected. */
@@ -23,7 +26,7 @@ interface Props {
 // strings go through the catalogue); this only fixes the display order.
 const DISCIPLINES = ['running', 'swimming', 'cycling', 'duathlon', 'triathlon', 'swimrun'] as const
 
-export function OverviewTab({ data, lang, onNavigateToExtra, onNavigateToSport }: Props) {
+export function OverviewTab({ data, lang, lastUpdated, onNavigateToExtra, onNavigateToSport }: Props) {
   const participationByYear = useMemo(() => getParticipationByYear(data), [data])
   return (
     <div className="space-y-3">
@@ -69,6 +72,11 @@ export function OverviewTab({ data, lang, onNavigateToExtra, onNavigateToSport }
         <h2 className="text-sm font-semibold text-red-700 mb-1">{t('created_by_title', lang)}</h2>
         <p className="text-xs text-gray-500 leading-relaxed mb-1.5">{t('created_by_text1', lang)}</p>
         <p className="text-xs text-gray-500 leading-relaxed">{t('created_by_text2', lang)}</p>
+        {lastUpdated && (
+          <p className="text-xs text-gray-600 mt-1.5">
+            {t('last_updated', lang)} <strong>{formatDate(lastUpdated, lang)}</strong>
+          </p>
+        )}
       </div>
 
       {/* Participation chart */}
