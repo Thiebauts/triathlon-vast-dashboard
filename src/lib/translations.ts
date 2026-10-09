@@ -97,6 +97,7 @@ const TRANSLATIONS: Record<string, { en: string; sv: string }> = {
   },
 
   participation_by_year:   { en: 'Participation by Year and Event Type', sv: 'Deltagande per År och Tävlingstyp' },
+  site_title:              { en: 'Triathlon Väst – Competition Dashboard', sv: 'Triathlon Väst – Tävlingsdashboard' },
   last_updated:            { en: 'Results last updated:', sv: 'Resultaten senast uppdaterade:' },
   results_correction:      {
     en: 'Spotted a wrong time or name? Email schirmer.thiebaut@gmail.com and it will be corrected.',

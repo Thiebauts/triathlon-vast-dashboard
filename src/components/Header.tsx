@@ -1,11 +1,14 @@
 'use client'
 import Image from 'next/image'
 import { useLang } from './LanguageProvider'
+import { t } from '@/lib/translations'
 
 export function Header() {
   const { lang, setLang } = useLang()
   return (
     <header className="bg-white border-b-[3px] border-red-700 shadow-sm">
+      {/* The logo is the visual title; this gives the page its one <h1>. */}
+      <h1 className="sr-only">{t('site_title', lang)}</h1>
       <div className="max-w-7xl mx-auto px-4 py-1.5 flex items-center justify-between">
         <Image
           src="/OGLogo-2.png"
