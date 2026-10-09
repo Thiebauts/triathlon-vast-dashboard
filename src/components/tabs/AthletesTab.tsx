@@ -3,6 +3,7 @@ import { useState, useMemo, useDeferredValue } from 'react'
 import dynamic from 'next/dynamic'
 import { t } from '@/lib/translations'
 import { getAthleteEvents } from '@/lib/data'
+import { matchesSearch } from '@/lib/search'
 import type { CompetitionsData, Lang, ClubAthlete } from '@/lib/types'
 
 const AthleteRankChart = dynamic(
@@ -48,7 +49,7 @@ export function AthletesTab({ data, athleteNames, allTimeRankings, lang, initial
   }
 
   const filtered = useMemo(
-    () => athleteNames.filter((n) => n.toLowerCase().includes(deferredSearch.toLowerCase())),
+    () => athleteNames.filter((n) => matchesSearch(n, deferredSearch)),
     [athleteNames, deferredSearch],
   )
 

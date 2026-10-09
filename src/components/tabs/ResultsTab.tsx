@@ -3,6 +3,7 @@ import { useState, useMemo, useCallback, useDeferredValue, Fragment } from 'reac
 import { t } from '@/lib/translations'
 import type { AthleteResult, CompetitionsData, SportType, Lang, ResultsCategory } from '@/lib/types'
 import { athleteKey, computeSplitRanks, computeEventPoints, isFinisher, isRelay, type SplitRanks } from '@/lib/data'
+import { matchesSearch } from '@/lib/search'
 import { csvEscape } from '@/lib/csv'
 
 const SPORTS: SportType[] = ['triathlon', 'duathlon', 'swimming', 'cycling', 'running', 'swimrun']
@@ -238,8 +239,7 @@ export function ResultsTab({ data, lang, onAthleteClick, sport, year, category, 
   // Search filter kept separate so typing never re-sorts the pool.
   const rows = useMemo(() => {
     if (!deferredSearch.trim()) return ranked
-    const q = deferredSearch.toLowerCase()
-    return ranked.filter((r) => r.athlete.Name.toLowerCase().includes(q))
+    return ranked.filter((r) => matchesSearch(r.athlete.Name, deferredSearch))
   }, [ranked, deferredSearch])
 
   // Separate-course children's classes (e.g. Barn 0–10, a shorter 150 m race)
