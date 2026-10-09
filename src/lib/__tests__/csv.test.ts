@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { csvEscape } from '../csv.ts'
+import { csvEscape, toCsvFile } from '../csv.ts'
 
 test('csvEscape: wraps plain values in quotes', () => {
   assert.equal(csvEscape('Martin Flinta'), '"Martin Flinta"')
@@ -24,4 +24,10 @@ test('csvEscape: formula-leading cells get a quote guard', () => {
 
 test('csvEscape: minus inside a value is not guarded', () => {
   assert.equal(csvEscape('10-20'), '"10-20"')
+})
+
+test('toCsvFile: starts with a UTF-8 BOM and joins lines with newlines', () => {
+  const out = toCsvFile(['"a","b"', '"TriVäst",1'])
+  assert.equal(out.charCodeAt(0), 0xfeff)
+  assert.equal(out.slice(1), '"a","b"\n"TriVäst",1')
 })

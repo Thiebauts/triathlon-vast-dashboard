@@ -2,7 +2,7 @@
 import { useMemo, useCallback, Fragment } from 'react'
 import { t } from '@/lib/translations'
 import { athleteKey, computeSplitRanks, type SplitRanks } from '@/lib/data'
-import { csvEscape } from '@/lib/csv'
+import { csvEscape, toCsvFile } from '@/lib/csv'
 import type { AthleteResult, ExtraCategory, ExtraEvent, Lang } from '@/lib/types'
 
 const MEDAL = {
@@ -148,7 +148,7 @@ export function ExtraEventsTab({ events, lang, eventDate, category, onEventChang
         ...eventSegs.map((s) => csvEscape((a[s.timeKey] as string | undefined) ?? '')),
       ].join(','))
     })
-    const blob = new Blob([csvRows.join('\n')], { type: 'text/csv' })
+    const blob = new Blob([toCsvFile(csvRows)], { type: 'text/csv;charset=utf-8' })
     const url = URL.createObjectURL(blob)
     const link = document.createElement('a')
     link.href = url

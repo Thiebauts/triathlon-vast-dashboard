@@ -10,3 +10,12 @@ export function csvEscape(value: unknown): string {
   const needsFormulaGuard = /^[=+\-@\t\r]/.test(s)
   return needsFormulaGuard ? `"'${s}"` : `"${s}"`
 }
+
+/**
+ * Assemble CSV lines into file contents. The leading UTF-8 byte-order mark
+ * makes Excel decode the file as UTF-8 — without it "TriVäst" opens as
+ * "TriVÃ¤st". Other spreadsheet apps ignore the mark.
+ */
+export function toCsvFile(lines: string[]): string {
+  return '\uFEFF' + lines.join('\n')
+}

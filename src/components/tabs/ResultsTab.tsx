@@ -4,7 +4,7 @@ import { t } from '@/lib/translations'
 import type { AthleteResult, CompetitionsData, SportType, Lang, ResultsCategory } from '@/lib/types'
 import { athleteKey, computeSplitRanks, computeEventPoints, isFinisher, isRelay, type SplitRanks } from '@/lib/data'
 import { matchesSearch } from '@/lib/search'
-import { csvEscape } from '@/lib/csv'
+import { csvEscape, toCsvFile } from '@/lib/csv'
 
 const SPORTS: SportType[] = ['triathlon', 'duathlon', 'swimming', 'cycling', 'running', 'swimrun']
 
@@ -312,7 +312,7 @@ export function ResultsTab({ data, lang, onAthleteClick, sport, year, category, 
         pointsLookup[athleteKey(a)] ?? 0,
       ].join(','))
     })
-    const blob = new Blob([csvRows.join('\n')], { type: 'text/csv' })
+    const blob = new Blob([toCsvFile(csvRows)], { type: 'text/csv;charset=utf-8' })
     const url = URL.createObjectURL(blob)
     const link = document.createElement('a')
     link.href = url
