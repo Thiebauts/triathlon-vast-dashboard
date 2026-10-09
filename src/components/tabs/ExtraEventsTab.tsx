@@ -7,14 +7,14 @@ import { formatDate } from '@/lib/dates'
 import type { AthleteResult, ExtraCategory, ExtraEvent, Lang } from '@/lib/types'
 
 const MEDAL = {
-  1: { color: '#B8970A' },
-  2: { color: '#7A8FA6' },
-  3: { color: '#9E6B3F' },
+  1: { color: '#7D6300' },
+  2: { color: '#56677A' },
+  3: { color: '#85552B' },
 } as Record<number, { color: string }>
 
 function RankCell({ n }: { n: number | undefined }) {
-  if (!n) return <span className="text-gray-400 text-[11px]">—</span>
-  const style = MEDAL[n] ?? { color: '#9CA3AF' }
+  if (!n) return <span className="text-gray-500 text-[11px]">—</span>
+  const style = MEDAL[n] ?? { color: '#6B7280' }
   const weight = n <= 3 ? 'font-semibold' : 'font-normal'
   return <span style={style} className={`text-[11px] tabular-nums ${weight}`}>{n}</span>
 }
@@ -160,7 +160,7 @@ export function ExtraEventsTab({ events, lang, eventDate, category, onEventChang
       </div>
 
       {events.length === 0 ? (
-        <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-8 text-center text-xs text-gray-400">
+        <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-8 text-center text-xs text-gray-500">
           {t('no_extra_events', lang)}
         </div>
       ) : (
@@ -216,7 +216,7 @@ export function ExtraEventsTab({ events, lang, eventDate, category, onEventChang
           {/* Results table */}
           <div className="bg-white rounded-lg shadow-sm border border-gray-100 overflow-x-auto">
             {rows.length === 0 ? (
-              <p className="p-8 text-center text-xs text-gray-400">{t('no_data_available', lang)} {t(event.format, lang)}</p>
+              <p className="p-8 text-center text-xs text-gray-500">{t('no_data_available', lang)} {t(event.format, lang)}</p>
             ) : (
               <table className="min-w-full text-xs">
                 <thead>
@@ -255,14 +255,14 @@ export function ExtraEventsTab({ events, lang, eventDate, category, onEventChang
                         <th scope="row" className="px-3 py-1.5 font-semibold tabular-nums">
                           {rank !== null
                             ? <span style={MEDAL[rank] ?? { color: '#6B7280' }}>{rank}</span>
-                            : <span className="text-gray-400 font-normal">—</span>}
+                            : <span className="text-gray-500 font-normal">—</span>}
                         </th>
                         <td className="px-3 py-1.5 whitespace-nowrap font-medium text-gray-800">{a.Name}</td>
                         <td className={`px-3 py-1.5 text-gray-500 ${D}`}>{a.Club}</td>
                         <td className={`px-3 py-1.5 text-gray-500 ${D}`}>{a.Class}</td>
                         <td className="px-3 py-1.5 font-mono font-semibold text-gray-800">
                           {isPartial
-                            ? <span className="font-sans font-normal text-gray-400">{completedLegsLabel(a, event, lang)}</span>
+                            ? <span className="font-sans font-normal text-gray-500">{completedLegsLabel(a, event, lang)}</span>
                             : fmt(a.Total_Time)}
                         </td>
                         {segs.map((s) => (

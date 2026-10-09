@@ -10,14 +10,14 @@ import { csvEscape, toCsvFile } from '@/lib/csv'
 const SPORTS: SportType[] = ['triathlon', 'duathlon', 'swimming', 'cycling', 'running', 'swimrun']
 
 const MEDAL = {
-  1: { color: '#B8970A' },
-  2: { color: '#7A8FA6' },
-  3: { color: '#9E6B3F' },
+  1: { color: '#7D6300' },
+  2: { color: '#56677A' },
+  3: { color: '#85552B' },
 } as Record<number, { color: string }>
 
 function RankCell({ n }: { n: number | undefined }) {
-  if (!n) return <span className="text-gray-400 text-[11px]">—</span>
-  const style = MEDAL[n] ?? { color: '#9CA3AF' }
+  if (!n) return <span className="text-gray-500 text-[11px]">—</span>
+  const style = MEDAL[n] ?? { color: '#6B7280' }
   const weight = n <= 3 ? 'font-semibold' : 'font-normal'
   return <span style={style} className={`text-[11px] tabular-nums ${weight}`}>{n}</span>
 }
@@ -101,7 +101,7 @@ function ResultRow({ a, rank, i, lang, yearValue, segs, splitRank, points, onAth
       <th scope="row" className="px-3 py-1.5 font-semibold tabular-nums">
         {rank !== null
           ? <span style={MEDAL[rank] ?? { color: '#6B7280' }}>{rank}</span>
-          : <span className="text-gray-400 font-normal">—</span>}
+          : <span className="text-gray-500 font-normal">—</span>}
       </th>
       <td className="px-3 py-1.5 whitespace-nowrap font-medium text-gray-800">
         {onAthleteClick ? (
@@ -113,11 +113,11 @@ function ResultRow({ a, rank, i, lang, yearValue, segs, splitRank, points, onAth
       </td>
       <td className={`px-3 py-1.5 text-gray-500 ${D}`}>{a.Club}</td>
       <td className={`px-3 py-1.5 text-gray-500 ${D}`}>{a.Class}</td>
-      {yearValue === 'all' && <td className={`px-3 py-1.5 text-gray-400 ${D}`}>{a.Competition_Year}</td>}
+      {yearValue === 'all' && <td className={`px-3 py-1.5 text-gray-500 ${D}`}>{a.Competition_Year}</td>}
       <td className="px-3 py-1.5 font-mono font-semibold text-gray-800">
         {finished
           ? fmt(a.Total_Time)
-          : <span className="font-sans font-semibold text-gray-400">{t('dnf', lang)}</span>}
+          : <span className="font-sans font-semibold text-gray-500">{t('dnf', lang)}</span>}
       </td>
       {segs.map((s) => (
         <Fragment key={s.label}>
@@ -131,7 +131,7 @@ function ResultRow({ a, rank, i, lang, yearValue, segs, splitRank, points, onAth
       ))}
       <td className="px-3 py-1.5 text-right tabular-nums border-l border-gray-100">
         {earnsPoints
-          ? <span className={points > 0 ? 'font-semibold text-red-700' : 'text-gray-400'}>{points}</span>
+          ? <span className={points > 0 ? 'font-semibold text-red-700' : 'text-gray-500'}>{points}</span>
           : <span className="text-gray-300">—</span>}
       </td>
     </tr>
@@ -401,7 +401,7 @@ export function ResultsTab({ data, lang, lastUpdated, onAthleteClick, sport, yea
       <div className="bg-white rounded-lg shadow-sm border border-gray-100 overflow-x-auto">
         {rows.length === 0 && separateRaces.length === 0 ? (
           <div className="p-8 text-center space-y-2">
-            <p className="text-xs text-gray-400">{t('no_data_available', lang)} {t(sport, lang)}</p>
+            <p className="text-xs text-gray-500">{t('no_data_available', lang)} {t(sport, lang)}</p>
             {category === 'youth' && !showGuests && (
               <p className="text-[11px] text-gray-500">{t('youth_no_data_hint', lang)}</p>
             )}
@@ -445,7 +445,7 @@ export function ResultsTab({ data, lang, lastUpdated, onAthleteClick, sport, yea
                   <tr className="bg-gray-100/70 border-y border-gray-200">
                     <td colSpan={6 + (yearValue === 'all' ? 1 : 0) + segs.length * 2} className="px-3 py-1.5">
                       <span className="text-[11px] font-semibold uppercase tracking-wider text-gray-600">{group.cls}</span>
-                      <span className="text-[11px] text-gray-400 ml-2">{group.note}</span>
+                      <span className="text-[11px] text-gray-600 ml-2">{group.note}</span>
                     </td>
                   </tr>
                   {group.rows.map(({ athlete: a, rank }, i) => (

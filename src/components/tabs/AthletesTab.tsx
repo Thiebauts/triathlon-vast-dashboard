@@ -157,7 +157,7 @@ export function AthletesTab({ data, athleteNames, allTimeRankings, lang, initial
         {/* Summary + event table */}
         <div className={`flex-1 min-w-0 space-y-3 transition-opacity duration-150 ${isStale ? 'opacity-50' : ''}`} aria-busy={isStale}>
           {!selected ? (
-            <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-8 text-center text-xs text-gray-400">
+            <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-8 text-center text-xs text-gray-500">
               {t('select_athlete_prompt', lang)}
             </div>
           ) : (
@@ -167,7 +167,7 @@ export function AthletesTab({ data, athleteNames, allTimeRankings, lang, initial
                 <div className="flex items-center justify-between mb-2">
                   <h3 className="text-sm font-bold text-gray-800">{selected}</h3>
                   {isMember
-                    ? <span className="text-[10px] bg-red-50 text-red-600 border border-red-100 rounded-full px-2.5 py-0.5 font-semibold">{t('club_member', lang)}</span>
+                    ? <span className="text-[10px] bg-red-50 text-red-700 border border-red-100 rounded-full px-2.5 py-0.5 font-semibold">{t('club_member', lang)}</span>
                     : <span className="text-[10px] bg-gray-100 text-gray-500 rounded-full px-2.5 py-0.5">{t('guest', lang)}</span>}
                 </div>
                 {clubPos && (
@@ -202,20 +202,20 @@ export function AthletesTab({ data, athleteNames, allTimeRankings, lang, initial
                           <th scope="row" className="px-3 py-1.5 text-gray-500 font-normal">{e.year}</th>
                           <td className="px-3 py-1.5 capitalize font-medium text-gray-700">{t(e.type, lang)}</td>
                           <td className="px-3 py-1.5 text-gray-600">{e.finished ? `${e.rank}/${e.class_total}` : '—'}</td>
-                          <td className="px-3 py-1.5 text-gray-400 hidden sm:table-cell">{e.finished && typeof e.overall_rank === 'number' && e.overall_rank > 0 ? `${e.overall_rank}/${e.overall_total}` : '—'}</td>
-                          <td className="px-3 py-1.5 text-gray-400 hidden sm:table-cell">{e.finished && e.is_club_member ? String(e.club_member_rank) : '—'}</td>
-                          <td className={`px-3 py-1.5 text-right tabular-nums ${e.points > 0 ? 'font-bold text-red-700' : 'text-gray-400'}`}>{e.points}</td>
+                          <td className="px-3 py-1.5 text-gray-500 hidden sm:table-cell">{e.finished && typeof e.overall_rank === 'number' && e.overall_rank > 0 ? `${e.overall_rank}/${e.overall_total}` : '—'}</td>
+                          <td className="px-3 py-1.5 text-gray-500 hidden sm:table-cell">{e.finished && e.is_club_member ? String(e.club_member_rank) : '—'}</td>
+                          <td className={`px-3 py-1.5 text-right tabular-nums ${e.points > 0 ? 'font-bold text-red-700' : 'text-gray-500'}`}>{e.points}</td>
                           <td className="px-3 py-1.5 font-mono text-gray-700 whitespace-nowrap">
                             {e.finished
                               ? fmt(e.time)
-                              : <span className="font-sans font-semibold text-gray-400">{t('dnf', lang)}</span>}
+                              : <span className="font-sans font-semibold text-gray-500">{t('dnf', lang)}</span>}
                             {isPB && (
-                              <span className="ml-1.5 text-[9px] font-bold text-green-600 bg-green-50 border border-green-200 rounded px-1 py-px">
+                              <span className="ml-1.5 text-[9px] font-bold text-green-700 bg-green-50 border border-green-200 rounded px-1 py-px">
                                 {t('personal_best', lang)}
                               </span>
                             )}
                             {delta !== undefined && (
-                              <span className={`ml-1.5 text-[9px] ${delta <= 0 ? 'text-green-600' : 'text-orange-500'}`}>
+                              <span className={`ml-1.5 text-[9px] ${delta <= 0 ? 'text-green-700' : 'text-orange-700'}`}>
                                 {formatDelta(delta)}
                               </span>
                             )}

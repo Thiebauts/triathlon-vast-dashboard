@@ -16,9 +16,9 @@ interface Props {
 }
 
 const MEDAL_COLOR: Record<number, string> = {
-  1: '#B8970A',
-  2: '#7A8FA6',
-  3: '#9E6B3F',
+  1: '#7D6300',
+  2: '#56677A',
+  3: '#85552B',
 }
 const MEDAL_BG: Record<number, string> = {
   1: 'bg-amber-50/60',
@@ -59,7 +59,7 @@ function RankTable({ data, lang, onAthleteClick }: {
                 ) : a.name}
               </td>
               <td className="px-3 py-1.5 text-right font-bold tabular-nums" style={{ color }}>{a.total_points}</td>
-              <td className="px-3 py-1.5 text-right text-gray-400 hidden sm:table-cell">{a.competitions.length}</td>
+              <td className="px-3 py-1.5 text-right text-gray-500 hidden sm:table-cell">{a.competitions.length}</td>
             </tr>
           )
         })}
