@@ -49,3 +49,6 @@ __pycache__/
 *.pyc
 .venv/
 nytatime/.venv/
+
+# local notes (kept off GitHub)
+NEXT_STEPS.md
