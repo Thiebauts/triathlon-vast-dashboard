@@ -97,6 +97,9 @@ const TRANSLATIONS: Record<string, { en: string; sv: string }> = {
   },
 
   participation_by_year:   { en: 'Participation by Year and Event Type', sv: 'Deltagande per År och Tävlingstyp' },
+  participation_chart_label: { en: 'Bar chart: participants per year, stacked by sport. The same figures follow as a table.', sv: 'Stapeldiagram: deltagare per år, staplat per gren. Samma siffror följer som tabell.' },
+  participation_table_caption: { en: 'Participants per year and sport', sv: 'Deltagare per år och gren' },
+  total:                   { en: 'Total', sv: 'Totalt' },
   site_title:              { en: 'Triathlon Väst – Competition Dashboard', sv: 'Triathlon Väst – Tävlingsdashboard' },
   last_updated:            { en: 'Results last updated:', sv: 'Resultaten senast uppdaterade:' },
   results_correction:      {

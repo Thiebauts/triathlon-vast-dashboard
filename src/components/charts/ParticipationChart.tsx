@@ -23,17 +23,43 @@ interface Props {
 
 export function ParticipationChart({ data, lang }: Props) {
   return (
-    <ResponsiveContainer width="100%" height={320} aria-label="Participation trends by sport and year">
-      <BarChart data={data} margin={{ top: 10, right: 20, left: 0, bottom: 5 }}>
-        <CartesianGrid strokeDasharray="3 3" />
-        <XAxis dataKey="year" tick={{ fontSize: 13 }} />
-        <YAxis tick={{ fontSize: 13 }} />
-        <Tooltip />
-        <Legend />
-        {SPORTS.map((s) => (
-          <Bar key={s} dataKey={s} name={t(s, lang)} stackId="a" fill={SPORT_COLORS[s]} />
-        ))}
-      </BarChart>
-    </ResponsiveContainer>
+    <>
+      {/* Screen readers can't read the bars: they get the same figures as a table */}
+      <ResponsiveContainer width="100%" height={320} aria-label={t('participation_chart_label', lang)}>
+        <BarChart data={data} margin={{ top: 10, right: 20, left: 0, bottom: 5 }}>
+          <CartesianGrid strokeDasharray="3 3" />
+          <XAxis dataKey="year" tick={{ fontSize: 13 }} />
+          <YAxis tick={{ fontSize: 13 }} />
+          <Tooltip />
+          <Legend />
+          {SPORTS.map((s) => (
+            <Bar key={s} dataKey={s} name={t(s, lang)} stackId="a" fill={SPORT_COLORS[s]} />
+          ))}
+        </BarChart>
+      </ResponsiveContainer>
+      {/* sr-only on a wrapper: a <table> ignores the 1px width and would
+          widen the page on phones */}
+      <div className="sr-only">
+        <table>
+          <caption>{t('participation_table_caption', lang)}</caption>
+          <thead>
+            <tr>
+              <th scope="col">{t('year', lang)}</th>
+              {SPORTS.map((s) => <th key={s} scope="col">{t(s, lang)}</th>)}
+              <th scope="col">{t('total', lang)}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {data.map((row) => (
+              <tr key={row.year}>
+                <th scope="row">{row.year}</th>
+                {SPORTS.map((s) => <td key={s}>{row[s]}</td>)}
+                <td>{SPORTS.reduce((sum, s) => sum + row[s], 0)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </>
   )
 }
