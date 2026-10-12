@@ -582,6 +582,25 @@ async function run() {
       throw new Error(`Got ${sport}/${year}/${category}`)
   })
 
+  await test('A link without a category resets the filter in the same tab', async () => {
+    // Same document, so this is a hashchange, not a fresh load
+    await page.goto(`${BASE}/#results/swimming/2024`, { waitUntil: 'networkidle' })
+    await page.waitForTimeout(600)
+    const category = await page.locator('select:visible').nth(2).inputValue()
+    if (category !== 'all') throw new Error(`Category stayed "${category}"`)
+  })
+
+  await test('Back button restores the previous filters', async () => {
+    await page.goBack({ waitUntil: 'networkidle' })
+    await page.waitForTimeout(600)
+    const category = await page.locator('select:visible').nth(2).inputValue()
+    if (category !== 'women') throw new Error(`Got "${category}" after Back`)
+    await page.goForward({ waitUntil: 'networkidle' })
+    await page.waitForTimeout(600)
+    const again = await page.locator('select:visible').nth(2).inputValue()
+    if (again !== 'all') throw new Error(`Got "${again}" after Forward`)
+  })
+
   await test('Changing results filters updates the URL', async () => {
     await page.locator('select:visible').nth(1).selectOption('2025')
     await page.locator('select:visible').nth(2).selectOption('men')
