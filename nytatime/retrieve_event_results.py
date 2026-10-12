@@ -76,12 +76,20 @@ RACE_OVERRIDES = {
             'Staffet Gänget': 'Staffet Gänget (Adam Millberg / Josephine Flod / My Försberg)',
         },
     },
+    # Swimming KM 2026: Helena Jakobsson Larsson registered as a guest but is a
+    # member for all of 2026, confirmed 2026-10-12.
+    'i7KCnCcSz3y9Cx9Hk': {
+        'clubs': {
+            'Helena Jakobsson Larsson': 'TriVäst',
+        },
+    },
     # Running KM 2026: the club column was left blank for 38 of 40 entrants,
     # so blank carried no membership signal; Miriam Degerman registered as
-    # "Klubblös" but is a member.
+    # "Klubblös" but is a member. Helena Jakobsson Larsson is a member for all
+    # of 2026 (guest in earlier years), confirmed 2026-10-12.
     'pBoPNtenyxfhmyTqv': {
         'clubs': {
-            'Helena Jakobsson Larsson': 'Gäst',
+            'Helena Jakobsson Larsson': 'TriVäst',
             'Nelly Bertilsson': 'Gäst',
             'Miriam Degerman': 'TriVäst',
         },
