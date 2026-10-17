@@ -519,10 +519,27 @@ async function run() {
     const panel = page.locator('#tabpanel-season')
     await panel.locator('h2', { hasText: 'Season recap' }).waitFor({ state: 'visible', timeout: 5000 })
     for (const label of ['Participations', 'Different people', 'Personal bests', 'Course records']) {
-      if (!(await panel.getByText(label, { exact: true }).isVisible())) throw new Error(`Missing tile ${label}`)
+      // .first(): the tiles come before the race cards, whose blocks reuse some labels
+      if (!(await panel.getByText(label, { exact: true }).first().isVisible())) throw new Error(`Missing tile ${label}`)
     }
     const races = await panel.locator('section h3[id^="season-"]').count()
     if (races < 6) throw new Error(`Only ${races} race cards`)
+  })
+
+  await test('Season summary text has a short version and a full one on demand', async () => {
+    const panel = page.locator('#tabpanel-season')
+    if (!(await panel.getByText(/In 20\d\d the club raced \d+ championships/).isVisible())) throw new Error('No short summary')
+    const full = panel.locator('details', { hasText: 'Read the full recap' })
+    if (await full.getByText(/won the club title/).first().isVisible()) throw new Error('Full recap open before clicking')
+    await full.locator('summary').click()
+    if (!(await full.getByText(/won the club title/).first().isVisible())) throw new Error('Full recap did not open')
+  })
+
+  await test('Each race shows its course record for men and women', async () => {
+    const running = page.locator('#tabpanel-season section', { has: page.locator('#season-running') })
+    const block = running.locator('div', { has: page.locator('h4', { hasText: 'Course records' }) }).last()
+    const text = await block.innerText()
+    if (!/Men[\s\S]*\(20\d\d\)[\s\S]*Women[\s\S]*\(20\d\d\)/.test(text)) throw new Error(`Got: ${text.slice(0, 120)}`)
   })
 
   await test('Season podiums count club members only, with the faster guest noted', async () => {
@@ -541,7 +558,7 @@ async function run() {
   })
 
   await test('Exact times open under the personal-best chart', async () => {
-    const details = page.locator('#tabpanel-season details').first()
+    const details = page.locator('#tabpanel-season details', { hasText: 'Exact times' }).first()
     await details.locator('summary').click()
     if (!(await details.locator('table').isVisible())) throw new Error('Table not shown')
   })
