@@ -41,7 +41,16 @@ export function seasonStory(s: SeasonSummary, lang: Lang): { short: string; long
   const num = (n: number) => n.toLocaleString(lang === 'sv' ? 'sv-SE' : 'en-GB', { maximumFractionDigits: 1 })
   const cap = (text: string) => text.charAt(0).toUpperCase() + text.slice(1)
 
-  // 1. The season against earlier years
+  // 1. The season's winners first: points standings and congratulations
+  const [m1, m2, m3] = s.pointsPodium.men
+  const [w1, w2, w3] = s.pointsPodium.women
+  if (m1 && m2 && m3 && w1 && w2 && w3) {
+    long.push(`${tf('season_story_points', lang, {
+      m1: m1.name, mp: m1.points, m2: m2.name, m3: m3.name, w1: w1.name, wp: w1.points, w2: w2.name, w3: w3.name,
+    })} ${tf('season_story_congrats', lang, { m: m1.name, w: w1.name, year: s.year })}`)
+  }
+
+  // 2. The season against earlier years
   const now = s.history[s.history.length - 1]
   const earlierYears = s.history.slice(0, -1)
   const prev = earlierYears[earlierYears.length - 1]
@@ -66,7 +75,7 @@ export function seasonStory(s: SeasonSummary, lang: Lang): { short: string; long
     long.push(trend.join(' '))
   }
 
-  // 2. Race by race against last year, in words
+  // 3. Race by race against last year, in words
   const changed = s.races
     .filter((r) => r.startsPreviousYear !== null && r.startsPreviousYear !== r.starts.total)
     .map((r) => ({ sport: sportName(r.sport, lang), a: r.startsPreviousYear!, b: r.starts.total }))
@@ -81,13 +90,13 @@ export function seasonStory(s: SeasonSummary, lang: Lang): { short: string; long
   else if (fewer.length) races.push(tf('season_story_fewer', lang, { fewer: cap(items(fewer)) }))
   if (races.length) long.push(races.join(' '))
 
-  // 3. Loyalty
+  // 4. Loyalty
   const fourPlus = Object.entries(s.racesPerMember).filter(([n]) => Number(n) >= 4).reduce((k, [, c]) => k + c, 0)
   long.push(s.everyRace.length
     ? tf('season_story_loyalty_all', lang, { names: list(s.everyRace, lang), n: s.races.length, k: fourPlus })
     : tf('season_story_loyalty', lang, { k: fourPlus }))
 
-  // 4. Each race: club champions, record, every personal best
+  // 5. Each race: club champions, record, every personal best
   for (const r of s.races) {
     const winners = [r.podium.men[0]?.name, r.podium.women[0]?.name].filter((n): n is string => !!n)
     const parts = [tf('season_story_race_winners', lang, { sport: t(r.sport, lang), winners: list(winners, lang) })]
@@ -100,15 +109,6 @@ export function seasonStory(s: SeasonSummary, lang: Lang): { short: string; long
       parts.push(tf(pbs.length === 1 ? 'season_story_race_pb_one' : 'season_story_race_pbs', lang, { n: pbs.length, list: names }))
     }
     long.push(parts.join(' '))
-  }
-
-  const [m1, m2, m3] = s.pointsPodium.men
-  const [w1, w2, w3] = s.pointsPodium.women
-  // 5. Season points
-  if (m1 && m2 && m3 && w1 && w2 && w3) {
-    long.push(tf('season_story_points', lang, {
-      m1: m1.name, mp: m1.points, m2: m2.name, m3: m3.name, w1: w1.name, wp: w1.points, w2: w2.name, w3: w3.name,
-    }))
   }
 
   // 6. Newcomers last: always good to welcome them by name

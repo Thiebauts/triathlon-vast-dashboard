@@ -178,6 +178,7 @@ const TRANSLATIONS: Record<string, { en: string; sv: string }> = {
     en: 'Season points: {m1} ({mp} pts) ahead of {m2} and {m3}; {w1} ({wp} pts) ahead of {w2} and {w3}.',
     sv: 'Säsongens poäng: {m1} ({mp} p) före {m2} och {m3}; {w1} ({wp} p) före {w2} och {w3}.',
   },
+  season_story_congrats:   { en: 'Warm congratulations to {m} and {w}, winners of the {year} season!', sv: 'Ett varmt grattis till {m} och {w} som vann säsongen {year}!' },
   season_story_race_winners: { en: '{sport}: {winners} won the club title.', sv: '{sport}: {winners} blev klubbmästare.' },
   season_story_race_record:  { en: '{name} set a new course record ({time}).', sv: '{name} satte nytt banrekord ({time}).' },
   season_story_race_no_pbs:  { en: 'No personal bests this time.', sv: 'Inga personbästan den här gången.' },
