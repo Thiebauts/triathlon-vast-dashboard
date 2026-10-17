@@ -62,7 +62,6 @@ export function seasonStory(s: SeasonSummary, lang: Lang): { short: string; long
       const prevAvg = Math.round((prev.starts / prev.races) * 10) / 10
       const key = avg > prevAvg ? 'season_story_trend_avg_up' : avg < prevAvg ? 'season_story_trend_avg_down' : 'season_story_trend_avg_same'
       trend.push(tf(key, lang, { avg: num(avg), prevAvg: num(prevAvg), prev: prev.year }))
-      trend.push(tf('season_story_trend_people', lang, { people: now.people, prevPeople: prev.people, prev: prev.year }))
     }
     long.push(trend.join(' '))
   }

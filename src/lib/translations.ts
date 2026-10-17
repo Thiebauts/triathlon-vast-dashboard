@@ -162,7 +162,6 @@ const TRANSLATIONS: Record<string, { en: string; sv: string }> = {
   season_story_trend_avg_up:   { en: 'On average each championship had {avg} starts, up from {prevAvg} in {prev}.', sv: 'I snitt hade varje klubbmästerskap {avg} starter, upp från {prevAvg} år {prev}.' },
   season_story_trend_avg_down: { en: 'On average each championship had {avg} starts, down from {prevAvg} in {prev}.', sv: 'I snitt hade varje klubbmästerskap {avg} starter, ned från {prevAvg} år {prev}.' },
   season_story_trend_avg_same: { en: 'On average each championship had {avg} starts, as in {prev}.', sv: 'I snitt hade varje klubbmästerskap {avg} starter, lika många som år {prev}.' },
-  season_story_trend_people: { en: '{people} different people took part, compared with {prevPeople} in {prev}.', sv: '{people} olika personer deltog, jämfört med {prevPeople} år {prev}.' },
   season_story_grew_most:  { en: '{sport} grew the most, from {a} to {b} starts.', sv: '{sport} växte mest, från {a} till {b} starter.' },
   season_story_also_grew_fewer: { en: '{grew} also grew, while {fewer} had fewer starts.', sv: '{grew} växte också, medan {fewer} hade färre starter.' },
   season_story_also_grew:  { en: '{grew} also grew.', sv: '{grew} växte också.' },
