@@ -3,6 +3,7 @@
 //   node --experimental-strip-types scripts/season-review.ts 2026 > SEASON_2026_REVIEW.md
 import { loadAllCompetitions } from '../src/lib/loader.ts'
 import { COURSES, getSeasonSummary } from '../src/lib/season.ts'
+import { seasonStory } from '../src/lib/seasonStory.ts'
 
 const year = process.argv[2] ?? String(new Date().getFullYear())
 const s = getSeasonSummary(loadAllCompetitions(), year)
@@ -18,6 +19,13 @@ p(`# Season ${year} — review before publishing`)
 p()
 p(`Generated from \`src/lib/season.ts\` (the same code the Season tab and email will use).`)
 p(`Name, club and time corrections already applied. Check every line; tell Claude what is wrong.`)
+p()
+const story = seasonStory(s, 'en')
+p(`## Summary text (as shown on the Season tab)`)
+p()
+p(`> ${story.short}`)
+p()
+story.long.forEach((para, i) => { p(`> ${para}`); if (i < story.long.length - 1) p('>') })
 p()
 p(`## Participation`)
 p()
@@ -52,7 +60,10 @@ for (const r of s.races) {
     p(`**Records / improvements:** not computed — ${c.excluded ? 'new course this season, no earlier time to compare' : 'course not comparable'}.`)
   } else {
     const scope = c.since ? ` (course since ${c.since})` : ''
-    p(`**Club records broken${scope}:** ${r.records.length ? r.records.map((x) => `${x.gender}: ${x.name} ${x.time}${x.previous ? ` (was ${x.previous.name} ${x.previous.time}, ${x.previous.year})` : ' (first)'}`).join(' · ') : 'none'}`)
+    const cr = r.courseRecords!
+    p(`**Course records${scope}:** ${(['men', 'women'] as const).map((g) => `${g}: ${cr[g] ? `${cr[g]!.name} ${cr[g]!.time} (${cr[g]!.year})${cr[g]!.setThisSeason ? ' NEW' : ''}` : '—'}`).join(' · ')}`)
+    p()
+    p(`**Club records broken:** ${r.records.length ? r.records.map((x) => `${x.gender}: ${x.name} ${x.time} (was ${x.previous.name} ${x.previous.time}, ${x.previous.year})`).join(' · ') : 'none'}`)
     p()
     const pbs = r.personalBests!
     p(`**Personal bests — ${pbs.length} of ${r.comparable} members who had raced this course before** (vs their best earlier time, biggest improvement first):`)
