@@ -57,10 +57,10 @@ async function run() {
     await btn.waitFor({ state: 'visible', timeout: 5000 })
   })
 
-  await test('5 tab buttons visible', async () => {
+  await test('6 tab buttons visible', async () => {
     // role=tab — text matching would also count the Overview navigation links
     const count = await page.getByRole('tab').count()
-    if (count !== 5) throw new Error(`Found ${count} tabs, expected 5`)
+    if (count !== 6) throw new Error(`Found ${count} tabs, expected 6`)
   })
 
   await test('Discipline cards visible', async () => {
@@ -505,6 +505,73 @@ async function run() {
   await page.waitForTimeout(500)
 
   // ── LANGUAGE IN CONTEXT ───────────────────────────────────────────────────────
+  // ── SEASON RECAP TAB ─────────────────────────────────────────────────────────
+  console.log('\n📅 Season Recap Tab')
+
+  await test('Overview links to the season recap', async () => {
+    await page.goto(BASE, { waitUntil: 'networkidle' })
+    await page.locator('button', { hasText: 'See the season recap' }).click()
+    await page.waitForTimeout(600)
+    if (!page.url().includes('#season/')) throw new Error(`URL is ${page.url()}`)
+  })
+
+  await test('Season tab shows key numbers and every race', async () => {
+    const panel = page.locator('#tabpanel-season')
+    await panel.locator('h2', { hasText: 'Season recap' }).waitFor({ state: 'visible', timeout: 5000 })
+    for (const label of ['Participations', 'Different people', 'Personal bests', 'Course records']) {
+      if (!(await panel.getByText(label, { exact: true }).isVisible())) throw new Error(`Missing tile ${label}`)
+    }
+    const races = await panel.locator('section h3[id^="season-"]').count()
+    if (races < 6) throw new Error(`Only ${races} race cards`)
+  })
+
+  await test('Season podiums count club members only, with the faster guest noted', async () => {
+    const swim = page.locator('#tabpanel-season section', { has: page.locator('#season-swimming') })
+    if (!(await swim.getByText(/Fastest overall: guest/).isVisible())) throw new Error('No guest note on swimming')
+  })
+
+  await test('Personal bests show the year of the previous best', async () => {
+    const text = await page.locator('#tabpanel-season').innerText()
+    if (!/best in 20\d\d/.test(text)) throw new Error('No "best in <year>" label')
+  })
+
+  await test('Swimrun card explains why no records are compared', async () => {
+    const swimrun = page.locator('#tabpanel-season section', { has: page.locator('#season-swimrun') })
+    if (!(await swimrun.getByText(/New course this season/).isVisible())) throw new Error('No new-course note')
+  })
+
+  await test('Exact times open under the personal-best chart', async () => {
+    const details = page.locator('#tabpanel-season details').first()
+    await details.locator('summary').click()
+    if (!(await details.locator('table').isVisible())) throw new Error('Table not shown')
+  })
+
+  await test('Full ranking opens Club Rankings on the season year', async () => {
+    await page.locator('#tabpanel-season button', { hasText: 'Full ranking' }).click()
+    await page.waitForTimeout(500)
+    if (!page.url().endsWith('#rankings/2026')) throw new Error(`URL is ${page.url()}`)
+  })
+
+  await test('Season deep link opens the recap directly', async () => {
+    await page.goto(`${BASE}/#season/2026`, { waitUntil: 'networkidle' })
+    await page.waitForTimeout(600)
+    const selected = await page.getByRole('tab', { name: 'Season Recap' }).getAttribute('aria-selected')
+    if (selected !== 'true') throw new Error('Season tab not selected')
+  })
+
+  await test('Season tab fits a 320px phone without sideways scrolling', async () => {
+    const phone = await browser.newPage({ viewport: { width: 320, height: 800 } })
+    await phone.goto(`${BASE}/#season/2026`, { waitUntil: 'networkidle' })
+    await phone.waitForTimeout(600)
+    const width = await phone.evaluate(() => document.documentElement.scrollWidth)
+    await phone.close()
+    if (width > 320) throw new Error(`Page is ${width}px wide`)
+  })
+
+  // The language checks below start from Club Rankings, where the suite was before
+  await page.goto(`${BASE}/#rankings`, { waitUntil: 'networkidle' })
+  await page.waitForTimeout(500)
+
   console.log('\n🌐 Language in Rankings context')
 
   await test('Switch to Swedish on Rankings tab', async () => {
