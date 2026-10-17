@@ -54,9 +54,14 @@ for (const r of s.races) {
     const scope = c.since ? ` (course since ${c.since})` : ''
     p(`**Club records broken${scope}:** ${r.records.length ? r.records.map((x) => `${x.gender}: ${x.name} ${x.time}${x.previous ? ` (was ${x.previous.name} ${x.previous.time}, ${x.previous.year})` : ' (first)'}`).join(' · ') : 'none'}`)
     p()
-    p(`**Biggest improvements vs own best earlier time:** ${r.improvements!.map((x, i) => `${i + 1}. ${x.name} ${gainStr(x.gain)} (${x.time} vs ${x.previousBest.time} in ${x.previousBest.year})`).join(' · ') || 'none'}`)
+    const pbs = r.personalBests!
+    p(`**Personal bests — ${pbs.length} of ${r.comparable} members who had raced this course before** (vs their best earlier time, biggest improvement first):`)
     p()
-    p(`Personal bests: ${r.personalBests} of ${r.comparable} members who had raced this course before.`)
+    if (pbs.length) {
+      p(`| # | Member | 2026 | Previous best | Improvement |`)
+      p(`|---|---|---|---|---|`)
+      pbs.forEach((x, i) => p(`| ${i + 1} | ${x.name} | ${x.time} | ${x.previousBest.time} (${x.previousBest.year}) | ${gainStr(x.gain)} |`))
+    } else p(`none`)
   }
 }
 p()
@@ -67,8 +72,4 @@ p(`- Members by number of championships: ${Object.entries(s.racesPerMember).map(
 p(`- Members at their first club championship ever: ${s.newMembers}`)
 p(`- Points ranking — men: ${s.pointsPodium.men.map((x, i) => `${i + 1}. ${x.name} ${x.points}`).join(' · ')}`)
 p(`- Points ranking — women: ${s.pointsPodium.women.map((x, i) => `${i + 1}. ${x.name} ${x.points}`).join(' · ')}`)
-if (s.closestFinish) {
-  const cf = s.closestFinish
-  p(`- Closest podium finish: ${cf.sport} ${cf.gender}, places ${cf.places.join('–')}: ${cf.names.join(' and ')}, ${cf.gap.toFixed(1)} s apart`)
-}
 console.log(out.join('\n'))

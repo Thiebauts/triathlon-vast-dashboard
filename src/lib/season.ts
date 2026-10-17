@@ -53,10 +53,12 @@ export interface RaceSummary {
   fasterGuest: Partial<Record<Gender, PodiumEntry>>
   /** Course records set this season; null when the course isn't comparable. */
   records: RecordEntry[] | null
-  /** Top 3 improvements vs the athlete's best earlier time; null when not comparable. */
-  improvements: Improvement[] | null
-  /** Member results this season that beat their best earlier comparable time. */
-  personalBests: number
+  /**
+   * Every member who beat their best earlier comparable time, biggest gain
+   * first (the first three are the race's top improvements); null when the
+   * course isn't comparable.
+   */
+  personalBests: Improvement[] | null
   /** Comparable member results (raced the course before). */
   comparable: number
   startsPreviousYear: number | null
@@ -74,8 +76,6 @@ export interface SeasonSummary {
   /** Members whose first club championship ever was this season. */
   newMembers: number
   pointsPodium: Record<Gender, Array<{ name: string; points: number }>>
-  /** Smallest gap between two places on a club podium. */
-  closestFinish: { sport: SportType; gender: Gender; places: [number, number]; names: [string, string]; gap: number } | null
 }
 
 /** Runners of a relay team, from "Team name (A / B / C)". */
@@ -166,8 +166,7 @@ function summarizeRace(sport: SportType, rows: AthleteResult[], year: string): R
     podium,
     fasterGuest,
     records: comparable ? records : null,
-    improvements: comparable ? improvementsAll.slice(0, 3) : null,
-    personalBests: improvementsAll.length,
+    personalBests: comparable ? improvementsAll : null,
     comparable: comparableCount,
     startsPreviousYear: prevRows.length || null,
   }
@@ -196,19 +195,6 @@ export function getSeasonSummary(data: CompetitionsData, year: string): SeasonSu
 
   const earlierNames = new Set(SEASON_SPORTS.flatMap((s) => data[s].filter((a) => a.Competition_Year < year).map((a) => a.Name)))
 
-  let closestFinish: SeasonSummary['closestFinish'] = null
-  for (const r of races) {
-    for (const g of ['men', 'women'] as Gender[]) {
-      const p = r.podium[g]
-      for (let i = 0; i + 1 < p.length; i++) {
-        const gap = p[i + 1].seconds - p[i].seconds
-        if (!closestFinish || gap < closestFinish.gap) {
-          closestFinish = { sport: r.sport, gender: g, places: [i + 1, i + 2], names: [p[i].name, p[i + 1].name], gap }
-        }
-      }
-    }
-  }
-
   const top3 = (g: Gender) => getClubRankings(data, g, year).slice(0, 3).map((a) => ({ name: a.name, points: a.total_points }))
 
   return {
@@ -229,6 +215,5 @@ export function getSeasonSummary(data: CompetitionsData, year: string): SeasonSu
     racesPerMember,
     newMembers: [...racesByMember.keys()].filter((n) => !earlierNames.has(n)).length,
     pointsPodium: { men: top3('men'), women: top3('women') },
-    closestFinish,
   }
 }

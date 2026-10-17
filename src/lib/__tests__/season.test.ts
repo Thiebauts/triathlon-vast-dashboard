@@ -75,10 +75,10 @@ test('swimrun: new course, so no records and no improvements', () => {
   d.swimrun = [mk('M', 'Herr', 'TriVäst', '2025', 1700), mk('M', 'Herr', 'TriVäst', '2026', 1600)]
   const race = getSeasonSummary(d, '2026').races[0]
   assert.equal(race.records, null)
-  assert.equal(race.improvements, null)
+  assert.equal(race.personalBests, null)
 })
 
-test('improvements: vs best earlier time, in seconds, members only, top 3 per race', () => {
+test('personal bests: vs best earlier time, in seconds, members only, all listed', () => {
   const d = empty()
   d.running = [
     // Ann: best earlier 1300 (2023), not 1400 (2025) → gain 60
@@ -91,13 +91,13 @@ test('improvements: vs best earlier time, in seconds, members only, top 3 per ra
     mk('New', 'Herr', 'TriVäst', '2026', 1000), // no earlier race
   ]
   const race = getSeasonSummary(d, '2026').races[0]
-  assert.deepEqual(race.improvements?.map((x) => [x.name, x.gain]), [['Ben', 100], ['Ann', 60], ['Cat', 10]])
-  assert.equal(race.improvements?.[1].previousBest.year, '2023')
-  assert.equal(race.personalBests, 4)
+  // Every member with a PB, biggest gain first — not just the top 3
+  assert.deepEqual(race.personalBests?.map((x) => [x.name, x.gain]), [['Ben', 100], ['Ann', 60], ['Cat', 10], ['Dag', 5]])
+  assert.equal(race.personalBests?.[1].previousBest.year, '2023')
   assert.equal(race.comparable, 5)
 })
 
-test('season facts: every-race members, new members, closest podium gap', () => {
+test('season facts: every-race members and new members', () => {
   const d = empty()
   d.running = [mk('All', 'Herr', 'TriVäst', '2026', 1000), mk('Close', 'Herr', 'TriVäst', '2026', 1000.4), mk('Vet', 'Herr', 'TriVäst', '2025', 1100)]
   d.cycling = [mk('All', 'Herr', 'TriVäst', '2026', 1500), mk('Vet', 'Herr', 'TriVäst', '2026', 1600)]
@@ -105,6 +105,4 @@ test('season facts: every-race members, new members, closest podium gap', () => 
   assert.deepEqual(s.everyRace, ['All'])
   assert.deepEqual(s.racesPerMember, { 2: 1, 1: 2 })
   assert.equal(s.newMembers, 2) // All and Close; Vet raced in 2025
-  assert.equal(s.closestFinish?.sport, 'running')
-  assert.ok(Math.abs((s.closestFinish?.gap ?? 0) - 0.4) < 1e-9)
 })
