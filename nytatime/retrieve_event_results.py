@@ -76,6 +76,11 @@ RACE_OVERRIDES = {
             # canonical spellings so the season recap counts each person once.
             'Staffet Gänget': 'Staffet Gänget (Adam Millberg / Josefine Flod / My Forsberg)',
         },
+        # NyTaTime was later edited to 1:30:51; the club keeps the time it
+        # published (1:31:01), confirmed by Thiebaut 2026-10-17.
+        'times': {
+            'Jens Lejhall': 5461.96,  # raw seconds behind the published 01:31:01
+        },
     },
     # Swimming KM 2026: Helena Jakobsson Larsson registered as a guest but is a
     # member for all of 2026, confirmed 2026-10-12.
