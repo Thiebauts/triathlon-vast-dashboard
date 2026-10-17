@@ -8,6 +8,7 @@ const TRANSLATIONS: Record<string, { en: string; sv: string }> = {
   tab_athletes:       { en: 'Athlete Profiles', sv: 'Idrottarprofiler' },
   tab_rankings:       { en: 'Club Rankings',    sv: 'Klubbranking' },
   tab_extra:          { en: 'Extra Events',     sv: 'Extra evenemang' },
+  tab_season:         { en: 'Season Recap',     sv: 'Säsongen' },
 
   // Short tab labels for narrow screens
   tab_short_overview: { en: 'Overview',  sv: 'Översikt' },
@@ -15,6 +16,7 @@ const TRANSLATIONS: Record<string, { en: string; sv: string }> = {
   tab_short_athletes: { en: 'Athletes',  sv: 'Idrottare' },
   tab_short_rankings: { en: 'Rankings',  sv: 'Ranking' },
   tab_short_extra:    { en: 'Extra',     sv: 'Extra' },
+  tab_short_season:   { en: 'Season',    sv: 'Säsong' },
 
   // Discipline cards on the Overview tab
   discipline_running_title:   { en: 'Running — 5 km Track Race',  sv: 'Löpning — 5 km sprintlopp' },
@@ -97,6 +99,56 @@ const TRANSLATIONS: Record<string, { en: string; sv: string }> = {
   },
 
   participation_by_year:   { en: 'Participation by Year and Event Type', sv: 'Deltagande per År och Tävlingstyp' },
+
+  // Season recap
+  season_title:            { en: 'Season recap', sv: 'Säsongssammanfattning' },
+  season_intro:            {
+    en: 'Everything the club raced in one season: who took part, the club podiums, course records and personal bests. Podiums, records and personal bests count club members only.',
+    sv: 'Allt klubben tävlade i under en säsong: vilka som deltog, klubbens pallplatser, banrekord och personbästan. Pallplatser, rekord och personbästan räknar bara klubbmedlemmar.',
+  },
+  season_select:           { en: 'Season:', sv: 'Säsong:' },
+  season_kpi_starts:       { en: 'Participations', sv: 'Starter' },
+  season_kpi_starts_sub:   { en: '{m} by members · {g} by guests', sv: '{m} av medlemmar · {g} av gäster' },
+  season_kpi_people:       { en: 'Different people', sv: 'Olika deltagare' },
+  season_kpi_people_sub:   { en: '{m} members · {g} guests', sv: '{m} medlemmar · {g} gäster' },
+  season_kpi_new:          { en: 'First club championship', sv: 'Första klubbmästerskapet' },
+  season_kpi_new_sub:      { en: 'members new this season', sv: 'medlemmar nya för säsongen' },
+  season_kpi_pbs:          { en: 'Personal bests', sv: 'Personbästan' },
+  season_kpi_pbs_sub:      { en: 'of {m} members who raced a course before', sv: 'av {m} medlemmar som kört banan tidigare' },
+  season_kpi_records:      { en: 'Course records', sv: 'Banrekord' },
+  season_kpi_records_sub:  { en: 'broken this season', sv: 'slagna under säsongen' },
+  season_participation:    { en: 'Participation per race', sv: 'Deltagande per tävling' },
+  season_men:              { en: 'Men', sv: 'Herrar' },
+  season_women:            { en: 'Women', sv: 'Damer' },
+  season_youth:            { en: 'Youth & children', sv: 'Ungdom & barn' },
+  season_relay:            { en: 'Relay', sv: 'Stafett' },
+  season_prev_year_marker: { en: '{y} starts', sv: 'Starter {y}' },
+  season_starts:           { en: 'starts', sv: 'starter' },
+  season_loyalty:          { en: 'Championships per member', sv: 'Klubbmästerskap per medlem' },
+  season_loyalty_races:    { en: 'races', sv: 'tävlingar' },
+  season_loyalty_members:  { en: 'members', sv: 'medlemmar' },
+  season_loyalty_all:      { en: 'Raced all {n}:', sv: 'Körde alla {n}:' },
+  season_points:           { en: 'Season points ranking', sv: 'Säsongens poängranking' },
+  season_points_unit:      { en: 'pts', sv: 'p' },
+  season_full_ranking:     { en: 'Full ranking →', sv: 'Hela rankingen →' },
+  season_podium:           { en: 'Club podium', sv: 'Klubbens pallplatser' },
+  season_faster_guest:     { en: 'Fastest overall: guest {name} ({time}).', sv: 'Snabbast totalt: gästen {name} ({time}).' },
+  season_record:           { en: 'New course record', sv: 'Nytt banrekord' },
+  season_record_prev:      { en: 'previous: {name}, {time} ({year})', sv: 'tidigare: {name}, {time} ({year})' },
+  season_record_first:     { en: 'first time on this course', sv: 'första gången på banan' },
+  season_note_triathlon:   { en: 'Records and personal bests compare Inseros only (2023 on); 2021–22 were raced at Sätila.', sv: 'Rekord och personbästan jämförs bara på Inseros (från 2023); 2021–22 kördes i Sätila.' },
+  season_note_swimrun:     { en: 'New course this season (three laps at Frökens udde; 2025 was at Sisjön), so no records or personal bests are compared.', sv: 'Ny bana i år (tre varv vid Frökens udde; 2025 kördes vid Sisjön), så inga rekord eller personbästan jämförs.' },
+  season_pbs:              { en: 'Personal bests: {n} of {m} members who raced it before', sv: 'Personbästan: {n} av {m} medlemmar som kört tidigare' },
+  season_pbs_none:         { en: 'No personal bests this time.', sv: 'Inga personbästan den här gången.' },
+  season_pb_prev:          { en: 'Previous best', sv: 'Tidigare bästa' },
+  season_pb_gain:          { en: 'Faster by', sv: 'Snabbare med' },
+  season_pb_best_year:     { en: 'best in {y}', sv: 'bästa {y}' },
+  season_pb_exact:         { en: 'Exact times', sv: 'Exakta tider' },
+  season_member:           { en: 'Member', sv: 'Medlem' },
+  season_race:             { en: 'Race', sv: 'Tävling' },
+  season_overview_title:   { en: 'Season {y} recap', sv: 'Säsongen {y} i siffror' },
+  season_overview_text:    { en: 'Participation, club podiums, course records and every personal best of the season.', sv: 'Deltagande, klubbens pallplatser, banrekord och alla personbästan från säsongen.' },
+  season_overview_link:    { en: 'See the season recap →', sv: 'Se säsongssammanfattningen →' },
   participation_chart_label: { en: 'Bar chart: participants per year, stacked by sport. The same figures follow as a table.', sv: 'Stapeldiagram: deltagare per år, staplat per gren. Samma siffror följer som tabell.' },
   participation_table_caption: { en: 'Participants per year and sport', sv: 'Deltagare per år och gren' },
   total:                   { en: 'Total', sv: 'Totalt' },
@@ -182,4 +234,9 @@ const TRANSLATIONS: Record<string, { en: string; sv: string }> = {
 
 export function t(key: string, lang: Lang = 'en'): string {
   return TRANSLATIONS[key]?.[lang] ?? TRANSLATIONS[key]?.en ?? key
+}
+
+/** t() with {placeholders} filled in: tf('season_pbs', lang, { n: 7, m: 21 }). */
+export function tf(key: string, lang: Lang, vars: Record<string, string | number>): string {
+  return t(key, lang).replace(/\{(\w+)\}/g, (match, name: string) => (name in vars ? String(vars[name]) : match))
 }

@@ -8,6 +8,8 @@ import { ResultsTab } from './tabs/ResultsTab'
 import { AthletesTab } from './tabs/AthletesTab'
 import { RankingsTab } from './tabs/RankingsTab'
 import { ExtraEventsTab } from './tabs/ExtraEventsTab'
+import { SeasonTab } from './tabs/SeasonTab'
+import { SEASON_YEARS } from '@/lib/season'
 import type { CompetitionsData, ClubAthlete, ExtraCategory, ExtraEvent, ResultsCategory, SportType } from '@/lib/types'
 
 const TAB_ORDER = TABS
@@ -42,6 +44,7 @@ export function Dashboard({ data, athleteNames, allTimeRankings, extraEvents, la
   const [extraDate, setExtraDate] = useState<string | null>(extraEvents[0]?.date ?? null)
   const [extraCategory, setExtraCategory] = useState<ExtraCategory>('all')
   const [rankingsYear, setRankingsYear] = useState('all')
+  const [seasonYear, setSeasonYear] = useState(SEASON_YEARS[0])
 
   const selectTab = useCallback((id: Tab) => {
     setTab(id)
@@ -54,6 +57,13 @@ export function Dashboard({ data, athleteNames, allTimeRankings, extraEvents, la
   }, [selectTab])
 
   const navigateToExtra = useCallback(() => selectTab('extra'), [selectTab])
+  const navigateToSeason = useCallback(() => selectTab('season'), [selectTab])
+
+  // The season recap's "Full ranking" opens Club Rankings on that same year
+  const navigateToSeasonRankings = useCallback(() => {
+    setRankingsYear(seasonYear)
+    selectTab('rankings')
+  }, [seasonYear, selectTab])
 
   // Years differ per sport, so switching sport resets the year filter —
   // the single place for that rule (the sport <select> and the Overview
@@ -87,6 +97,8 @@ export function Dashboard({ data, athleteNames, allTimeRankings, extraEvents, la
     } else if (parsed.tab === 'extra') {
       if (p0) setExtraDate(p0)
       if (p1 && EXTRA_CATEGORIES.includes(p1)) setExtraCategory(p1 as ExtraCategory)
+    } else if (parsed.tab === 'season') {
+      setSeasonYear(p0 && SEASON_YEARS.includes(p0) ? p0 : SEASON_YEARS[0])
     } else if (parsed.tab === 'rankings') {
       if (p0 && (p0 === 'all' || YEAR_RE.test(p0))) setRankingsYear(p0)
     }
@@ -114,12 +126,13 @@ export function Dashboard({ data, athleteNames, allTimeRankings, extraEvents, la
       : tab === 'athletes' ? [selectedAthlete]
       : tab === 'extra' ? [extraDate, extraCategory]
       : tab === 'rankings' ? [rankingsYear]
+      : tab === 'season' ? [seasonYear]
       : []
     const hash = buildHash(tab, params)
     // replaceState (not pushState): the URL stays shareable without turning
     // every tab click into a browser-history entry.
     window.history.replaceState(null, '', hash || window.location.pathname + window.location.search)
-  }, [tab, sport, resultsYear, resultsCategory, selectedAthlete, extraDate, extraCategory, rankingsYear])
+  }, [tab, sport, resultsYear, resultsCategory, selectedAthlete, extraDate, extraCategory, rankingsYear, seasonYear])
 
   const onTabKeyDown = useCallback((e: React.KeyboardEvent, index: number) => {
     let next: number
@@ -139,6 +152,7 @@ export function Dashboard({ data, athleteNames, allTimeRankings, extraEvents, la
     { id: 'results',  full: t('tab_event_results', lang), short: t('tab_short_results', lang) },
     { id: 'athletes', full: t('tab_athletes', lang),      short: t('tab_short_athletes', lang) },
     { id: 'rankings', full: t('tab_rankings', lang),      short: t('tab_short_rankings', lang) },
+    { id: 'season',   full: t('tab_season', lang),        short: t('tab_short_season', lang) },
     { id: 'extra',    full: t('tab_extra', lang),         short: t('tab_short_extra', lang) },
   ], [lang])
 
@@ -172,7 +186,7 @@ export function Dashboard({ data, athleteNames, allTimeRankings, extraEvents, la
       </div>
 
       <div role="tabpanel" id="tabpanel-overview" aria-labelledby="tab-overview" hidden={tab !== 'overview'}>
-        {visited.has('overview') && <OverviewTab data={data} lang={lang} lastUpdated={lastUpdated} onNavigateToExtra={navigateToExtra} onNavigateToSport={navigateToSport} />}
+        {visited.has('overview') && <OverviewTab data={data} lang={lang} lastUpdated={lastUpdated} onNavigateToExtra={navigateToExtra} onNavigateToSeason={navigateToSeason} onNavigateToSport={navigateToSport} />}
       </div>
       <div role="tabpanel" id="tabpanel-results" aria-labelledby="tab-results" hidden={tab !== 'results'}>
         {visited.has('results') && <ResultsTab data={data} lang={lang} lastUpdated={lastUpdated} onAthleteClick={navigateToAthlete} sport={sport} year={resultsYear} category={resultsCategory} onSportChange={changeSport} onYearChange={setResultsYear} onCategoryChange={setResultsCategory} />}
@@ -182,6 +196,9 @@ export function Dashboard({ data, athleteNames, allTimeRankings, extraEvents, la
       </div>
       <div role="tabpanel" id="tabpanel-rankings" aria-labelledby="tab-rankings" hidden={tab !== 'rankings'}>
         {visited.has('rankings') && <RankingsTab data={data} allTimeRankings={allTimeRankings} lang={lang} onAthleteClick={navigateToAthlete} year={rankingsYear} onYearChange={setRankingsYear} />}
+      </div>
+      <div role="tabpanel" id="tabpanel-season" aria-labelledby="tab-season" hidden={tab !== 'season'}>
+        {visited.has('season') && <SeasonTab data={data} lang={lang} year={seasonYear} onYearChange={setSeasonYear} onAthleteClick={navigateToAthlete} onNavigateToRankings={navigateToSeasonRankings} />}
       </div>
       <div role="tabpanel" id="tabpanel-extra" aria-labelledby="tab-extra" hidden={tab !== 'extra'}>
         {visited.has('extra') && <ExtraEventsTab events={extraEvents} lang={lang} eventDate={extraDate} category={extraCategory} onEventChange={setExtraDate} onCategoryChange={setExtraCategory} />}

@@ -1,7 +1,8 @@
 'use client'
 import { useMemo } from 'react'
 import dynamic from 'next/dynamic'
-import { t } from '@/lib/translations'
+import { t, tf } from '@/lib/translations'
+import { SEASON_YEARS } from '@/lib/season'
 import { formatDate } from '@/lib/dates'
 import { getParticipationByYear } from '@/lib/data'
 import type { CompetitionsData, Lang, SportType } from '@/lib/types'
@@ -16,6 +17,8 @@ interface Props {
   lang: Lang
   /** ISO date of the newest result on the dashboard. */
   lastUpdated: string
+  /** Switches the dashboard to the Season recap tab. */
+  onNavigateToSeason?: () => void
   /** Switches the dashboard to the Extra Events tab. */
   onNavigateToExtra?: () => void
   /** Switches the dashboard to Event Results with the given sport selected. */
@@ -26,7 +29,7 @@ interface Props {
 // strings go through the catalogue); this only fixes the display order.
 const DISCIPLINES = ['running', 'swimming', 'cycling', 'duathlon', 'triathlon', 'swimrun'] as const
 
-export function OverviewTab({ data, lang, lastUpdated, onNavigateToExtra, onNavigateToSport }: Props) {
+export function OverviewTab({ data, lang, lastUpdated, onNavigateToSeason, onNavigateToExtra, onNavigateToSport }: Props) {
   const participationByYear = useMemo(() => getParticipationByYear(data), [data])
   return (
     <div className="space-y-3">
@@ -52,6 +55,20 @@ export function OverviewTab({ data, lang, lastUpdated, onNavigateToExtra, onNavi
           ))}
         </div>
       </div>
+
+      {/* Latest season recap */}
+      {onNavigateToSeason && SEASON_YEARS.length > 0 && (
+        <div className="bg-white rounded-lg shadow-sm border border-gray-100 px-4 py-3">
+          <h2 className="text-sm font-semibold text-red-700 mb-1">{tf('season_overview_title', lang, { y: SEASON_YEARS[0] })}</h2>
+          <p className="text-xs text-gray-500 leading-relaxed">{t('season_overview_text', lang)}</p>
+          <button
+            onClick={onNavigateToSeason}
+            className="mt-1 min-h-6 text-xs text-red-700 hover:underline font-medium focus-visible:ring-2 focus-visible:ring-red-700 focus-visible:ring-offset-1 rounded"
+          >
+            {t('season_overview_link', lang)}
+          </button>
+        </div>
+      )}
 
       {/* Extra events & open trainings */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-100 px-4 py-3">

@@ -8,6 +8,9 @@
 import { getClubRankings, isFinisher, isRelay, racesOverall } from './data.ts'
 import type { AthleteResult, CompetitionsData, SportType } from './types'
 
+/** Seasons published on the Season tab, newest first — add a year once its numbers are checked. */
+export const SEASON_YEARS: readonly string[] = ['2026']
+
 export const SEASON_SPORTS: readonly SportType[] = ['cycling', 'duathlon', 'swimming', 'triathlon', 'swimrun', 'running']
 
 /**
