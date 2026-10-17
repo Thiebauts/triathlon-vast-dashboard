@@ -1,6 +1,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { displayTime, getSeasonSummary, parseClock, relayRunners } from '../season.ts'
+import { seasonStory } from '../seasonStory.ts'
 import type { AthleteResult, CompetitionsData } from '../types'
 
 function mk(Name: string, Class: string, Club: string, year: string, seconds: number, Status = 'ok'): AthleteResult {
@@ -121,4 +122,60 @@ test('season facts: every-race members and new members', () => {
   assert.deepEqual(s.everyRace, ['All'])
   assert.deepEqual(s.racesPerMember, { 2: 1, 1: 2 })
   assert.equal(s.newMembers, 2) // All and Close; Vet raced in 2025
+})
+
+test('course records: the standing record shows even when nobody beat it', () => {
+  const d = empty()
+  d.running = [
+    mk('Fast', 'Herr', 'TriVäst', '2022', 940), mk('Now', 'Herr', 'TriVäst', '2026', 950),
+    mk('Her', 'Dam', 'TriVäst', '2025', 1120), // no club woman raced in 2026
+  ]
+  const race = getSeasonSummary(d, '2026').races[0]
+  assert.deepEqual(race.courseRecords?.men && [race.courseRecords.men.name, race.courseRecords.men.year, race.courseRecords.men.setThisSeason], ['Fast', '2022', false])
+  assert.deepEqual(race.courseRecords?.women && [race.courseRecords.women.name, race.courseRecords.women.setThisSeason], ['Her', false])
+  assert.equal(race.records?.length, 0)
+})
+
+test('course records: a record set this season is flagged and listed as broken', () => {
+  const d = empty()
+  d.cycling = [mk('Old', 'Herr', 'TriVäst', '2021', 1418), mk('New', 'Herr', 'TriVäst', '2026', 1415)]
+  const race = getSeasonSummary(d, '2026').races[0]
+  assert.equal(race.courseRecords?.men?.name, 'New')
+  assert.equal(race.courseRecords?.men?.setThisSeason, true)
+  assert.equal(race.courseRecords?.women, null)
+})
+
+test('seasonStory: short and long text carry the summary numbers, in both languages', () => {
+  const d = empty()
+  d.cycling = [mk('Old', 'Herr', 'TriVäst', '2021', 1418), mk('Pontus', 'Herr', 'TriVäst', '2026', 1415), mk('Josefine', 'Dam', 'TriVäst', '2026', 1641)]
+  d.swimrun = [mk('Martin', 'Herr', 'TriVäst', '2026', 1590)]
+  const s = getSeasonSummary(d, '2026')
+  const en = seasonStory(s, 'en')
+  assert.match(en.short, /In 2026 the club raced 2 championships: 3 starts by 3 different people/)
+  assert.match(en.short, /Pontus set a new course record in cycling/)
+  assert.ok(en.long.some((p) => p === 'Cycling: Pontus and Josefine won the club title. Pontus set a new course record (23:35). No personal bests this time.'))
+  assert.ok(en.long.some((p) => p.includes('Swimrun: Martin won the club title. New course')))
+  const sv = seasonStory(s, 'sv')
+  assert.match(sv.short, /Under 2026 körde klubben 2 klubbmästerskap/)
+  assert.ok(sv.long.some((p) => p.startsWith('Cykling: Pontus och Josefine blev klubbmästare.')))
+})
+
+test('seasonStory: long text opens with the yearly trend, describes changes in words and welcomes newcomers', () => {
+  const d = empty()
+  d.running = [
+    mk('Ann', 'Dam', 'TriVäst', '2024', 1300),
+    mk('Ann', 'Dam', 'TriVäst', '2025', 1290), mk('Bo', 'Herr', 'TriVäst', '2025', 1100),
+    mk('Ann', 'Dam', 'TriVäst', '2026', 1250), mk('Bo', 'Herr', 'TriVäst', '2026', 1090),
+    mk('Cleo', 'Dam', 'TriVäst', '2026', 1400), mk('Gus', 'Herr', 'Gäst', '2026', 1200),
+  ]
+  const s = getSeasonSummary(d, '2026')
+  assert.deepEqual(s.newcomers, { members: ['Cleo'], guests: ['Gus'] })
+  assert.deepEqual(s.history.map((h) => [h.year, h.starts]), [['2024', 1], ['2025', 2], ['2026', 4]])
+  const en = seasonStory(s, 'en')
+  assert.match(en.long[0], /^With 4 starts, 2026 was the busiest season since the club championships began in 2024\. That compares with 2 in 2025 and 1 a year in 2024\./)
+  assert.equal(en.long[1], 'Running grew the most, from 2 to 4 starts.')
+  assert.ok(!en.long.join(' ').includes('→'), 'no arrows in the text')
+  assert.ok(en.long.some((p) => p.includes('2 personal bests: Ann (−0:40) and Bo (−0:10).')))
+  assert.equal(en.long[en.long.length - 1], 'A warm welcome to the 2 athletes (1 members, 1 guests) who raced their first club championship in 2026: Cleo, and our guests Gus.')
+  assert.match(seasonStory(s, 'sv').long[0], /Det kan jämföras med 2 år 2025/)
 })

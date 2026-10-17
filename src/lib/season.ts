@@ -36,8 +36,14 @@ export interface PodiumEntry { name: string; time: string; seconds: number }
 export interface RecordEntry {
   gender: Gender
   name: string; time: string; seconds: number
-  /** Record the 2026 time beat (null when no earlier comparable result). */
-  previous: { name: string; time: string; seconds: number; year: string } | null
+  /** The record the season's time beat. */
+  previous: { name: string; time: string; seconds: number; year: string }
+}
+/** Fastest club time ever on the course, up to and including the season. */
+export interface CourseRecord {
+  name: string; time: string; seconds: number; year: string
+  /** Set during this season (then also listed in `records` with the time it beat). */
+  setThisSeason: boolean
 }
 export interface Improvement {
   name: string; gender: Gender
@@ -54,8 +60,10 @@ export interface RaceSummary {
   podium: Record<Gender, PodiumEntry[]>
   /** A guest faster than the club winner, per gender (shown as a note). */
   fasterGuest: Partial<Record<Gender, PodiumEntry>>
-  /** Course records set this season; null when the course isn't comparable. */
+  /** Course records broken this season (beat an earlier club record); null when the course isn't comparable. */
   records: RecordEntry[] | null
+  /** Current course record per gender (set this season or earlier); null when not comparable. */
+  courseRecords: Record<Gender, CourseRecord | null> | null
   /**
    * Every member who beat their best earlier comparable time, biggest gain
    * first (the first three are the race's top improvements); null when the
@@ -76,8 +84,12 @@ export interface SeasonSummary {
   everyRace: string[]
   /** Members by number of championships raced: { 1: 32, 2: 17, … }. */
   racesPerMember: Record<number, number>
-  /** Members whose first club championship ever was this season. */
+  /** Members whose first club championship ever was this season (= newcomers.members.length). */
   newMembers: number
+  /** Everyone (relay runners included) whose first club championship ever was this season. */
+  newcomers: { members: string[]; guests: string[] }
+  /** Participations and different people per year, up to and including this season. */
+  history: Array<{ year: string; races: number; starts: number; people: number }>
   pointsPodium: Record<Gender, Array<{ name: string; points: number }>>
 }
 
@@ -95,6 +107,11 @@ export function parseClock(time: string): number {
 /** "00:23:35" → "23:35", "01:22:20" → "1:22:20": the official time, without leading zeros. */
 export function displayTime(time: string): string {
   return time.replace(/^00:/, '').replace(/^0(\d)/, '$1')
+}
+
+/** The people behind one result: the athlete, or a relay team's runners. */
+function peopleOf(a: AthleteResult): string[] {
+  return isRelay(a) ? relayRunners(a.Name) : [a.Name]
 }
 
 function isComparableYear(sport: SportType, year: string): boolean {
@@ -120,22 +137,26 @@ function summarizeRace(sport: SportType, rows: AthleteResult[], year: string): R
   const podium = { men: [], women: [] } as Record<Gender, PodiumEntry[]>
   const fasterGuest: Partial<Record<Gender, PodiumEntry>> = {}
   const records: RecordEntry[] = []
+  const courseRecords = { men: null, women: null } as Record<Gender, CourseRecord | null>
   for (const g of ['men', 'women'] as Gender[]) {
     const field = season.filter((a) => adultFinisher(a) && a.class_lower === GENDER_CLASS[g]).sort(fastestFirst)
     const members = field.filter((a) => a.is_club_member)
     podium[g] = members.slice(0, 3).map(entry)
     if (field[0] && members[0] && !field[0].is_club_member) fasterGuest[g] = entry(field[0])
 
-    if (comparable && members[0]) {
+    if (comparable) {
       const earlier = rows
         .filter((a) => a.Competition_Year < year && isComparableYear(sport, a.Competition_Year)
           && adultFinisher(a) && a.is_club_member && a.class_lower === GENDER_CLASS[g])
         .sort(fastestFirst)[0]
-      if (!earlier || members[0].Total_Time_Seconds < earlier.Total_Time_Seconds) {
-        records.push({
-          gender: g, ...entry(members[0]),
-          previous: earlier ? { ...entry(earlier), year: earlier.Competition_Year } : null,
-        })
+      if (members[0] && (!earlier || members[0].Total_Time_Seconds < earlier.Total_Time_Seconds)) {
+        // A first-ever club time is the course record, but only beating an
+        // earlier record counts as a record broken
+        if (earlier) records.push({ gender: g, ...entry(members[0]), previous: { ...entry(earlier), year: earlier.Competition_Year } })
+        courseRecords[g] = { ...entry(members[0]), year, setThisSeason: true }
+      } else if (earlier) {
+        // No club member raced it this season, or nobody beat the record
+        courseRecords[g] = { ...entry(earlier), year: earlier.Competition_Year, setThisSeason: false }
       }
     }
   }
@@ -181,6 +202,7 @@ function summarizeRace(sport: SportType, rows: AthleteResult[], year: string): R
     podium,
     fasterGuest,
     records: comparable ? records : null,
+    courseRecords: comparable ? courseRecords : null,
     personalBests: comparable ? improvementsAll : null,
     comparable: comparableCount,
     startsPreviousYear: prevRows.length || null,
@@ -208,7 +230,24 @@ export function getSeasonSummary(data: CompetitionsData, year: string): SeasonSu
   const racesPerMember: Record<number, number> = {}
   for (const sports of racesByMember.values()) racesPerMember[sports.size] = (racesPerMember[sports.size] ?? 0) + 1
 
-  const earlierNames = new Set(SEASON_SPORTS.flatMap((s) => data[s].filter((a) => a.Competition_Year < year).map((a) => a.Name)))
+  const earlierNames = new Set(SEASON_SPORTS.flatMap((s) => data[s].filter((a) => a.Competition_Year < year).flatMap(peopleOf)))
+  const newcomers = { members: [] as string[], guests: [] as string[] }
+  for (const [name, member] of people) if (!earlierNames.has(name)) newcomers[member ? 'members' : 'guests'].push(name)
+  newcomers.members.sort((a, b) => a.localeCompare(b, 'sv'))
+  newcomers.guests.sort((a, b) => a.localeCompare(b, 'sv'))
+
+  const history = [...new Set(SEASON_SPORTS.flatMap((s) => data[s].map((a) => a.Competition_Year)))]
+    .filter((y) => y <= year)
+    .sort()
+    .map((y) => {
+      const rows = SEASON_SPORTS.flatMap((s) => data[s].filter((a) => a.Competition_Year === y).map((a) => ({ a, s })))
+      return {
+        year: y,
+        races: new Set(rows.map(({ s }) => s)).size,
+        starts: rows.reduce((n, { a }) => n + peopleOf(a).length, 0),
+        people: new Set(rows.flatMap(({ a }) => peopleOf(a))).size,
+      }
+    })
 
   const top3 = (g: Gender) => getClubRankings(data, g, year).slice(0, 3).map((a) => ({ name: a.name, points: a.total_points }))
 
@@ -228,7 +267,9 @@ export function getSeasonSummary(data: CompetitionsData, year: string): SeasonSu
     races,
     everyRace: [...racesByMember].filter(([, s]) => s.size === races.length).map(([n]) => n).sort(),
     racesPerMember,
-    newMembers: [...racesByMember.keys()].filter((n) => !earlierNames.has(n)).length,
+    newMembers: newcomers.members.length,
+    newcomers,
+    history,
     pointsPodium: { men: top3('men'), women: top3('women') },
   }
 }
