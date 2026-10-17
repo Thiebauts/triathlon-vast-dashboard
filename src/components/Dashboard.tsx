@@ -161,8 +161,9 @@ export function Dashboard({ data, athleteNames, allTimeRankings, extraEvents, la
     // the points column — without horizontal scroll on desktop
     <div className="max-w-7xl mx-auto px-4 py-4">
       {/* Tab bar */}
+      {/* Six tabs crowd one row on phones: two rows of three below 480px */}
       <div role="tablist" aria-label="Dashboard"
-        className="flex border-b border-gray-200 mb-4 bg-white rounded-t-lg shadow-sm">
+        className="flex max-[479px]:flex-wrap border-b border-gray-200 mb-4 bg-white rounded-t-lg shadow-sm">
         {tabs.map(({ id, full, short }, i) => (
           <button
             key={id}
@@ -173,7 +174,7 @@ export function Dashboard({ data, athleteNames, allTimeRankings, extraEvents, la
             tabIndex={tab === id ? 0 : -1}
             onClick={() => selectTab(id)}
             onKeyDown={(e) => onTabKeyDown(e, i)}
-            className={`flex-1 py-2.5 text-[11px] sm:text-xs font-semibold tracking-wide border-b-2 transition-all text-center uppercase focus-visible:ring-2 focus-visible:ring-red-700 focus-visible:ring-offset-1 ${
+            className={`flex-1 max-[479px]:flex-none max-[479px]:basis-1/3 py-2.5 text-[11px] sm:text-xs font-semibold tracking-wide border-b-2 transition-all text-center uppercase focus-visible:ring-2 focus-visible:ring-red-700 focus-visible:ring-offset-1 ${
               tab === id
                 ? 'border-red-700 text-red-700 bg-red-50/50'
                 : 'border-transparent text-gray-500 hover:text-gray-600 hover:border-gray-300 hover:bg-gray-50/50'
