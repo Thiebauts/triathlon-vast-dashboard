@@ -16,6 +16,7 @@ const VALID_SPORTS: readonly string[] = ['triathlon', 'duathlon', 'swimming', 'c
 const RESULTS_CATEGORIES: readonly string[] = ['all', 'men', 'women', 'youth']
 const EXTRA_CATEGORIES: readonly string[] = ['all', 'men', 'women']
 const YEAR_RE = /^\d{4}$/
+const DEFAULT_SPORT: SportType = 'triathlon'
 
 interface Props {
   data: CompetitionsData
@@ -36,7 +37,7 @@ export function Dashboard({ data, athleteNames, allTimeRankings, extraEvents, la
   // Per-tab selections live here (not in the tabs) so the URL hash can mirror
   // the full view: #results/<sport>/<year>/<category>, #extra/<date>/<category>, …
   const [selectedAthlete, setSelectedAthlete] = useState<string | null>(null)
-  const [sport, setSport] = useState<SportType>('triathlon')
+  const [sport, setSport] = useState<SportType>(DEFAULT_SPORT)
   const [resultsYear, setResultsYear] = useState('all')
   const [resultsCategory, setResultsCategory] = useState<ResultsCategory>('all')
   const [extraDate, setExtraDate] = useState<string | null>(extraEvents[0]?.date ?? null)
@@ -78,20 +79,23 @@ export function Dashboard({ data, athleteNames, allTimeRankings, extraEvents, la
     const parsed = parseHash(window.location.hash)
     if (!parsed) return
     const [p0, p1, p2] = parsed.params
+    // A missing or invalid segment means its default, not "keep the current
+    // value": following #…/2026/women and then #…/2026 (or pressing Back)
+    // must drop the women filter.
     if (parsed.tab === 'results') {
-      if (p0 && VALID_SPORTS.includes(p0)) setSport(p0 as SportType)
-      if (p1 && (p1 === 'all' || YEAR_RE.test(p1))) setResultsYear(p1)
-      if (p2 && RESULTS_CATEGORIES.includes(p2)) setResultsCategory(p2 as ResultsCategory)
+      setSport(p0 && VALID_SPORTS.includes(p0) ? p0 as SportType : DEFAULT_SPORT)
+      setResultsYear(p1 && (p1 === 'all' || YEAR_RE.test(p1)) ? p1 : 'all')
+      setResultsCategory(p2 && RESULTS_CATEGORIES.includes(p2) ? p2 as ResultsCategory : 'all')
     } else if (parsed.tab === 'athletes') {
       if (p0 && athleteNames.includes(p0)) setSelectedAthlete(p0)
     } else if (parsed.tab === 'extra') {
-      if (p0) setExtraDate(p0)
-      if (p1 && EXTRA_CATEGORIES.includes(p1)) setExtraCategory(p1 as ExtraCategory)
+      setExtraDate(p0 || (extraEvents[0]?.date ?? null))
+      setExtraCategory(p1 && EXTRA_CATEGORIES.includes(p1) ? p1 as ExtraCategory : 'all')
     } else if (parsed.tab === 'rankings') {
-      if (p0 && (p0 === 'all' || YEAR_RE.test(p0))) setRankingsYear(p0)
+      setRankingsYear(p0 && (p0 === 'all' || YEAR_RE.test(p0)) ? p0 : 'all')
     }
     selectTab(parsed.tab)
-  }, [athleteNames, selectTab])
+  }, [athleteNames, extraEvents, selectTab])
 
   const urlInitialized = useRef(false)
   useEffect(() => {
