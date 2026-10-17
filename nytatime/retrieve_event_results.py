@@ -72,8 +72,9 @@ RACE_OVERRIDES = {
             'Arvid Månesjö': 'Gäst',
         },
         'names': {
-            # Swim / bike / run, in race order.
-            'Staffet Gänget': 'Staffet Gänget (Adam Millberg / Josephine Flod / My Försberg)',
+            # Swim / bike / run, in race order. Runner names use the athletes'
+            # canonical spellings so the season recap counts each person once.
+            'Staffet Gänget': 'Staffet Gänget (Adam Millberg / Josefine Flod / My Forsberg)',
         },
     },
     # Swimming KM 2026: Helena Jakobsson Larsson registered as a guest but is a
