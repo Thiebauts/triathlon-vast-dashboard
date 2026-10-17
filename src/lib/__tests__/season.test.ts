@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { getSeasonSummary, relayRunners } from '../season.ts'
+import { displayTime, getSeasonSummary, parseClock, relayRunners } from '../season.ts'
 import type { AthleteResult, CompetitionsData } from '../types'
 
 function mk(Name: string, Class: string, Club: string, year: string, seconds: number, Status = 'ok'): AthleteResult {
@@ -10,14 +10,30 @@ function mk(Name: string, Class: string, Club: string, year: string, seconds: nu
     is_club_member: Club === 'TriVäst',
     Competition_Year: year,
     Total_Time_Seconds: seconds,
-    Total_Time: `${seconds}s`,
+    Total_Time: hms(seconds),
     Overall_Rank: 0,
     Class_Rank: 0,
   }
 }
 
+/** 1240.6 → "00:20:40" (truncated, like the CSVs). */
+const hms = (sec: number) => [3600, 60, 1].map((u) => String(Math.floor(sec / u) % (u === 3600 ? 100 : 60)).padStart(2, '0')).join(':')
+
 const empty = (): CompetitionsData => ({
   triathlon: [], duathlon: [], swimming: [], cycling: [], running: [], swimrun: [],
+})
+
+test('parseClock and displayTime use the official HH:MM:SS time', () => {
+  assert.equal(parseClock('01:22:20'), 4940)
+  assert.equal(displayTime('00:23:35'), '23:35')
+  assert.equal(displayTime('01:22:20'), '1:22:20')
+})
+
+test('personal bests: gain comes from the displayed times, not raw decimals', () => {
+  const d = empty()
+  // 38:41.9 → 33:25.0 is 5:16.9 raw, but people compare 38:41 and 33:25: 5:16
+  d.swimming = [mk('M', 'Herr', 'TriVäst', '2025', 2321.9), mk('M', 'Herr', 'TriVäst', '2026', 2005.0)]
+  assert.equal(getSeasonSummary(d, '2026').races[0].personalBests?.[0].gain, 316)
 })
 
 test('relayRunners: reads the runners from the team label', () => {

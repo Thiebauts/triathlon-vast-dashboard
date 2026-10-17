@@ -41,7 +41,7 @@ export interface Improvement {
   time: string; seconds: number
   /** Best time in an earlier comparable year. */
   previousBest: { time: string; seconds: number; year: string }
-  /** Seconds faster than the previous best (always > 0). */
+  /** Whole seconds faster than the previous best, from the official times (always > 0). */
   gain: number
 }
 export interface RaceSummary {
@@ -82,6 +82,16 @@ export interface SeasonSummary {
 export function relayRunners(teamName: string): string[] {
   const m = teamName.match(/\(([^)]*)\)\s*$/)
   return m ? m[1].split('/').map((s) => s.trim()).filter(Boolean) : []
+}
+
+/** "01:22:20" → 4940: whole seconds of an official (displayed) time. */
+export function parseClock(time: string): number {
+  return time.split(':').reduce((acc, part) => acc * 60 + (parseInt(part, 10) || 0), 0)
+}
+
+/** "00:23:35" → "23:35", "01:22:20" → "1:22:20": the official time, without leading zeros. */
+export function displayTime(time: string): string {
+  return time.replace(/^00:/, '').replace(/^0(\d)/, '$1')
 }
 
 function isComparableYear(sport: SportType, year: string): boolean {
@@ -137,7 +147,9 @@ function summarizeRace(sport: SportType, rows: AthleteResult[], year: string): R
         .sort(fastestFirst)[0]
       if (!best) continue
       comparableCount++
-      const gain = best.Total_Time_Seconds - a.Total_Time_Seconds
+      // From the official times people see, so 38:41 → 33:25 reads as 5:16
+      // (raw seconds carry decimals the displayed times truncate)
+      const gain = parseClock(best.Total_Time) - parseClock(a.Total_Time)
       if (gain > 0) {
         improvementsAll.push({
           gender: genderOf(a), ...entry(a),
