@@ -136,7 +136,7 @@ export function ExtraEventsTab({ events, lang, eventDate, category, onEventChang
       csvRows.push([
         csvEscape(!isPartial && csvRank > 0 ? csvRank : ''),
         csvEscape(a.Name),
-        csvEscape(a.Club),
+        csvEscape(a.is_club_member ? a.Club : t('guest', lang)),
         csvEscape(a.Class),
         csvEscape(isPartial ? completedLegsLabel(a, event, lang) : a.Total_Time),
         ...eventSegs.map((s) => csvEscape((a[s.timeKey] as string | undefined) ?? '')),
@@ -258,7 +258,7 @@ export function ExtraEventsTab({ events, lang, eventDate, category, onEventChang
                             : <span className="text-gray-500 font-normal">—</span>}
                         </th>
                         <td className="px-3 py-1.5 whitespace-nowrap font-medium text-gray-800">{a.Name}</td>
-                        <td className={`px-3 py-1.5 text-gray-500 ${D}`}>{a.Club}</td>
+                        <td className={`px-3 py-1.5 text-gray-500 ${D}`}>{a.is_club_member ? a.Club : t('guest', lang)}</td>
                         <td className={`px-3 py-1.5 text-gray-500 ${D}`}>{a.Class}</td>
                         <td className="px-3 py-1.5 font-mono font-semibold text-gray-800">
                           {isPartial

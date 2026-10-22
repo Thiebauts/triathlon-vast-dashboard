@@ -248,6 +248,23 @@ async function run() {
     if (firstRank?.trim() !== '1') throw new Error(`First rank is "${firstRank}", expected "1"`)
   })
 
+  await test('Guests are always listed, labelled Guest, and never earn points', async () => {
+    await page.goto(`${BASE}/#results/running/2026`, { waitUntil: 'networkidle' })
+    await page.waitForTimeout(600)
+    if (await page.getByText('Show guests').count()) throw new Error('"Show guests" toggle still present')
+    const sofia = page.locator('table tbody tr', { hasText: 'Sofia Haglund' })
+    const cells = (await sofia.first().innerText()).split('\t').map((c) => c.trim())
+    if (!cells.includes('Guest')) throw new Error(`Sofia's row: ${cells.join(' | ')}`)
+    if (cells[cells.length - 1] !== '—') throw new Error(`Guest shows points: ${cells.at(-1)}`)
+  })
+
+  await test('Corrected running 2026 times are shown', async () => {
+    for (const [name, time] of [['Rasmus Johansson', '00:18:31'], ['Sofia Haglund', '00:22:45']]) {
+      const row = await page.locator('table tbody tr', { hasText: name }).first().innerText()
+      if (!row.includes(time)) throw new Error(`${name}: ${row}`)
+    }
+  })
+
   // ── ATHLETES TAB ─────────────────────────────────────────────────────────────
   console.log('\n🏅 Athletes Tab')
 

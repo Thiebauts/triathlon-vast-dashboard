@@ -111,7 +111,7 @@ function ResultRow({ a, rank, i, lang, yearValue, segs, splitRank, points, onAth
           </button>
         ) : a.Name}
       </td>
-      <td className={`px-3 py-1.5 text-gray-500 ${D}`}>{a.Club}</td>
+      <td className={`px-3 py-1.5 text-gray-500 ${D}`}>{isMember ? a.Club : t('guest', lang)}</td>
       <td className={`px-3 py-1.5 text-gray-500 ${D}`}>{a.Class}</td>
       {yearValue === 'all' && <td className={`px-3 py-1.5 text-gray-500 ${D}`}>{a.Competition_Year}</td>}
       <td className="px-3 py-1.5 font-mono font-semibold text-gray-800">
@@ -177,7 +177,6 @@ interface Props {
 
 export function ResultsTab({ data, lang, lastUpdated, onAthleteClick, sport, year, category, onSportChange, onYearChange, onCategoryChange }: Props) {
   const [search, setSearch] = useState('')
-  const [showGuests, setShowGuests] = useState(false)
   const deferredSearch = useDeferredValue(search)
 
   const isMultiSport = sport === 'triathlon' || sport === 'duathlon'
@@ -191,8 +190,8 @@ export function ResultsTab({ data, lang, lastUpdated, onAthleteClick, sport, yea
   // A deep link can name a year this sport never ran — fall back to 'all'
   const yearValue = years.includes(year) ? year : 'all'
 
-  // Split ranks share the SAME pool as the visible rows: sport, category,
-  // guests, and the year filter. With one year selected, each split is ranked
+  // Split ranks share the SAME pool as the visible rows: sport, category and
+  // the year filter (guests always included). With one year selected, each split is ranked
   // within that year's field; with "All Years (Combined)" the splits are ranked
   // across every year at once, so the # columns line up with the all-time
   // overall rank (one true fastest Run 1, etc.). Category keeps e.g. "Men Only"
@@ -201,33 +200,31 @@ export function ResultsTab({ data, lang, lastUpdated, onAthleteClick, sport, yea
   const splitRankLookup = useMemo(() => {
     if (!isMultiSport) return null
     let pool = data[sport].filter((a) => inCategory(a, category))
-    if (!showGuests) pool = pool.filter((a) => a.Club.toLowerCase().trim() !== 'gäst')
     if (yearValue !== 'all') pool = pool.filter((a) => a.Competition_Year === yearValue)
     const out: Record<string, SplitRanks> = {}
     computeSplitRanks(pool, sport as 'triathlon' | 'duathlon').forEach((v, k) => { out[k] = v })
     return out
-  }, [data, sport, isMultiSport, showGuests, category, yearValue])
+  }, [data, sport, isMultiSport, category, yearValue])
 
   // Club points each athlete earned in their event, keyed by athleteKey().
   // Computed over the FULL field for the sport (every member in their adult
-  // class that year), so the number is independent of the category/guest/search
+  // class that year), so the number is independent of the category/search
   // filters here and always matches the Rankings tab and athlete profiles.
-  // Non-members and youth earn 0.
+  // Guests are listed but never ranked for points: non-members and youth earn 0.
   const pointsLookup = useMemo(() => {
     const out: Record<string, number> = {}
     computeEventPoints(data[sport]).forEach((v, k) => { out[k] = v })
     return out
   }, [data, sport])
 
-  // Sort and assign rank WITHOUT the search applied. Year/category/showGuests
-  // define the ranking pool; search is just a lookup that mustn't renumber.
+  // Sort and assign rank WITHOUT the search applied. Year and category define
+  // the ranking pool — guests included, since this is the race's real order; search is just a lookup that mustn't renumber.
   // Rank = position among FINISHERS in the visible pool (DNFs are listed last,
   // unranked) and equal times share a rank (competition ranking: 1, 1, 3, …).
   const ranked = useMemo(() => {
     let list = data[sport]
     if (yearValue !== 'all') list = list.filter((a) => a.Competition_Year === yearValue)
     list = list.filter((a) => inCategory(a, category))
-    if (!showGuests) list = list.filter((a) => a.Club.toLowerCase().trim() !== 'gäst')
     const finishers = list.filter(isFinisher)
       .sort((a, b) => a.Total_Time_Seconds - b.Total_Time_Seconds)
     const out: Array<{ athlete: AthleteResult; rank: number | null }> = []
@@ -237,7 +234,7 @@ export function ResultsTab({ data, lang, lastUpdated, onAthleteClick, sport, yea
     })
     for (const athlete of list.filter((a) => !isFinisher(a))) out.push({ athlete, rank: null })
     return out
-  }, [data, sport, yearValue, category, showGuests])
+  }, [data, sport, yearValue, category])
 
   // Search filter kept separate so typing never re-sorts the pool.
   const rows = useMemo(() => {
@@ -253,13 +250,12 @@ export function ResultsTab({ data, lang, lastUpdated, onAthleteClick, sport, yea
     if (category !== 'youth') return []
     let list = data[sport].filter((a) => Object.hasOwn(SEPARATE_RACE_DISTANCE, a.class_lower))
     if (yearValue !== 'all') list = list.filter((a) => a.Competition_Year === yearValue)
-    if (!showGuests) list = list.filter((a) => a.Club.toLowerCase().trim() !== 'gäst')
 
     return buildClassBlocks(
       list,
       (members) => `${SEPARATE_RACE_DISTANCE[members[0].class_lower]} · ${t('separate_race', lang)}`,
     )
-  }, [data, sport, yearValue, category, showGuests, lang])
+  }, [data, sport, yearValue, category, lang])
 
   // Relay teams (Staffet): three athletes share the adult course, so the team
   // is shown as its own labelled block under the mixed field rather than being
@@ -268,10 +264,9 @@ export function ResultsTab({ data, lang, lastUpdated, onAthleteClick, sport, yea
     if (category !== 'all') return []
     let list = data[sport].filter(isRelay)
     if (yearValue !== 'all') list = list.filter((a) => a.Competition_Year === yearValue)
-    if (!showGuests) list = list.filter((a) => a.Club.toLowerCase().trim() !== 'gäst')
 
     return buildClassBlocks(list, () => t('relay_team', lang))
-  }, [data, sport, yearValue, category, showGuests, lang])
+  }, [data, sport, yearValue, category, lang])
 
   // Only one of the two applies per category, so they share one rendered list.
   const classBlocks = useMemo(
@@ -308,7 +303,7 @@ export function ResultsTab({ data, lang, lastUpdated, onAthleteClick, sport, yea
       csvRows.push([
         rank ?? 'DNF',
         csvEscape(a.Name),
-        csvEscape(a.Club),
+        csvEscape(a.is_club_member ? a.Club : t('guest', lang)),
         csvEscape(a.Class),
         csvEscape(a.Competition_Year),
         csvEscape(a.Total_Time),
@@ -372,18 +367,6 @@ export function ResultsTab({ data, lang, lastUpdated, onAthleteClick, sport, yea
             className="min-h-6 border border-gray-200 rounded px-2 py-1 text-xs bg-white w-36 focus-visible:ring-2 focus-visible:ring-red-700 focus-visible:ring-offset-1"
           />
         </div>
-        <div>
-          <span aria-hidden="true" className="block text-[11px] mb-1 invisible">·</span>
-          <label className="flex items-center gap-1.5 text-xs text-gray-600 cursor-pointer select-none px-2 py-1 border border-transparent">
-            <input
-              type="checkbox"
-              checked={showGuests}
-              onChange={(e) => setShowGuests(e.target.checked)}
-              className="accent-red-700 focus-visible:ring-2 focus-visible:ring-red-700 focus-visible:ring-offset-1"
-            />
-            {t('show_guests', lang)}
-          </label>
-        </div>
         <div className="flex items-center gap-3 ml-auto self-center">
           <span className="text-xs text-gray-500" aria-live="polite">{rows.length} {t('total_results', lang)}</span>
           <button onClick={exportCsv}
@@ -402,9 +385,6 @@ export function ResultsTab({ data, lang, lastUpdated, onAthleteClick, sport, yea
         {rows.length === 0 && separateRaces.length === 0 ? (
           <div className="p-8 text-center space-y-2">
             <p className="text-xs text-gray-500">{t('no_data_available', lang)} {t(sport, lang)}</p>
-            {category === 'youth' && !showGuests && (
-              <p className="text-[11px] text-gray-500">{t('youth_no_data_hint', lang)}</p>
-            )}
           </div>
         ) : (
           <table className="min-w-full text-xs">

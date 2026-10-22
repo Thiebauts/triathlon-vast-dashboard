@@ -99,13 +99,18 @@ RACE_OVERRIDES = {
             'Nelly Bertilsson': 'Gäst',
             'Miriam Degerman': 'TriVäst',
         },
-        # Finish times were keyed in by hand against bibs and four came out
+        # Finish times were keyed in by hand against bibs and several came out
         # far too slow; corrected times confirmed by Thiebaut on 2026-10-09.
         'times': {
             'Anton Söfting': 19 * 60 + 37,
             'Jan Ljungcrantz': 18 * 60 + 34,
             'Thiébaut Schirmer': 22 * 60 + 35,
             'Joakim Fransson': 19 * 60 + 44,
+            # Reported by the runners after the results email (2026-10-22).
+            # Mid-second (+0.5) so a reported 18:31 can't tie with an 18:30
+            # whose raw 1110.9 s rounds to the same stored 1111.0.
+            'Rasmus Johansson': 18 * 60 + 31.5,
+            'Sofia Haglund': 22 * 60 + 45.5,
         },
     },
 }
