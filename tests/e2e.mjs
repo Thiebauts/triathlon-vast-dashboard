@@ -252,9 +252,9 @@ async function run() {
     await page.goto(`${BASE}/#results/running/2026`, { waitUntil: 'networkidle' })
     await page.waitForTimeout(600)
     if (await page.getByText('Show guests').count()) throw new Error('"Show guests" toggle still present')
-    const sofia = page.locator('table tbody tr', { hasText: 'Sofia Haglund' })
-    const cells = (await sofia.first().innerText()).split('\t').map((c) => c.trim())
-    if (!cells.includes('Guest')) throw new Error(`Sofia's row: ${cells.join(' | ')}`)
+    const guest = page.locator('table tbody tr', { hasText: 'Nelly Bertilsson' })
+    const cells = (await guest.first().innerText()).split('\t').map((c) => c.trim())
+    if (!cells.includes('Guest')) throw new Error(`Nelly's row: ${cells.join(' | ')}`)
     if (cells[cells.length - 1] !== '—') throw new Error(`Guest shows points: ${cells.at(-1)}`)
   })
 

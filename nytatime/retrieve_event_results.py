@@ -98,6 +98,9 @@ RACE_OVERRIDES = {
             'Helena Jakobsson Larsson': 'TriVäst',
             'Nelly Bertilsson': 'Gäst',
             'Miriam Degerman': 'TriVäst',
+            # Registered as "Gäst" but a member for all of 2026 (confirmed
+            # by Thiebaut 2026-10-23, replacing the earlier guest decision)
+            'Sofia Haglund': 'TriVäst',
         },
         # Finish times were keyed in by hand against bibs and several came out
         # far too slow; corrected times confirmed by Thiebaut on 2026-10-09.
