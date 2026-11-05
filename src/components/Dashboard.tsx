@@ -28,9 +28,11 @@ interface Props {
   extraEvents: ExtraEvent[]
   /** ISO date of the newest result, from getLatestResultDate(). */
   lastUpdated: string
+  /** Race day per "<sport>-<year>", from getRaceDates(). */
+  raceDates: Record<string, string>
 }
 
-export function Dashboard({ data, athleteNames, allTimeRankings, extraEvents, lastUpdated }: Props) {
+export function Dashboard({ data, athleteNames, allTimeRankings, extraEvents, lastUpdated, raceDates }: Props) {
   const { lang, setLang } = useLang()
   const [tab, setTab] = useState<Tab>('overview')
   // Panels mount on first visit and then stay mounted: the server renders only
@@ -195,7 +197,7 @@ export function Dashboard({ data, athleteNames, allTimeRankings, extraEvents, la
               the points column — next to the side menu */}
           <main id="main" tabIndex={-1} className="w-full max-w-[1200px] px-4 py-6 focus:outline-none sm:px-8 lg:px-10">
             <section id="view-overview" aria-label={viewLabel('overview')} hidden={tab !== 'overview'}>
-              {visited.has('overview') && <OverviewTab data={data} lang={lang} lastUpdated={lastUpdated} onNavigateToExtra={navigateToExtra} onNavigateToSeason={navigateToSeason} onNavigateToSport={navigateToSport} />}
+              {visited.has('overview') && <OverviewTab data={data} lang={lang} lastUpdated={lastUpdated} raceDates={raceDates} onNavigateToExtra={navigateToExtra} onNavigateToSeason={navigateToSeason} onNavigateToSport={navigateToSport} onNavigateToRankings={navigateToSeasonRankings} onAthleteClick={navigateToAthlete} />}
             </section>
             <section id="view-results" aria-label={viewLabel('results')} hidden={tab !== 'results'}>
               {visited.has('results') && <ResultsTab data={data} lang={lang} lastUpdated={lastUpdated} onAthleteClick={navigateToAthlete} sport={sport} year={resultsYear} category={resultsCategory} onSportChange={changeSport} onYearChange={setResultsYear} onCategoryChange={setResultsCategory} />}

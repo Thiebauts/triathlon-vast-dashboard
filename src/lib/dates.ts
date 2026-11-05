@@ -8,3 +8,11 @@ export function formatDate(iso: string, lang: Lang): string {
     day: 'numeric', month: 'long', year: 'numeric',
   }).format(new Date(y, m - 1, d))
 }
+
+/** Formats an ISO date as day and month only, e.g. "7 Oct" / "7 okt." (race cards). */
+export function formatDayMonth(iso: string, lang: Lang): string {
+  const [y, m, d] = iso.split('-').map(Number)
+  return new Intl.DateTimeFormat(lang === 'sv' ? 'sv-SE' : 'en-GB', {
+    day: 'numeric', month: 'short',
+  }).format(new Date(y, m - 1, d))
+}

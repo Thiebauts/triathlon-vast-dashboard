@@ -127,6 +127,20 @@ export function getLatestResultDate(): string {
   return dates.sort().at(-1) ?? ''
 }
 
+/**
+ * Date of each championship race, from the CSV file names, keyed
+ * "<sport>-<year>" (e.g. "running-2026" → "2026-10-07"). The result rows
+ * carry only the year, so the Overview race cards read the day from here.
+ */
+export function getRaceDates(): Record<string, string> {
+  const out: Record<string, string> = {}
+  for (const f of fs.readdirSync(path.join(process.cwd(), 'data'))) {
+    const m = f.match(/^processed_(\w+?)_results_((\d{4})-\d{2}-\d{2})\.csv$/)
+    if (m) out[`${m[1]}-${m[3]}`] = m[2]
+  }
+  return out
+}
+
 let cachedExtra: ExtraEvent[] | null = null
 
 /**

@@ -66,8 +66,8 @@ async function run() {
   })
 
   await test('Discipline cards visible', async () => {
-    // Overview tab now lists club championship disciplines instead of stat cards
-    const card = page.locator('text=Running — 5 km Track Race')
+    // Overview lists the season's races, one card per sport
+    const card = page.locator('#view-overview h4', { hasText: 'Running' })
     await card.waitFor({ state: 'visible', timeout: 5000 })
   })
 
@@ -83,7 +83,7 @@ async function run() {
   })
 
   await test('Extra events link navigates to Extra Events tab', async () => {
-    await page.locator('button', { hasText: 'View the results in the Extra Events tab' }).click()
+    await page.locator('#view-overview').getByRole('button', { name: 'Training & extra events' }).click()
     await page.waitForTimeout(600)
     const header = page.locator('text=Extra events & timed trainings')
     await header.waitFor({ state: 'visible', timeout: 3000 })
@@ -93,9 +93,7 @@ async function run() {
   })
 
   await test('Discipline card link opens Event Results with sport preselected', async () => {
-    // Cards render in DISCIPLINES order — Running is first. The card links say
-    // "View the results →"; the extra-events link has different wording.
-    await page.locator('button', { hasText: 'View the results →' }).first().click()
+    await page.getByRole('button', { name: 'Running: See results' }).click()
     await page.waitForTimeout(600)
     const header = page.locator('text=Event results & all-time rankings')
     await header.waitFor({ state: 'visible', timeout: 3000 })
@@ -527,7 +525,7 @@ async function run() {
 
   await test('Overview links to the season recap', async () => {
     await page.goto(BASE, { waitUntil: 'networkidle' })
-    await page.locator('button', { hasText: 'See the season recap' }).click()
+    await page.getByRole('button', { name: 'Read about the season' }).click()
     await page.waitForTimeout(600)
     if (!page.url().includes('#season/')) throw new Error(`URL is ${page.url()}`)
   })
