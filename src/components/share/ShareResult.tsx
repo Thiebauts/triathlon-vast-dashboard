@@ -33,7 +33,7 @@ function ordinal(n: number, lang: Lang) {
   return `${n}${s}`
 }
 
-/** The family names next/font gave the club fonts (they are hashed). */
+/** The club font family names, from the CSS variables in globals.css. */
 function fontVar(name: string, fallback: string) {
   const v = getComputedStyle(document.documentElement).getPropertyValue(name).trim()
   return v || fallback

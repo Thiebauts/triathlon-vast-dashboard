@@ -1,15 +1,20 @@
 import type { Metadata } from 'next'
-import { IBM_Plex_Sans, Raleway, Yellowtail } from 'next/font/google'
+// The club website's typefaces, shipped with the site (Fontsource) rather than
+// fetched from Google at build time: next/font/google broke Vercel builds that
+// reused a build cache. IBM Plex Sans for headings and numbers, Raleway for
+// body text, Yellowtail for the small script eyebrows.
+import '@fontsource/ibm-plex-sans/500.css'
+import '@fontsource/ibm-plex-sans/600.css'
+import '@fontsource/ibm-plex-sans/600-italic.css'
+import '@fontsource/raleway/400.css'
+import '@fontsource/raleway/500.css'
+import '@fontsource/raleway/600.css'
+import '@fontsource/raleway/700.css'
+import '@fontsource/yellowtail/400.css'
 import './globals.css'
 import { LanguageProvider } from '@/components/LanguageProvider'
 import { SkipLink } from '@/components/SkipLink'
 import { Analytics } from '@vercel/analytics/next'
-
-// The club website's typefaces: IBM Plex Sans for headings and numbers,
-// Raleway for body text, Yellowtail for the small script eyebrows.
-const plex = IBM_Plex_Sans({ subsets: ['latin'], weight: ['500', '600'], style: ['normal', 'italic'], variable: '--font-plex', display: 'swap' })
-const raleway = Raleway({ subsets: ['latin'], weight: ['400', '500', '600', '700'], variable: '--font-raleway', display: 'swap' })
-const yellowtail = Yellowtail({ subsets: ['latin'], weight: '400', variable: '--font-yellowtail', display: 'swap' })
 
 export const metadata: Metadata = {
   metadataBase: process.env.VERCEL_PROJECT_PRODUCTION_URL
@@ -33,7 +38,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${plex.variable} ${raleway.variable} ${yellowtail.variable}`}>
+    <html lang="en">
       <body>
         <LanguageProvider>
           <SkipLink />

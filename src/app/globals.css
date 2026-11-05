@@ -5,6 +5,13 @@
  * Use these tokens (bg-brand, text-navy, font-display, …) instead of raw hex
  * values so the whole dashboard stays in one palette.
  */
+:root {
+  /* Font family names from the @fontsource packages imported in layout.tsx */
+  --font-plex: 'IBM Plex Sans';
+  --font-raleway: 'Raleway';
+  --font-yellowtail: 'Yellowtail';
+}
+
 @theme {
   --color-brand: #d52435;       /* club red: buttons, active menu item, points */
   --color-brand-dark: #ad1d1d;  /* footer bottom bar */
