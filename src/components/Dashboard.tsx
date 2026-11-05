@@ -10,6 +10,7 @@ import { RankingsTab } from './tabs/RankingsTab'
 import { ExtraEventsTab } from './tabs/ExtraEventsTab'
 import { SeasonTab } from './tabs/SeasonTab'
 import { RecordsTab } from './tabs/RecordsTab'
+import { PointsTab } from './tabs/PointsTab'
 import { SEASON_YEARS } from '@/lib/season'
 import { SiteHeader } from './shell/SiteHeader'
 import { SideNav } from './shell/SideNav'
@@ -214,6 +215,9 @@ export function Dashboard({ data, athleteNames, allTimeRankings, extraEvents, la
             </section>
             <section id="view-records" aria-label={viewLabel('records')} hidden={tab !== 'records'}>
             {visited.has('records') && <RecordsTab data={data} lang={lang} onAthleteClick={navigateToAthlete} onAllTime={navigateToSport} />}
+          </section>
+          <section id="view-points" aria-label={viewLabel('points')} hidden={tab !== 'points'}>
+            {visited.has('points') && <PointsTab data={data} lang={lang} raceDates={raceDates} />}
           </section>
           <section id="view-extra" aria-label={viewLabel('extra')} hidden={tab !== 'extra'}>
               {visited.has('extra') && <ExtraEventsTab events={extraEvents} lang={lang} eventDate={extraDate} category={extraCategory} onEventChange={setExtraDate} onCategoryChange={setExtraCategory} />}

@@ -7,6 +7,7 @@ import { matchesSearch } from '@/lib/search'
 import { formatDate } from '@/lib/dates'
 import { displayTime, getSeasonSummary } from '@/lib/season'
 import { getFastestOfDay, getResultTags, type LegKey, type ResultTag } from '@/lib/raceDay'
+import { ShareButton, ShareDialog, type ShareData } from '@/components/share/ShareResult'
 import { BTN_PRIMARY, CARD_MIST, CARD_NAVY, Eyebrow, MEDAL_COLORS, PageTitle } from '@/components/ui/brand'
 import { csvEscape, toCsvFile } from '@/lib/csv'
 
@@ -104,6 +105,8 @@ interface RowProps {
   tag: ResultTag | undefined
   best: BestSplits | null
   onAthleteClick?: (name: string) => void
+  /** Opens the share picture; only for adult individual finishers of one race. */
+  onShare?: () => void
 }
 
 /** Only adult (Herr/Dam) members who finished earn club points. */
@@ -125,7 +128,7 @@ function NameButton({ a, onAthleteClick, className = '' }: { a: AthleteResult; o
  * column widths). `rank` is null for a non-finisher; points/split-rank cells
  * fall back to a dash when they don't apply (e.g. youth/children).
  */
-function ResultRow({ a, rank, i, lang, yearValue, segs, splitRank, points, tag, best, onAthleteClick }: RowProps) {
+function ResultRow({ a, rank, i, lang, yearValue, segs, splitRank, points, tag, best, onAthleteClick, onShare }: RowProps) {
   const finished = rank !== null
   return (
     <tr className={`border-b border-line ${i % 2 ? 'bg-[#f9f9fb]' : 'bg-white'} hover:bg-mist`}>
@@ -138,6 +141,7 @@ function ResultRow({ a, rank, i, lang, yearValue, segs, splitRank, points, tag, 
         <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
           <NameButton a={a} onAthleteClick={onAthleteClick} />
           {tag && <Tag tag={tag} lang={lang} />}
+          {onShare && <span className="ml-auto"><ShareButton name={a.Name} lang={lang} onClick={onShare} /></span>}
         </span>
       </td>
       <td className={`px-3 py-2.5 ${a.is_club_member ? '' : 'italic text-muted'}`}>{a.is_club_member ? a.Club : t('guest', lang)}</td>
@@ -166,7 +170,7 @@ function ResultRow({ a, rank, i, lang, yearValue, segs, splitRank, points, tag, 
 }
 
 /** Phone layout: one card per finisher, splits underneath. */
-function ResultCard({ a, rank, lang, yearValue, segs, points, tag, best, onAthleteClick }: Omit<RowProps, 'i' | 'splitRank'>) {
+function ResultCard({ a, rank, lang, yearValue, segs, points, tag, best, onAthleteClick, onShare }: Omit<RowProps, 'i' | 'splitRank'>) {
   const podium = rank !== null && rank <= 3
   return (
     <li className={`rounded-[4px_4px_24px_4px] border border-line px-3 pb-2.5 pt-3 ${podium ? 'bg-mist' : 'bg-white'}`}>
@@ -188,15 +192,20 @@ function ResultCard({ a, rank, lang, yearValue, segs, points, tag, best, onAthle
           </span>
         </span>
       </div>
-      {segs.length > 0 && (
-        <dl className="m-0 mt-2.5 grid grid-cols-5 gap-1 border-t border-line pt-2 text-[13px]">
-          {segs.map((s) => (
-            <div key={s.label}>
-              <dt className="text-muted">{s.label}</dt>
-              <dd className={`m-0 tabular-nums ${isBestSplit(a, s.timeKey, best) ? GREEN : 'font-semibold text-navy'}`}>{fmt((a as unknown as Record<string, string>)[s.timeKey])}</dd>
-            </div>
-          ))}
-        </dl>
+      {(segs.length > 0 || onShare) && (
+        <div className="mt-2.5 flex items-center gap-2 border-t border-line pt-2">
+          {segs.length > 0 && (
+            <dl className="m-0 grid flex-1 grid-cols-5 gap-1 text-[13px]">
+              {segs.map((s) => (
+                <div key={s.label}>
+                  <dt className="text-muted">{s.label}</dt>
+                  <dd className={`m-0 tabular-nums ${isBestSplit(a, s.timeKey, best) ? GREEN : 'font-semibold text-navy'}`}>{fmt((a as unknown as Record<string, string>)[s.timeKey])}</dd>
+                </div>
+              ))}
+            </dl>
+          )}
+          {onShare && <span className="ml-auto"><ShareButton name={a.Name} lang={lang} onClick={onShare} /></span>}
+        </div>
       )}
     </li>
   )
@@ -410,6 +419,35 @@ export function ResultsTab({ data, lang, lastUpdated, raceDates, onAthleteClick,
   const legLabel = (leg: LegKey) =>
     leg === 'finish' ? t('res_leg_finish', lang) : t(leg === 'run1' ? 'run_1' : leg === 'run2' ? 'run_2' : leg, lang)
 
+  // ── Share picture ──
+  const [shareData, setShareData] = useState<ShareData | null>(null)
+  const canShareRow = (a: AthleteResult) => oneYear && isFinisher(a) && !isRelay(a) && (a.class_lower === 'herr' || a.class_lower === 'dam')
+  const openShare = useCallback((a: AthleteResult) => {
+    const field = data[sport]
+      .filter((b) => b.Competition_Year === yearValue && b.class_lower === a.class_lower && isFinisher(b) && !isRelay(b))
+      .sort((x, y) => x.Total_Time_Seconds - y.Total_Time_Seconds)
+    const date = raceDates[`${sport}-${yearValue}`]
+    const tag = tags.get(athleteKey(a)) ?? null
+    setShareData({
+      name: a.Name,
+      sportLabel: t(sport, lang),
+      year: yearValue,
+      dateLabel: date ? formatDate(date, lang) : yearValue,
+      time: displayTime(a.Total_Time),
+      place: field.findIndex((b) => athleteKey(b) === athleteKey(a)) + 1,
+      fieldSize: field.length,
+      gender: a.class_lower === 'dam' ? 'women' : 'men',
+      points: a.is_club_member ? pointsLookup[athleteKey(a)] ?? 0 : null,
+      tag,
+      splits: segs.filter((s) => LEG_OF[s.timeKey]).map((s) => ({
+        label: s.label,
+        time: fmt((a as unknown as Record<string, string>)[s.timeKey]),
+        fastest: isBestSplit(a, s.timeKey, bestSplits),
+      })),
+      raceLabel: t(`discipline_${sport}_title`, lang),
+    })
+  }, [data, sport, yearValue, raceDates, tags, lang, pointsLookup, segs, bestSplits])
+
   const exportCsv = useCallback(() => {
     const headers = [
       yearValue === 'all' ? t('all_time_rank', lang) : t('overall_rank', lang),
@@ -603,7 +641,8 @@ export function ResultsTab({ data, lang, lastUpdated, raceDates, onAthleteClick,
             <ol className="m-0 flex list-none flex-col gap-2.5 p-0 sm:hidden">
               {rows.map(({ athlete: a, rank }, i) => (
                 <ResultCard key={`${a.Name}-${a.Competition_Year}-${i}`} a={a} rank={rank} lang={lang} yearValue={yearValue} segs={segs}
-                  points={pointsLookup[athleteKey(a)] ?? 0} tag={tags.get(athleteKey(a))} best={bestSplits} onAthleteClick={onAthleteClick} />
+                  points={pointsLookup[athleteKey(a)] ?? 0} tag={tags.get(athleteKey(a))} best={bestSplits} onAthleteClick={onAthleteClick}
+                  onShare={canShareRow(a) ? () => openShare(a) : undefined} />
               ))}
               {classBlocks.map((group) => (
                 <Fragment key={group.cls}>
@@ -645,7 +684,8 @@ export function ResultsTab({ data, lang, lastUpdated, raceDates, onAthleteClick,
                       splitRank={splitRankLookup?.[athleteKey(a)] ?? {}}
                       points={pointsLookup[athleteKey(a)] ?? 0}
                       tag={tags.get(athleteKey(a))} best={bestSplits}
-                      onAthleteClick={onAthleteClick} />
+                      onAthleteClick={onAthleteClick}
+                      onShare={canShareRow(a) ? () => openShare(a) : undefined} />
                   ))}
 
                   {/* Classes shown apart from the ranked field — separate-course
@@ -673,6 +713,7 @@ export function ResultsTab({ data, lang, lastUpdated, raceDates, onAthleteClick,
           </>
         )}
       </section>
+      {shareData && <ShareDialog data={shareData} lang={lang} onClose={() => setShareData(null)} />}
     </div>
   )
 }

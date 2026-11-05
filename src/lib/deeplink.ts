@@ -8,12 +8,12 @@
  *   #extra/<date>[/<category>]               e.g. #extra/2026-06-10/women
  *   #rankings[/<year>]                       e.g. #rankings/2024
  *   #season[/<year>]                         e.g. #season/2026
- *   #records
+ *   #records, #points
  * Trailing 'all' segments are omitted when building; a missing segment means
  * the default. The overview tab maps to no hash at all (the bare URL).
  */
 
-export const TABS = ['overview', 'results', 'athletes', 'rankings', 'season', 'extra', 'records'] as const
+export const TABS = ['overview', 'results', 'athletes', 'rankings', 'season', 'extra', 'records', 'points'] as const
 export type Tab = (typeof TABS)[number]
 
 export function parseHash(hash: string): { tab: Tab; params: string[] } | null {

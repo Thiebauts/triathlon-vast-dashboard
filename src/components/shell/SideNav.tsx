@@ -19,6 +19,7 @@ const GROUPS: { title: string | null; items: { tab: Tab; label: string }[] }[] =
   ] },
   { title: 'nav_group_people', items: [{ tab: 'athletes', label: 'nav_athletes' }] },
   { title: 'nav_group_other', items: [{ tab: 'extra', label: 'nav_extra' }] },
+  { title: 'nav_group_about', items: [{ tab: 'points', label: 'nav_points' }] },
 ]
 
 function MenuList({ current, lang, onSelect, firstLinkRef }: {

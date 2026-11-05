@@ -60,9 +60,9 @@ async function run() {
     await btn.waitFor({ state: 'visible', timeout: 5000 })
   })
 
-  await test('7 menu items visible', async () => {
+  await test('8 menu items visible', async () => {
     const count = await page.locator('#side-menu').getByRole('button').count()
-    if (count !== 7) throw new Error(`Found ${count} menu items, expected 7`)
+    if (count !== 8) throw new Error(`Found ${count} menu items, expected 8`)
   })
 
   await test('Discipline cards visible', async () => {
@@ -271,6 +271,16 @@ async function run() {
     await view.locator('h2', { hasText: 'Club records' }).waitFor({ state: 'visible', timeout: 5000 })
     const text = await view.innerText()
     for (const s of ['Emma Nilsson', '1:04:38', 'Earlier courses', 'Sätila']) {
+      if (!text.includes(s)) throw new Error(`Missing ${s}`)
+    }
+  })
+
+  await test('How points work explains the rules with a real example', async () => {
+    await page.goto(`${BASE}/#points`, { waitUntil: 'networkidle' })
+    const view = page.locator('#view-points')
+    await view.locator('h2', { hasText: 'How points work' }).waitFor({ state: 'visible', timeout: 5000 })
+    const text = await view.innerText()
+    for (const s of ['Members only', 'Running 2026, women', 'guest, no place']) {
       if (!text.includes(s)) throw new Error(`Missing ${s}`)
     }
   })
