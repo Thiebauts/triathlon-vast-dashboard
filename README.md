@@ -231,6 +231,13 @@ To add one:
 
 Participants who skipped legs are stored with `Status: partial` (only the legs they completed, no total time, no rank); participants with no recorded times at all are excluded.
 
+## Possible Future Updates
+
+Ideas that are planned but not started yet:
+
+- **Head-to-head**: pick two athletes and see who beat whom, race by race, with the overall record (for example 7–6).
+- **Where you gained or lost time**: for triathlon and duathlon, show how each split ranks against finishers with a similar total time, so athletes can see which leg to work on.
+
 ## Contributing
 
 Have ideas for new features, spotted a bug, or want to fix something yourself?
