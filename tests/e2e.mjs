@@ -286,7 +286,7 @@ async function run() {
   })
 
   await test('Athlete list populated', async () => {
-    const items = page.locator('ul li button:visible')
+    const items = page.locator('#view-athletes ul li button:visible')
     const count = await items.count()
     if (count === 0) throw new Error('No athletes in list')
     console.log(`     (${count} athletes found)`)
@@ -301,7 +301,7 @@ async function run() {
     const input = page.locator('input[placeholder="Search athlete…"]:visible')
     await input.fill('Jon')
     await page.waitForTimeout(300)
-    const items = page.locator('ul li button:visible')
+    const items = page.locator('#view-athletes ul li button:visible')
     const count = await items.count()
     if (count === 0) throw new Error('Search returned 0 results for "Jon"')
     const all = await items.allTextContents()
@@ -314,7 +314,7 @@ async function run() {
     const input = page.locator('input[placeholder="Search athlete…"]:visible')
     await input.fill('arnstrom')
     await page.waitForTimeout(300)
-    const all = await page.locator('ul li button:visible').allTextContents()
+    const all = await page.locator('#view-athletes ul li button:visible').allTextContents()
     if (!all.includes('Erik Arnström')) throw new Error(`Got ${JSON.stringify(all)}`)
     await input.fill('Jon')
     await page.waitForTimeout(300)
@@ -324,7 +324,7 @@ async function run() {
     const input = page.locator('input[placeholder="Search athlete…"]:visible')
     await input.clear()
     await page.waitForTimeout(300)
-    const firstAthlete = page.locator('ul li button:visible').first()
+    const firstAthlete = page.locator('#view-athletes ul li button:visible').first()
     const name = await firstAthlete.textContent()
     await firstAthlete.click()
     await page.waitForTimeout(800)
@@ -359,7 +359,7 @@ async function run() {
   })
 
   await test('Select a different athlete', async () => {
-    const athletes = page.locator('ul li button:visible')
+    const athletes = page.locator('#view-athletes ul li button:visible')
     const count = await athletes.count()
     const secondIdx = Math.min(5, count - 1)
     const second = athletes.nth(secondIdx)
@@ -630,7 +630,7 @@ async function run() {
   })
 
   await test('Navigate to Tävlingsresultat in Swedish', async () => {
-    const tab = page.locator('button', { hasText: 'Tävlingsresultat' })
+    const tab = menu(page, 'Resultat')
     await tab.click()
     await page.waitForTimeout(600)
     const sv = page.locator('text=Tävlingsresultat & alla tiders ranking')
