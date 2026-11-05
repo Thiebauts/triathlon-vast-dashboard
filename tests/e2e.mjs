@@ -95,7 +95,7 @@ async function run() {
   await test('Discipline card link opens Event Results with sport preselected', async () => {
     await page.getByRole('button', { name: 'Running: See results' }).click()
     await page.waitForTimeout(600)
-    const header = page.locator('text=Event results & all-time rankings')
+    const header = page.locator('#view-results h2').first()
     await header.waitFor({ state: 'visible', timeout: 3000 })
     const sportSelect = page.locator('select:visible').first()
     const value = await sportSelect.inputValue()
@@ -141,7 +141,7 @@ async function run() {
     const tab = menu(page, 'Results')
     await tab.click()
     await page.waitForTimeout(800)
-    const header = page.locator('text=Event results & all-time rankings')
+    const header = page.locator('#view-results h2').first()
     await header.waitFor({ state: 'visible', timeout: 5000 })
   })
 
@@ -259,8 +259,8 @@ async function run() {
   })
 
   await test('Corrected running 2026 times are shown', async () => {
-    for (const [name, time] of [['Rasmus Johansson', '00:18:31'], ['Sofia Haglund', '00:22:45']]) {
-      const row = await page.locator('table tbody tr', { hasText: name }).first().innerText()
+    for (const [name, time] of [['Rasmus Johansson', '18:31'], ['Sofia Haglund', '22:45']]) {
+      const row = await page.locator('#view-results table tbody tr', { hasText: name }).last().innerText()
       if (!row.includes(time)) throw new Error(`${name}: ${row}`)
     }
   })
@@ -631,7 +631,7 @@ async function run() {
     const tab = menu(page, 'Resultat')
     await tab.click()
     await page.waitForTimeout(600)
-    const sv = page.locator('text=Tävlingsresultat & alla tiders ranking')
+    const sv = page.locator('#view-results h2').first()
     await sv.waitFor({ state: 'visible', timeout: 3000 })
   })
 

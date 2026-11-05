@@ -1,32 +1,53 @@
 'use client'
 import { useState, useMemo, useCallback, useDeferredValue, Fragment } from 'react'
-import { t } from '@/lib/translations'
+import { t, tf } from '@/lib/translations'
 import type { AthleteResult, CompetitionsData, SportType, Lang, ResultsCategory } from '@/lib/types'
 import { athleteKey, computeSplitRanks, computeEventPoints, isFinisher, isRelay, type SplitRanks } from '@/lib/data'
 import { matchesSearch } from '@/lib/search'
 import { formatDate } from '@/lib/dates'
+import { displayTime, getSeasonSummary } from '@/lib/season'
+import { getFastestOfDay, getResultTags, type LegKey, type ResultTag } from '@/lib/raceDay'
+import { BTN_PRIMARY, CARD_MIST, CARD_NAVY, Eyebrow, MEDAL_COLORS, PageTitle } from '@/components/ui/brand'
 import { csvEscape, toCsvFile } from '@/lib/csv'
 
 const SPORTS: SportType[] = ['triathlon', 'duathlon', 'swimming', 'cycling', 'running', 'swimrun']
 
-const MEDAL = {
-  1: { color: '#7D6300' },
-  2: { color: '#56677A' },
-  3: { color: '#85552B' },
-} as Record<number, { color: string }>
-
-function RankCell({ n }: { n: number | undefined }) {
-  if (!n) return <span className="text-gray-500 text-[11px]">—</span>
-  const style = MEDAL[n] ?? { color: '#6B7280' }
-  const weight = n <= 3 ? 'font-semibold' : 'font-normal'
-  return <span style={style} className={`text-[11px] tabular-nums ${weight}`}>{n}</span>
-}
+const GREEN = 'font-bold text-[#1b7a3a]'
 
 function fmt(v: string | undefined) {
-  return v && v !== 'N/A' ? v : '—'
+  return v && v !== 'N/A' ? displayTime(v) : '—'
 }
 
-const D = 'hidden sm:table-cell'
+/** Split column key → the leg in getFastestOfDay(). */
+const LEG_OF: Record<string, LegKey> = { Swim_Time: 'swim', Bike_Time: 'bike', Run_Time: 'run', Run1_Time: 'run1', Run2_Time: 'run2' }
+
+/** Times of the day's fastest splits, per class ('herr' / 'dam') and split column. */
+type BestSplits = Record<string, Record<string, string>>
+
+const isBestSplit = (a: AthleteResult, timeKey: string, best: BestSplits | null) =>
+  !!best && !!best[a.class_lower]?.[timeKey] && (a as unknown as Record<string, string>)[timeKey] === best[a.class_lower][timeKey]
+
+/** PB / Debut tag: club-styled label with the one rounded corner. */
+function Tag({ tag, lang }: { tag: ResultTag; lang: Lang }) {
+  return tag === 'pb' ? (
+    <span title={t('res_tag_pb_long', lang)}
+      className="inline-flex h-[22px] items-center rounded-[2px_2px_8px_2px] bg-brand px-2 font-display text-xs font-semibold tracking-[0.04em] text-white">
+      {t('res_tag_pb', lang)}<span className="sr-only">: {t('res_tag_pb_long', lang)}</span>
+    </span>
+  ) : (
+    <span title={t('res_tag_debut_long', lang)}
+      className="inline-flex h-5 items-center rounded-[2px_2px_8px_2px] border border-navy bg-white px-[7px] font-display text-xs font-semibold tracking-[0.04em] text-navy">
+      {t('res_tag_debut', lang)}<span className="sr-only">: {t('res_tag_debut_long', lang)}</span>
+    </span>
+  )
+}
+
+/** "Herr" → "Men" etc. for display; other classes as written. */
+function classLabel(a: AthleteResult, lang: Lang) {
+  if (a.class_lower === 'herr') return t('men', lang)
+  if (a.class_lower === 'dam') return t('women', lang)
+  return a.Class
+}
 
 /**
  * Classes that raced a shorter, separate course and are therefore shown as
@@ -69,72 +90,115 @@ function buildClassBlocks(list: AthleteResult[], note: (members: AthleteResult[]
   })
 }
 
+type Seg = { timeKey: string; rankKey: string; label: string }
+
+interface RowProps {
+  a: AthleteResult
+  rank: number | null
+  i: number
+  lang: Lang
+  yearValue: string
+  segs: readonly Seg[]
+  splitRank: SplitRanks
+  points: number
+  tag: ResultTag | undefined
+  best: BestSplits | null
+  onAthleteClick?: (name: string) => void
+}
+
+/** Only adult (Herr/Dam) members who finished earn club points. */
+const earnsPoints = (a: AthleteResult, rank: number | null) =>
+  rank !== null && a.is_club_member && (a.class_lower === 'herr' || a.class_lower === 'dam')
+
+function NameButton({ a, onAthleteClick, className = '' }: { a: AthleteResult; onAthleteClick?: (name: string) => void; className?: string }) {
+  return onAthleteClick ? (
+    <button type="button" onClick={() => onAthleteClick(a.Name)}
+      className={`rounded text-left font-semibold text-navy hover:text-brand hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand ${className}`}>
+      {a.Name}
+    </button>
+  ) : <span className={`font-semibold text-navy ${className}`}>{a.Name}</span>
+}
+
 /**
  * One result row. Shared by the main ranked field and the separate-course
  * blocks so every table renders the exact same columns (and therefore the same
  * column widths). `rank` is null for a non-finisher; points/split-rank cells
  * fall back to a dash when they don't apply (e.g. youth/children).
  */
-function ResultRow({ a, rank, i, lang, yearValue, segs, splitRank, points, onAthleteClick }: {
-  a: AthleteResult
-  rank: number | null
-  i: number
-  lang: Lang
-  yearValue: string
-  segs: readonly { timeKey: string; rankKey: string; label: string }[]
-  splitRank: SplitRanks
-  points: number
-  onAthleteClick?: (name: string) => void
-}) {
-  const isMember = a.is_club_member
+function ResultRow({ a, rank, i, lang, yearValue, segs, splitRank, points, tag, best, onAthleteClick }: RowProps) {
   const finished = rank !== null
-  // Only adult (Herr/Dam) members who finished earn club points; everyone else
-  // shows a dash. A member can still earn 0 (ranked past 32nd).
-  const earnsPoints = finished && isMember && (a.class_lower === 'herr' || a.class_lower === 'dam')
-  const bg = rank === 1 ? 'bg-amber-50/60'
-           : rank === 2 ? 'bg-slate-50/80'
-           : rank === 3 ? 'bg-orange-50/50'
-           : isMember   ? 'bg-red-50/30'
-           : i % 2 === 0 ? 'bg-white' : 'bg-gray-50/40'
   return (
-    <tr className={`${bg} border-b border-gray-100 hover:bg-blue-50/20 transition-colors`}>
-      <th scope="row" className="px-3 py-1.5 font-semibold tabular-nums">
+    <tr className={`border-b border-line ${i % 2 ? 'bg-[#f9f9fb]' : 'bg-white'} hover:bg-mist`}>
+      <th scope="row" className="px-4 py-2.5 text-left font-display font-semibold tabular-nums">
         {rank !== null
-          ? <span style={MEDAL[rank] ?? { color: '#6B7280' }}>{rank}</span>
-          : <span className="text-gray-500 font-normal">—</span>}
+          ? <span style={{ color: MEDAL_COLORS[rank - 1] ?? '#4a4e57' }}>{rank}</span>
+          : <span className="font-normal text-muted">—</span>}
       </th>
-      <td className="px-3 py-1.5 whitespace-nowrap font-medium text-gray-800">
-        {onAthleteClick ? (
-          <button onClick={() => onAthleteClick(a.Name)}
-            className="py-1 -my-1 hover:text-red-700 hover:underline transition-colors text-left focus-visible:ring-2 focus-visible:ring-red-700 focus-visible:ring-offset-1 rounded">
-            {a.Name}
-          </button>
-        ) : a.Name}
+      <td className="min-w-[230px] px-3 py-2.5">
+        <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
+          <NameButton a={a} onAthleteClick={onAthleteClick} />
+          {tag && <Tag tag={tag} lang={lang} />}
+        </span>
       </td>
-      <td className={`px-3 py-1.5 text-gray-500 ${D}`}>{isMember ? a.Club : t('guest', lang)}</td>
-      <td className={`px-3 py-1.5 text-gray-500 ${D}`}>{a.Class}</td>
-      {yearValue === 'all' && <td className={`px-3 py-1.5 text-gray-500 ${D}`}>{a.Competition_Year}</td>}
-      <td className="px-3 py-1.5 font-mono font-semibold text-gray-800">
-        {finished
-          ? fmt(a.Total_Time)
-          : <span className="font-sans font-semibold text-gray-500">{t('dnf', lang)}</span>}
-      </td>
+      <td className={`px-3 py-2.5 ${a.is_club_member ? '' : 'italic text-muted'}`}>{a.is_club_member ? a.Club : t('guest', lang)}</td>
+      <td className="px-3 py-2.5">{classLabel(a, lang)}</td>
+      {yearValue === 'all' && <td className="px-3 py-2.5 text-muted">{a.Competition_Year}</td>}
       {segs.map((s) => (
         <Fragment key={s.label}>
-          <td className={`px-2 py-1.5 font-mono text-gray-500 border-l border-gray-100 ${D}`}>
+          <td className={`border-l border-line px-2 py-2.5 tabular-nums ${isBestSplit(a, s.timeKey, best) ? GREEN : ''}`}>
             {fmt((a as unknown as Record<string, string>)[s.timeKey])}
           </td>
-          <td className={`px-2 py-1.5 text-center ${D}`}>
-            <RankCell n={(splitRank as Record<string, number | undefined>)[s.rankKey]} />
+          <td className="px-2 py-2.5 text-center text-[13px] tabular-nums text-muted">
+            {(splitRank as Record<string, number | undefined>)[s.rankKey] ?? '—'}
           </td>
         </Fragment>
       ))}
-      <td className="px-3 py-1.5 text-right tabular-nums border-l border-gray-100">
-        {earnsPoints
-          ? <span className={points > 0 ? 'font-semibold text-red-700' : 'text-gray-500'}>{points}</span>
-          : <span className="text-gray-300">—</span>}
+      <td className="border-l border-line px-3 py-2.5 font-display font-semibold tabular-nums text-navy">
+        {finished ? fmt(a.Total_Time) : <span className="font-sans text-muted">{t('dnf', lang)}</span>}
+      </td>
+      <td className="px-4 py-2.5 text-right font-display font-semibold tabular-nums">
+        {earnsPoints(a, rank)
+          ? <span className={points > 0 ? 'text-brand' : 'text-muted'}>{points}</span>
+          : <span className="text-muted">—</span>}
       </td>
     </tr>
+  )
+}
+
+/** Phone layout: one card per finisher, splits underneath. */
+function ResultCard({ a, rank, lang, yearValue, segs, points, tag, best, onAthleteClick }: Omit<RowProps, 'i' | 'splitRank'>) {
+  const podium = rank !== null && rank <= 3
+  return (
+    <li className={`rounded-[4px_4px_24px_4px] border border-line px-3 pb-2.5 pt-3 ${podium ? 'bg-mist' : 'bg-white'}`}>
+      <div className="grid grid-cols-[34px_minmax(0,1fr)_auto] items-start gap-x-2.5">
+        <span className="font-display text-xl font-semibold leading-tight" style={{ color: rank ? (MEDAL_COLORS[rank - 1] ?? '#4a4e57') : '#4a4e57' }}>{rank ?? '—'}</span>
+        <span className="min-w-0">
+          <NameButton a={a} onAthleteClick={onAthleteClick} className="text-base leading-snug" />
+          <span className="mt-1 flex flex-wrap items-center gap-1.5 text-[13px] text-muted">
+            <span className={a.is_club_member ? '' : 'italic'}>
+              {classLabel(a, lang)} · {a.is_club_member ? a.Club : t('guest', lang)}{yearValue === 'all' ? ` · ${a.Competition_Year}` : ''}
+            </span>
+            {tag && <Tag tag={tag} lang={lang} />}
+          </span>
+        </span>
+        <span className="text-right">
+          <span className="block font-display text-lg font-semibold text-navy">{rank !== null ? fmt(a.Total_Time) : t('dnf', lang)}</span>
+          <span className="block font-display text-sm font-semibold text-brand">
+            {earnsPoints(a, rank) ? `${points} ${t('season_points_unit', lang)}` : <span className="font-sans font-normal text-muted">{t('res_no_points', lang)}</span>}
+          </span>
+        </span>
+      </div>
+      {segs.length > 0 && (
+        <dl className="m-0 mt-2.5 grid grid-cols-5 gap-1 border-t border-line pt-2 text-[13px]">
+          {segs.map((s) => (
+            <div key={s.label}>
+              <dt className="text-muted">{s.label}</dt>
+              <dd className={`m-0 tabular-nums ${isBestSplit(a, s.timeKey, best) ? GREEN : 'font-semibold text-navy'}`}>{fmt((a as unknown as Record<string, string>)[s.timeKey])}</dd>
+            </div>
+          ))}
+        </dl>
+      )}
+    </li>
   )
 }
 
@@ -162,6 +226,8 @@ interface Props {
   lang: Lang
   /** ISO date of the newest result on the dashboard. */
   lastUpdated: string
+  /** Race day per "<sport>-<year>". */
+  raceDates: Record<string, string>
   onAthleteClick?: (name: string) => void
   /**
    * Sport/year/category are owned by the Dashboard (controlled) so the URL
@@ -175,7 +241,7 @@ interface Props {
   onCategoryChange: (category: ResultsCategory) => void
 }
 
-export function ResultsTab({ data, lang, lastUpdated, onAthleteClick, sport, year, category, onSportChange, onYearChange, onCategoryChange }: Props) {
+export function ResultsTab({ data, lang, lastUpdated, raceDates, onAthleteClick, sport, year, category, onSportChange, onYearChange, onCategoryChange }: Props) {
   const [search, setSearch] = useState('')
   const deferredSearch = useDeferredValue(search)
 
@@ -292,6 +358,58 @@ export function ResultsTab({ data, lang, lastUpdated, onAthleteClick, sport, yea
     return [] as const
   }, [sport, lang])
 
+  // ── One race (a single year selected): podium, fastest of the day, tags ──
+  const oneYear = yearValue !== 'all'
+  const race = useMemo(
+    () => (oneYear ? getSeasonSummary(data, yearValue).races.find((r) => r.sport === sport) ?? null : null),
+    [data, sport, yearValue, oneYear],
+  )
+  const tags = useMemo(
+    () => (oneYear ? getResultTags(data[sport], sport, yearValue) : new Map<string, ResultTag>()),
+    [data, sport, yearValue, oneYear],
+  )
+  const fastest = useMemo(
+    () => (oneYear ? getFastestOfDay(data[sport], sport, yearValue) : []),
+    [data, sport, yearValue, oneYear],
+  )
+  const bestSplits = useMemo<BestSplits | null>(() => {
+    if (!oneYear || !isMultiSport) return null
+    const out: BestSplits = { herr: {}, dam: {} }
+    for (const s of segs) {
+      const leg = fastest.find((f) => f.leg === LEG_OF[s.timeKey])
+      if (leg?.men) out.herr[s.timeKey] = leg.men.time
+      if (leg?.women) out.dam[s.timeKey] = leg.women.time
+    }
+    return out
+  }, [oneYear, isMultiSport, segs, fastest])
+
+  const tagCounts = useMemo(() => {
+    let pb = 0, debut = 0
+    for (const v of tags.values()) { if (v === 'pb') pb++; else debut++ }
+    return { pb, debut }
+  }, [tags])
+
+  // Points of a podium name, from the same lookup as the table
+  const pointsOf = useCallback((name: string) => {
+    const a = data[sport].find((r) => r.Name === name && r.Competition_Year === yearValue)
+    return a ? pointsLookup[athleteKey(a)] ?? 0 : 0
+  }, [data, sport, yearValue, pointsLookup])
+
+  const subtitle = useMemo(() => {
+    if (!oneYear) return t('res_sub_all', lang)
+    const list = data[sport].filter((a) => a.Competition_Year === yearValue)
+    const finishers = list.filter((a) => isFinisher(a) && !isRelay(a)).length
+    const relays = list.filter(isRelay).length
+    const date = raceDates[`${sport}-${yearValue}`]
+    let txt = tf('res_finishers', lang, { n: finishers })
+    if (relays) txt += relays === 1 ? t('res_relay_one', lang) : tf('res_relay_n', lang, { n: relays })
+    if (relays && race) txt += tf('res_starts', lang, { n: race.starts.total })
+    return date ? `${formatDate(date, lang)} · ${txt}` : txt
+  }, [oneYear, data, sport, yearValue, raceDates, race, lang])
+
+  const legLabel = (leg: LegKey) =>
+    leg === 'finish' ? t('res_leg_finish', lang) : t(leg === 'run1' ? 'run_1' : leg === 'run2' ? 'run_2' : leg, lang)
+
   const exportCsv = useCallback(() => {
     const headers = [
       yearValue === 'all' ? t('all_time_rank', lang) : t('overall_rank', lang),
@@ -319,126 +437,242 @@ export function ResultsTab({ data, lang, lastUpdated, onAthleteClick, sport, yea
     URL.revokeObjectURL(url)
   }, [rows, sport, yearValue, category, lang, pointsLookup])
 
+  const colCount = 6 + (yearValue === 'all' ? 1 : 0) + segs.length * 2
+  const selectCls = 'h-12 min-w-[130px] rounded border border-line bg-mist px-3 text-[15px] font-medium text-navy focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand'
+  const labelCls = 'flex flex-col gap-1 text-sm font-semibold text-navy'
+  const showRaceBlocks = oneYear && category !== 'youth' && race !== null
+
   return (
-    <div className="space-y-3">
-      <div className="bg-white rounded-lg shadow-sm border border-gray-100 px-4 py-3">
-        <h2 className="text-sm font-semibold text-red-700 mb-0.5">{t('event_results_title', lang)}</h2>
-        <p className="text-xs text-gray-500 leading-relaxed">{t('event_results_text1', lang)}</p>
-        <p className="text-xs text-gray-600 leading-relaxed mt-1">
-          {lastUpdated && <>{t('last_updated', lang)} <strong>{formatDate(lastUpdated, lang)}</strong>. </>}
-          {t('results_correction', lang)}
-        </p>
+    <div className="flex flex-col gap-9">
+      <div className="flex flex-wrap items-end justify-between gap-x-10 gap-y-6">
+        <PageTitle
+          eyebrow={t('res_eyebrow', lang)}
+          title={oneYear ? `${t(sport, lang)} ${yearValue}` : tf('res_title_all', lang, { sport: t(sport, lang) })}
+          subtitle={subtitle}
+        />
+        <form className="flex flex-wrap items-end gap-3" onSubmit={(e) => e.preventDefault()}>
+          <label className={labelCls}>{t('res_filter_sport', lang)}
+            <select value={sport} onChange={(e) => onSportChange(e.target.value as SportType)} className={selectCls}>
+              {SPORTS.map((s) => <option key={s} value={s}>{t(s, lang)}</option>)}
+            </select>
+          </label>
+          <label className={labelCls}>{t('res_filter_year', lang)}
+            <select value={yearValue} onChange={(e) => onYearChange(e.target.value)} className={selectCls}>
+              {years.map((y) => <option key={y} value={y}>{y === 'all' ? t('all_years', lang) : y}</option>)}
+            </select>
+          </label>
+          <label className={labelCls}>{t('res_filter_category', lang)}
+            <select value={category} onChange={(e) => onCategoryChange(e.target.value as ResultsCategory)} className={selectCls}>
+              <option value="all">{t('all_mixed', lang)}</option>
+              <option value="men">{t('men_only', lang)}</option>
+              <option value="women">{t('women_only', lang)}</option>
+              <option value="youth">{t('youth_only', lang)}</option>
+            </select>
+          </label>
+          <button type="button" onClick={exportCsv} className={BTN_PRIMARY}>{t('export_csv', lang)}</button>
+        </form>
       </div>
 
-      {/* Filters */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-100 px-4 py-2.5 flex flex-wrap items-end gap-4">
-        <div>
-          <label htmlFor="filter-event" className="block text-[11px] font-medium text-gray-500 uppercase tracking-wide mb-1">{t('select_event', lang)}</label>
-          <select id="filter-event" value={sport}
-            onChange={(e) => onSportChange(e.target.value as SportType)}
-            className="min-h-6 border border-gray-200 rounded px-2 py-1 text-xs bg-white focus-visible:ring-2 focus-visible:ring-red-700 focus-visible:ring-offset-1">
-            {SPORTS.map((s) => <option key={s} value={s}>{t(s, lang)}</option>)}
-          </select>
-        </div>
-        <div>
-          <label htmlFor="filter-year" className="block text-[11px] font-medium text-gray-500 uppercase tracking-wide mb-1">{t('select_year', lang)}</label>
-          <select id="filter-year" value={yearValue} onChange={(e) => onYearChange(e.target.value)}
-            className="min-h-6 border border-gray-200 rounded px-2 py-1 text-xs bg-white focus-visible:ring-2 focus-visible:ring-red-700 focus-visible:ring-offset-1">
-            {years.map((y) => <option key={y} value={y}>{y === 'all' ? t('all_years', lang) : y}</option>)}
-          </select>
-        </div>
-        <div>
-          <label htmlFor="filter-category" className="block text-[11px] font-medium text-gray-500 uppercase tracking-wide mb-1">{t('select_category', lang)}</label>
-          <select id="filter-category" value={category} onChange={(e) => onCategoryChange(e.target.value as ResultsCategory)}
-            className="min-h-6 border border-gray-200 rounded px-2 py-1 text-xs bg-white focus-visible:ring-2 focus-visible:ring-red-700 focus-visible:ring-offset-1">
-            <option value="all">{t('all_mixed', lang)}</option>
-            <option value="men">{t('men_only', lang)}</option>
-            <option value="women">{t('women_only', lang)}</option>
-            <option value="youth">{t('youth_only', lang)}</option>
-          </select>
-        </div>
-        <div>
-          <input
-            type="text"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder={t('search_athlete', lang)}
-            aria-label={t('search_athlete', lang)}
-            className="min-h-6 border border-gray-200 rounded px-2 py-1 text-xs bg-white w-36 focus-visible:ring-2 focus-visible:ring-red-700 focus-visible:ring-offset-1"
-          />
-        </div>
-        <div className="flex items-center gap-3 ml-auto self-center">
-          <span className="text-xs text-gray-500" aria-live="polite">{rows.length} {t('total_results', lang)}</span>
-          <button onClick={exportCsv}
-            className="text-[11px] text-gray-500 hover:text-red-700 min-h-6 border border-gray-200 rounded px-2 py-1 transition-colors focus-visible:ring-2 focus-visible:ring-red-700 focus-visible:ring-offset-1">
-            {t('export_csv', lang)}
-          </button>
-        </div>
-      </div>
+      <p className="-mt-4 mb-0 text-sm text-muted">
+        {lastUpdated && <>{t('last_updated', lang)} <strong className="text-navy">{formatDate(lastUpdated, lang)}</strong>. </>}
+        {t('results_correction', lang)}
+      </p>
 
-      {isMultiSport && (
-        <p className="text-[11px] text-gray-500 sm:hidden px-1">{t('split_times_hint', lang)}</p>
+      {showRaceBlocks && race && (
+        <>
+          <section aria-label={t('res_podium', lang)} className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,280px),1fr))] gap-5">
+            {(['men', 'women'] as const).filter((g) => race.podium[g].length > 0 && (category === 'all' || category === g)).map((g) => (
+              <div key={g} className={`${CARD_MIST} px-6 py-5`}>
+                <Eyebrow className="text-xl">{t('res_podium', lang)}</Eyebrow>
+                <h3 className="mb-2.5 mt-0.5 font-display text-2xl font-semibold text-navy">{t(g, lang)}</h3>
+                <ol className="m-0 list-none p-0">
+                  {race.podium[g].map((p, i) => (
+                    <li key={p.name} className="grid grid-cols-[22px_minmax(0,1fr)_auto_auto] items-baseline gap-2.5 border-b border-line py-1.5 text-[15px] last:border-b-0">
+                      <span className="font-display font-semibold" style={{ color: MEDAL_COLORS[i] }}>{i + 1}</span>
+                      <span className="font-semibold text-navy">{p.name}</span>
+                      <span className="tabular-nums">{displayTime(p.time)}</span>
+                      <span className="font-display font-semibold text-brand">{pointsOf(p.name)} {t('season_points_unit', lang)}</span>
+                    </li>
+                  ))}
+                </ol>
+              </div>
+            ))}
+          </section>
+
+          {fastest.some((f) => f.men || f.women) && (
+            <section aria-labelledby="fastest-title" className={`${CARD_NAVY} px-6 pb-7 pt-6 sm:px-8 lg:rounded-[4px_4px_48px_4px]`}>
+              <div className="mb-3.5 flex flex-wrap items-baseline justify-between gap-x-6 gap-y-2">
+                <div>
+                  <Eyebrow light>{t('res_fastest_eyebrow', lang)}</Eyebrow>
+                  <h3 id="fastest-title" className="mb-0 mt-0.5 font-display text-[26px] font-semibold leading-tight sm:text-[30px]">
+                    {isMultiSport ? t('res_fastest_splits', lang) : t('res_fastest_title', lang)}
+                  </h3>
+                </div>
+                <span className="text-sm text-[#c3c6d1]">{t('res_fastest_note', lang)}</span>
+              </div>
+              {/* Phones: one block per leg, men then women */}
+              <dl className="m-0 sm:hidden">
+                {[...fastest.map((f) => ({ key: f.leg, label: legLabel(f.leg), men: f.men, women: f.women })),
+                  ...(race.courseRecords ? [{
+                    key: 'record', label: t('res_course_record', lang),
+                    men: race.courseRecords.men && { name: `${race.courseRecords.men.name} (${race.courseRecords.men.year})`, time: race.courseRecords.men.time, guest: false },
+                    women: race.courseRecords.women && { name: `${race.courseRecords.women.name} (${race.courseRecords.women.year})`, time: race.courseRecords.women.time, guest: false },
+                  }] : [])].map((f) => (
+                  <div key={f.key} className="border-t border-[#3a4250] py-2">
+                    <dt className="text-xs font-bold uppercase tracking-[0.06em] text-[#c3c6d1]">{f.label}</dt>
+                    {([['men', f.men], ['women', f.women]] as const).map(([g, e]) => (
+                      <dd key={g} className="m-0 grid grid-cols-[minmax(0,1fr)_auto] gap-x-2.5 text-sm">
+                        <span><span className="sr-only">{t(g, lang)}: </span>{e ? e.name : '—'}{e?.guest && <span className="text-[#c3c6d1]"> ({t('res_guest_mark', lang)})</span>}</span>
+                        <span className="font-display font-semibold tabular-nums">{e ? displayTime(e.time) : ''}</span>
+                      </dd>
+                    ))}
+                  </div>
+                ))}
+              </dl>
+              <div className="hidden overflow-x-auto sm:block">
+                <table className="w-full min-w-[480px] text-[15px]">
+                  <thead>
+                    <tr className="text-left font-display text-sm text-[#c3c6d1]">
+                      <th scope="col" className="static w-[22%] py-2 pr-3 font-semibold"><span className="sr-only">{t('res_category', lang)}</span></th>
+                      <th scope="col" className="static px-3 py-2 font-semibold">{t('men', lang)}</th>
+                      <th scope="col" className="static px-3 py-2 font-semibold">{t('women', lang)}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {fastest.map((f) => (
+                      <tr key={f.leg} className="border-t border-[#3a4250]">
+                        <th scope="row" className="py-2.5 pr-3 text-left font-semibold text-[#c3c6d1]">{legLabel(f.leg)}</th>
+                        {[f.men, f.women].map((e, i) => (
+                          <td key={i} className="px-3 py-2.5">
+                            {e ? <>
+                              <span className="font-semibold">{e.name}</span>
+                              {e.guest && <span className="text-[#c3c6d1]"> ({t('res_guest_mark', lang)})</span>}
+                              <span className="ml-1.5 font-display font-semibold tabular-nums">{displayTime(e.time)}</span>
+                            </> : '—'}
+                          </td>
+                        ))}
+                      </tr>
+                    ))}
+                    {race.courseRecords && (
+                      <tr className="border-t border-[#3a4250] text-[#c3c6d1]">
+                        <th scope="row" className="py-2.5 pr-3 text-left font-semibold">{t('res_course_record', lang)}</th>
+                        {[race.courseRecords.men, race.courseRecords.women].map((r, i) => (
+                          <td key={i} className="px-3 py-2.5">
+                            {r ? <>
+                              <span className="font-semibold">{r.name} ({r.year})</span>
+                              <span className="ml-1.5 font-display font-semibold tabular-nums text-white">{displayTime(r.time)}</span>
+                            </> : '—'}
+                          </td>
+                        ))}
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </section>
+          )}
+        </>
       )}
 
-      {/* Table */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-100 overflow-x-auto">
-        {rows.length === 0 && separateRaces.length === 0 ? (
-          <div className="p-8 text-center space-y-2">
-            <p className="text-xs text-gray-500">{t('no_data_available', lang)} {t(sport, lang)}</p>
+      <section aria-labelledby="all-finishers">
+        <div className="mb-3 flex flex-wrap items-end justify-between gap-3">
+          <h3 id="all-finishers" className="m-0 font-display text-[30px] font-semibold text-navy sm:text-[34px]">{t('res_all_finishers', lang)}</h3>
+          <div className="flex flex-wrap items-center gap-3">
+            <label className="sr-only" htmlFor="results-search">{t('search_athlete', lang)}</label>
+            <input id="results-search" type="search" value={search} onChange={(e) => setSearch(e.target.value)}
+              placeholder={t('search_athlete', lang)}
+              className="h-11 w-48 rounded border border-line bg-mist px-3 text-[15px] text-navy focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand" />
+            <span className="text-sm text-muted" aria-live="polite">{rows.length} {t('total_results', lang)}</span>
           </div>
-        ) : (
-          <table className="min-w-full text-xs">
-            <thead>
-              <tr className="bg-gray-50 border-b border-gray-200 text-[11px] uppercase tracking-wider text-gray-500">
-                <th scope="col" className="px-3 py-2 text-left font-semibold">
-                  {yearValue === 'all' ? t('all_time_rank', lang) : t('overall_rank', lang)}
-                </th>
-                <th scope="col" className="px-3 py-2 text-left font-semibold">{t('name', lang)}</th>
-                <th scope="col" className={`px-3 py-2 text-left font-semibold ${D}`}>{t('club', lang)}</th>
-                <th scope="col" className={`px-3 py-2 text-left font-semibold ${D}`}>{t('gender', lang)}</th>
-                {yearValue === 'all' && <th scope="col" className={`px-3 py-2 text-left font-semibold ${D}`}>{t('year', lang)}</th>}
-                <th scope="col" className="px-3 py-2 text-left font-semibold">{t('total_time', lang)}</th>
-                {segs.map((s) => (
-                  <Fragment key={s.label}>
-                    <th scope="col" className={`px-2 py-2 text-left font-semibold border-l border-gray-100 ${D}`}>{s.label}</th>
-                    <th scope="col" className={`px-2 py-2 text-center font-semibold text-gray-300 ${D}`}>#</th>
-                  </Fragment>
-                ))}
-                <th scope="col" className="px-3 py-2 text-right font-semibold border-l border-gray-100">{t('points', lang)}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map(({ athlete: a, rank }, i) => (
-                <ResultRow key={`${a.Name}-${a.Competition_Year}-${i}`}
-                  a={a} rank={rank} i={i} lang={lang} yearValue={yearValue} segs={segs}
-                  splitRank={splitRankLookup?.[athleteKey(a)] ?? {}}
-                  points={pointsLookup[athleteKey(a)] ?? 0}
-                  onAthleteClick={onAthleteClick} />
-              ))}
+        </div>
+        <p className="mb-3 mt-0 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-sm text-muted">
+          {oneYear && tags.size > 0 && <>
+            <span className="inline-flex items-center gap-2"><Tag tag="pb" lang={lang} />{t('res_tag_pb_long', lang)}</span>
+            <span className="inline-flex items-center gap-2"><Tag tag="debut" lang={lang} />{t('res_tag_debut_long', lang)}</span>
+            <span>· {tf('res_tag_summary', lang, tagCounts)}</span>
+          </>}
+          {bestSplits && <span className="basis-full sm:basis-auto"><span className={GREEN}>{t('res_best_split', lang)}</span></span>}
+          <span className="basis-full">{t('res_no_points_note', lang)}</span>
+        </p>
 
-              {/* Classes shown apart from the ranked field — separate-course
-                  children's classes (e.g. Barn 0–10, 150 m) and relay teams:
-                  a labelled section within the SAME table so the columns line
-                  up, ranked within the class rather than against the field. */}
+        {rows.length === 0 && separateRaces.length === 0 ? (
+          <p className="rounded bg-mist p-8 text-center text-[15px] text-muted">{t('no_data_available', lang)} {t(sport, lang)}</p>
+        ) : (
+          <>
+            {/* Phones: one card per finisher */}
+            <ol className="m-0 flex list-none flex-col gap-2.5 p-0 sm:hidden">
+              {rows.map(({ athlete: a, rank }, i) => (
+                <ResultCard key={`${a.Name}-${a.Competition_Year}-${i}`} a={a} rank={rank} lang={lang} yearValue={yearValue} segs={segs}
+                  points={pointsLookup[athleteKey(a)] ?? 0} tag={tags.get(athleteKey(a))} best={bestSplits} onAthleteClick={onAthleteClick} />
+              ))}
               {classBlocks.map((group) => (
                 <Fragment key={group.cls}>
-                  <tr className="bg-gray-100/70 border-y border-gray-200">
-                    <td colSpan={6 + (yearValue === 'all' ? 1 : 0) + segs.length * 2} className="px-3 py-1.5">
-                      <span className="text-[11px] font-semibold uppercase tracking-wider text-gray-600">{group.cls}</span>
-                      <span className="text-[11px] text-gray-600 ml-2">{group.note}</span>
-                    </td>
-                  </tr>
+                  <li className="mt-3 text-xs font-bold uppercase tracking-[0.06em] text-muted">{group.cls} <span className="font-normal normal-case tracking-normal">· {group.note}</span></li>
                   {group.rows.map(({ athlete: a, rank }, i) => (
-                    <ResultRow key={`${a.Name}-${a.Competition_Year}-${i}`}
-                      a={a} rank={rank} i={i} lang={lang} yearValue={yearValue} segs={segs}
-                      splitRank={{}} points={0} onAthleteClick={onAthleteClick} />
+                    <ResultCard key={`${a.Name}-${a.Competition_Year}-${i}`} a={a} rank={rank} lang={lang} yearValue={yearValue} segs={segs}
+                      points={0} tag={undefined} best={null} onAthleteClick={onAthleteClick} />
                   ))}
                 </Fragment>
               ))}
-            </tbody>
-          </table>
+            </ol>
+
+            {/* Wider screens: the full table */}
+            <div tabIndex={0} role="region" aria-label={t('res_all_finishers', lang)} className="hidden overflow-x-auto focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand sm:block">
+              <table className="min-w-full text-[15px]">
+                <thead>
+                  <tr className="bg-navy text-left font-display text-sm text-white">
+                    <th scope="col" className="bg-navy px-4 py-3 font-semibold">{yearValue === 'all' ? t('all_time_rank', lang) : t('overall_rank', lang)}</th>
+                    <th scope="col" className="bg-navy px-3 py-3 font-semibold">{t('name', lang)}</th>
+                    <th scope="col" className="bg-navy px-3 py-3 font-semibold">{t('club', lang)}</th>
+                    <th scope="col" className="bg-navy px-3 py-3 font-semibold">{t('gender', lang)}</th>
+                    {yearValue === 'all' && <th scope="col" className="bg-navy px-3 py-3 font-semibold">{t('year', lang)}</th>}
+                    {segs.map((s) => (
+                      <Fragment key={s.label}>
+                        <th scope="col" className="border-l border-[#3a4250] bg-navy px-2 py-3 font-semibold">{s.label}</th>
+                        <th scope="col" className="bg-navy px-2 py-3 text-center font-semibold text-[#c3c6d1]">
+                          <span aria-hidden="true">#</span><span className="sr-only">{tf('res_split_rank', lang, { leg: s.label })}</span>
+                        </th>
+                      </Fragment>
+                    ))}
+                    <th scope="col" className="border-l border-[#3a4250] bg-navy px-3 py-3 font-semibold">{t('total_time', lang)}</th>
+                    <th scope="col" className="bg-navy px-4 py-3 text-right font-semibold">{t('points', lang)}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {rows.map(({ athlete: a, rank }, i) => (
+                    <ResultRow key={`${a.Name}-${a.Competition_Year}-${i}`}
+                      a={a} rank={rank} i={i} lang={lang} yearValue={yearValue} segs={segs}
+                      splitRank={splitRankLookup?.[athleteKey(a)] ?? {}}
+                      points={pointsLookup[athleteKey(a)] ?? 0}
+                      tag={tags.get(athleteKey(a))} best={bestSplits}
+                      onAthleteClick={onAthleteClick} />
+                  ))}
+
+                  {/* Classes shown apart from the ranked field — separate-course
+                      children's classes (e.g. Barn 0–10, 150 m) and relay teams:
+                      a labelled section within the SAME table so the columns line
+                      up, ranked within the class rather than against the field. */}
+                  {classBlocks.map((group) => (
+                    <Fragment key={group.cls}>
+                      <tr className="border-y border-line bg-mist">
+                        <td colSpan={colCount} className="px-4 py-2">
+                          <span className="text-xs font-bold uppercase tracking-[0.06em] text-muted">{group.cls}</span>
+                          <span className="ml-2 text-[13px] text-muted">{group.note}</span>
+                        </td>
+                      </tr>
+                      {group.rows.map(({ athlete: a, rank }, i) => (
+                        <ResultRow key={`${a.Name}-${a.Competition_Year}-${i}`}
+                          a={a} rank={rank} i={i} lang={lang} yearValue={yearValue} segs={segs}
+                          splitRank={{}} points={0} tag={undefined} best={null} onAthleteClick={onAthleteClick} />
+                      ))}
+                    </Fragment>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
-      </div>
+      </section>
     </div>
   )
 }

@@ -114,7 +114,8 @@ function peopleOf(a: AthleteResult): string[] {
   return isRelay(a) ? relayRunners(a.Name) : [a.Name]
 }
 
-function isComparableYear(sport: SportType, year: string): boolean {
+/** Whether this year was raced on the current course (records and PBs compare only these). */
+export function isComparableYear(sport: SportType, year: string): boolean {
   const c = COURSES[sport]
   return !c.excluded && (!c.since || Number(year) >= c.since)
 }

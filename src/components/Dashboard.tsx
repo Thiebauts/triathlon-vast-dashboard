@@ -200,7 +200,7 @@ export function Dashboard({ data, athleteNames, allTimeRankings, extraEvents, la
               {visited.has('overview') && <OverviewTab data={data} lang={lang} lastUpdated={lastUpdated} raceDates={raceDates} onNavigateToExtra={navigateToExtra} onNavigateToSeason={navigateToSeason} onNavigateToSport={navigateToSport} onNavigateToRankings={navigateToSeasonRankings} onAthleteClick={navigateToAthlete} />}
             </section>
             <section id="view-results" aria-label={viewLabel('results')} hidden={tab !== 'results'}>
-              {visited.has('results') && <ResultsTab data={data} lang={lang} lastUpdated={lastUpdated} onAthleteClick={navigateToAthlete} sport={sport} year={resultsYear} category={resultsCategory} onSportChange={changeSport} onYearChange={setResultsYear} onCategoryChange={setResultsCategory} />}
+              {visited.has('results') && <ResultsTab data={data} lang={lang} lastUpdated={lastUpdated} raceDates={raceDates} onAthleteClick={navigateToAthlete} sport={sport} year={resultsYear} category={resultsCategory} onSportChange={changeSport} onYearChange={setResultsYear} onCategoryChange={setResultsCategory} />}
             </section>
             <section id="view-athletes" aria-label={viewLabel('athletes')} hidden={tab !== 'athletes'}>
               {visited.has('athletes') && <AthletesTab data={data} athleteNames={athleteNames} allTimeRankings={allTimeRankings} lang={lang} initialAthlete={selectedAthlete} onAthleteChange={setSelectedAthlete} />}
