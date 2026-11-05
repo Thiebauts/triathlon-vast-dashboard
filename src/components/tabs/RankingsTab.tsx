@@ -76,7 +76,7 @@ export function RankingsTab({ data, allTimeRankings, lang, onAthleteClick, year,
 
   return (
     <div className="flex flex-col gap-9">
-      <div className="flex flex-wrap items-end justify-between gap-x-10 gap-y-6">
+      <div className="flex flex-col items-start gap-6">
         <PageTitle
           eyebrow={t('ov_standings_eyebrow', lang)}
           title={year === 'all' ? t('nav_rankings', lang) : tf('rank_title_year', lang, { year })}
@@ -100,7 +100,7 @@ export function RankingsTab({ data, allTimeRankings, lang, onAthleteClick, year,
 
       <div className="grid gap-8 lg:grid-cols-2">
         {([['womens_rankings', women], ['mens_rankings', men]] as const).map(([key, list]) => (
-          <section key={key} aria-label={t(key, lang)}>
+          <section key={key} aria-label={t(key, lang)} className="min-w-0">
             <h3 className="mb-3 mt-0 font-display text-[26px] font-semibold text-navy">{t(key, lang)}</h3>
             <div className="overflow-x-auto">
               <RankTable data={list} lang={lang} onAthleteClick={onAthleteClick} />

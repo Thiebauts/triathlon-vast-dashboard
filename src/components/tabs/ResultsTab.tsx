@@ -482,7 +482,7 @@ export function ResultsTab({ data, lang, lastUpdated, raceDates, onAthleteClick,
 
   return (
     <div className="flex flex-col gap-9">
-      <div className="flex flex-wrap items-end justify-between gap-x-10 gap-y-6">
+      <div className="flex flex-col items-start gap-6">
         <PageTitle
           eyebrow={t('res_eyebrow', lang)}
           title={oneYear ? `${t(sport, lang)} ${yearValue}` : tf('res_title_all', lang, { sport: t(sport, lang) })}

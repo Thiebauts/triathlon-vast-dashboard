@@ -67,7 +67,7 @@ export function OverviewTab({ data, lang, lastUpdated, raceDates, onNavigateToSe
       {/* Hero: dark slanted band, as on triathlonvast.se */}
       <section aria-labelledby="ov-title"
         className="-mx-4 -mt-6 bg-navy text-white [clip-path:polygon(0_0,100%_0,100%_92%,0_100%)] sm:-mx-8 lg:-mx-10 lg:[clip-path:polygon(0_0,100%_0,100%_86%,0_100%)]">
-        <div className="flex flex-wrap items-center justify-between gap-10 px-4 pb-24 pt-12 sm:px-8 lg:px-10 lg:pb-28 lg:pt-16">
+        <div className="flex max-w-[1280px] flex-wrap items-center justify-between gap-10 px-4 pb-24 pt-12 sm:px-8 lg:px-10 lg:pb-28 lg:pt-16">
           <div className="min-w-0 flex-[1_1_440px]">
             <Eyebrow light className="text-[26px]">{t('ov_eyebrow', lang)}</Eyebrow>
             <h2 id="ov-title" className="mt-1.5 font-display text-[38px] font-semibold leading-[1.16] sm:text-[52px]">{tf('ov_title', lang, { year })}</h2>
@@ -97,7 +97,7 @@ export function OverviewTab({ data, lang, lastUpdated, raceDates, onNavigateToSe
       </section>
 
       {/* The cup in a few words, with the season's key numbers */}
-      <section className="flex flex-wrap items-center gap-10 pb-14 pt-8">
+      <section className="flex max-w-[1200px] flex-wrap items-center gap-10 pb-14 pt-8">
         <div className="min-w-0 flex-[1_1_420px]">
           <SectionTitle eyebrow={t('ov_intro_eyebrow', lang)} title={tf('ov_intro_title', lang, { races: SEASON_SPORTS.length })} />
           <div aria-hidden="true" className="my-5 h-px w-20 bg-[#a3a8ac]" />
@@ -116,6 +116,7 @@ export function OverviewTab({ data, lang, lastUpdated, raceDates, onNavigateToSe
 
       {/* The six races */}
       <section aria-labelledby="ov-races" className="-mx-4 bg-mist px-4 py-14 sm:-mx-8 sm:px-8 lg:-mx-10 lg:px-10">
+        <div className="max-w-[1200px]">
         <SectionTitle id="ov-races" eyebrow={t('ov_races_eyebrow', lang)} title={tf('ov_races_title', lang, { year })} />
         <ol className="m-0 mt-7 grid list-none grid-cols-[repeat(auto-fit,minmax(min(100%,300px),1fr))] gap-5 p-0">
           {raceCards.map(({ sport, date, race }) => (
@@ -154,10 +155,11 @@ export function OverviewTab({ data, lang, lastUpdated, raceDates, onNavigateToSe
           ))}
         </ol>
         <p className="mb-0 mt-4 text-sm text-muted">{t('ov_starts_note', lang)}</p>
+        </div>
       </section>
 
       {/* Standings */}
-      <section aria-labelledby="ov-standings" className="py-14">
+      <section aria-labelledby="ov-standings" className="max-w-[1200px] py-14">
         <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
           <SectionTitle id="ov-standings" eyebrow={t('ov_standings_eyebrow', lang)} title={tf('ov_standings_title', lang, { year })} />
           {onNavigateToRankings && <button type="button" onClick={onNavigateToRankings} className={BTN_PRIMARY}>{t('ov_full_ranking', lang)}</button>}
@@ -182,7 +184,7 @@ export function OverviewTab({ data, lang, lastUpdated, raceDates, onNavigateToSe
       </section>
 
       {/* More: other events, participation over the years, about */}
-      <section aria-labelledby="ov-more" className="border-t border-line pt-14">
+      <section aria-labelledby="ov-more" className="max-w-[1200px] border-t border-line pt-14">
         <SectionTitle id="ov-more" eyebrow={t('ov_more_eyebrow', lang)} title={t('overview_extra_title', lang)} />
         <p className="mb-0 mt-4 max-w-[640px] leading-[1.8]">{t('overview_extra_text', lang)}</p>
         {onNavigateToExtra && (

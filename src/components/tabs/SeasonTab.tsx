@@ -192,7 +192,7 @@ export function SeasonTab({ data, lang, year, onYearChange, onAthleteClick, onNa
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-wrap items-end justify-between gap-x-10 gap-y-6">
+      <div className="flex flex-col items-start gap-6">
         <PageTitle eyebrow={t('nav_season', lang)} title={`${t('season_title', lang)} ${year}`} intro={t('season_intro', lang)} />
         <label htmlFor="season-year" className="flex flex-col gap-1 text-sm font-semibold text-navy">{t('res_filter_year', lang)}
           <select id="season-year" value={year} onChange={(e) => onYearChange(e.target.value)}

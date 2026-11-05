@@ -195,31 +195,31 @@ export function Dashboard({ data, athleteNames, allTimeRankings, extraEvents, la
         <SideNav current={tab} lang={lang} desktopOpen={desktopMenuOpen} mobileOpen={mobileMenuOpen}
           onSelect={selectTabFromMenu} onCloseMobile={closeMobileMenu} />
         <div className="flex min-w-0 flex-1 flex-col">
-          {/* 1200px: wide enough for the tri/du results table — splits plus
-              the points column — next to the side menu */}
-          <main id="main" tabIndex={-1} className="w-full max-w-[1200px] px-4 py-6 focus:outline-none sm:px-8 lg:px-10">
+          {/* Pages keep their content to 1200px (wide enough for the tri/du
+              results table); the Overview's coloured bands run full width. */}
+          <main id="main" tabIndex={-1} className="w-full px-4 py-6 focus:outline-none sm:px-8 lg:px-10">
             <section id="view-overview" aria-label={viewLabel('overview')} hidden={tab !== 'overview'}>
               {visited.has('overview') && <OverviewTab data={data} lang={lang} lastUpdated={lastUpdated} raceDates={raceDates} onNavigateToExtra={navigateToExtra} onNavigateToSeason={navigateToSeason} onNavigateToSport={navigateToSport} onNavigateToRankings={navigateToSeasonRankings} onAthleteClick={navigateToAthlete} />}
             </section>
-            <section id="view-results" aria-label={viewLabel('results')} hidden={tab !== 'results'}>
+            <section id="view-results" aria-label={viewLabel('results')} hidden={tab !== 'results'} className="max-w-[1200px]">
               {visited.has('results') && <ResultsTab data={data} lang={lang} lastUpdated={lastUpdated} raceDates={raceDates} onAthleteClick={navigateToAthlete} sport={sport} year={resultsYear} category={resultsCategory} onSportChange={changeSport} onYearChange={setResultsYear} onCategoryChange={setResultsCategory} />}
             </section>
-            <section id="view-athletes" aria-label={viewLabel('athletes')} hidden={tab !== 'athletes'}>
+            <section id="view-athletes" aria-label={viewLabel('athletes')} hidden={tab !== 'athletes'} className="max-w-[1200px]">
               {visited.has('athletes') && <AthletesTab data={data} athleteNames={athleteNames} allTimeRankings={allTimeRankings} lang={lang} initialAthlete={selectedAthlete} onAthleteChange={setSelectedAthlete} />}
             </section>
-            <section id="view-rankings" aria-label={viewLabel('rankings')} hidden={tab !== 'rankings'}>
+            <section id="view-rankings" aria-label={viewLabel('rankings')} hidden={tab !== 'rankings'} className="max-w-[1200px]">
               {visited.has('rankings') && <RankingsTab data={data} allTimeRankings={allTimeRankings} lang={lang} onAthleteClick={navigateToAthlete} year={rankingsYear} onYearChange={setRankingsYear} />}
             </section>
-            <section id="view-season" aria-label={viewLabel('season')} hidden={tab !== 'season'}>
+            <section id="view-season" aria-label={viewLabel('season')} hidden={tab !== 'season'} className="max-w-[1200px]">
               {visited.has('season') && <SeasonTab data={data} lang={lang} year={seasonYear} onYearChange={setSeasonYear} onAthleteClick={navigateToAthlete} onNavigateToRankings={navigateToSeasonRankings} />}
             </section>
-            <section id="view-records" aria-label={viewLabel('records')} hidden={tab !== 'records'}>
+            <section id="view-records" aria-label={viewLabel('records')} hidden={tab !== 'records'} className="max-w-[1200px]">
             {visited.has('records') && <RecordsTab data={data} lang={lang} onAthleteClick={navigateToAthlete} onAllTime={navigateToSport} />}
           </section>
-          <section id="view-points" aria-label={viewLabel('points')} hidden={tab !== 'points'}>
+          <section id="view-points" aria-label={viewLabel('points')} hidden={tab !== 'points'} className="max-w-[1200px]">
             {visited.has('points') && <PointsTab data={data} lang={lang} raceDates={raceDates} />}
           </section>
-          <section id="view-extra" aria-label={viewLabel('extra')} hidden={tab !== 'extra'}>
+          <section id="view-extra" aria-label={viewLabel('extra')} hidden={tab !== 'extra'} className="max-w-[1200px]">
               {visited.has('extra') && <ExtraEventsTab events={extraEvents} lang={lang} eventDate={extraDate} category={extraCategory} onEventChange={setExtraDate} onCategoryChange={setExtraCategory} />}
             </section>
           </main>
