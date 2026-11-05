@@ -99,6 +99,10 @@ const TRANSLATIONS: Record<string, { en: string; sv: string }> = {
   res_no_points_note: { en: 'Guests, youth and relay teams are listed but earn no club points.', sv: 'Gäster, ungdomar och stafettlag visas men får inga klubbpoäng.' },
   res_split_rank:     { en: 'Rank in {leg}', sv: 'Placering {leg}' },
 
+  rank_title_year:    { en: 'Club ranking {year}', sv: 'Klubbranking {year}' },
+  rank_sub_all:       { en: 'Points from every club championship since 2021', sv: 'Poäng från alla klubbmästerskap sedan 2021' },
+  rank_sub_year:      { en: 'Points from this year\'s club championships', sv: 'Poäng från årets klubbmästerskap' },
+
   // Club records
   nav_records:        { en: 'Club records', sv: 'Klubbrekord' },
   rec_eyebrow:        { en: 'All-time bests', sv: 'Alla tiders bästa' },

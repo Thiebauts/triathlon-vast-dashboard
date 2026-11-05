@@ -2,6 +2,8 @@
 import { useState, useMemo, useDeferredValue } from 'react'
 import dynamic from 'next/dynamic'
 import { t } from '@/lib/translations'
+import { PageTitle } from '@/components/ui/brand'
+import { displayTime } from '@/lib/season'
 import { getAthleteEvents } from '@/lib/data'
 import { matchesSearch } from '@/lib/search'
 import type { CompetitionsData, Lang, ClubAthlete } from '@/lib/types'
@@ -23,7 +25,7 @@ interface Props {
 }
 
 function fmt(v: string | undefined) {
-  return v && v !== 'N/A' ? v : '—'
+  return v && v !== 'N/A' ? displayTime(v) : '—'
 }
 
 function formatDelta(seconds: number): string {
@@ -114,18 +116,14 @@ export function AthletesTab({ data, athleteNames, allTimeRankings, lang, initial
   )
 
   return (
-    <div className="space-y-3">
-      {/* Info */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-100 px-4 py-3">
-        <h2 className="text-sm font-semibold text-red-700 mb-0.5">{t('athlete_profiles_title', lang)}</h2>
-        <p className="text-xs text-gray-500 leading-relaxed">{t('athlete_profiles_text', lang)}</p>
-      </div>
+    <div className="flex flex-col gap-8">
+      <PageTitle eyebrow={t('athlete_profiles_title', lang)} title={t('nav_athletes', lang)} intro={t('athlete_profiles_text', lang)} />
 
       {/* Top row: search (left) + summary & event table (right) */}
-      <div className="flex flex-col sm:flex-row gap-3">
+      <div className="flex flex-col gap-5 md:flex-row">
         {/* Athlete list */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-3 sm:w-64 shrink-0 sm:sticky sm:top-4 sm:self-start">
-          <label htmlFor="athlete-search" className="block text-[11px] font-medium text-gray-500 uppercase tracking-wide mb-1.5">
+        <div className="shrink-0 rounded-[4px_4px_32px_4px] bg-mist p-4 md:sticky md:top-4 md:w-72 md:self-start">
+          <label htmlFor="athlete-search" className="mb-1.5 block text-xs font-bold uppercase tracking-[0.06em] text-muted">
             {t('select_athlete', lang)}
           </label>
           <input
@@ -134,17 +132,17 @@ export function AthletesTab({ data, athleteNames, allTimeRankings, lang, initial
             placeholder={t('search_athlete', lang)}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full min-h-6 border border-gray-200 rounded px-2 py-1 text-xs mb-1.5 focus-visible:ring-2 focus-visible:ring-red-700 focus-visible:ring-offset-1"
+            className="mb-2 h-11 w-full rounded border border-line bg-white px-3 text-[15px] text-navy focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
           />
-          <ul className="divide-y divide-gray-50 max-h-[168px] overflow-y-auto">
+          <ul className="max-h-[260px] overflow-y-auto">
             {filtered.map((name) => (
               <li key={name}>
                 <button
                   onClick={() => { setSelected(name); onAthleteChange?.(name) }}
-                  className={`w-full text-left px-2 py-2 text-xs transition-colors rounded focus-visible:ring-2 focus-visible:ring-red-700 focus-visible:ring-offset-1 ${
+                  className={`flex min-h-11 w-full items-center rounded px-3 text-left text-[15px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand ${
                     selected === name
-                      ? 'bg-red-50 font-semibold text-red-700'
-                      : 'hover:bg-gray-50 text-gray-700'
+                      ? 'bg-white font-bold text-brand'
+                      : 'font-semibold text-navy hover:bg-white/70'
                   }`}
                 >
                   {name}
@@ -155,42 +153,42 @@ export function AthletesTab({ data, athleteNames, allTimeRankings, lang, initial
         </div>
 
         {/* Summary + event table */}
-        <div className={`flex-1 min-w-0 space-y-3 transition-opacity duration-150 ${isStale ? 'opacity-50' : ''}`} aria-busy={isStale}>
+        <div className={`flex-1 min-w-0 space-y-5 transition-opacity duration-150 ${isStale ? 'opacity-50' : ''}`} aria-busy={isStale}>
           {!selected ? (
-            <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-8 text-center text-xs text-gray-500">
+            <div className="rounded-[4px_4px_40px_4px] p-8 text-center text-[15px] text-muted ring-1 ring-line">
               {t('select_athlete_prompt', lang)}
             </div>
           ) : (
             <>
               {/* Summary */}
-              <div className="bg-white rounded-lg shadow-sm border border-gray-100 px-4 py-3">
-                <div className="flex items-center justify-between mb-2">
-                  <h3 className="text-sm font-bold text-gray-800">{selected}</h3>
+              <div className="rounded-[4px_4px_40px_4px] bg-navy px-6 py-5 text-white">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <h3 className="m-0 font-display text-[30px] font-semibold leading-tight">{selected}</h3>
                   {isMember
-                    ? <span className="text-[10px] bg-red-50 text-red-700 border border-red-100 rounded-full px-2.5 py-0.5 font-semibold">{t('club_member', lang)}</span>
-                    : <span className="text-[10px] bg-gray-100 text-gray-500 rounded-full px-2.5 py-0.5">{t('guest', lang)}</span>}
+                    ? <span className="inline-flex h-6 items-center rounded-[2px_2px_8px_2px] bg-brand px-2.5 font-display text-[13px] font-semibold">{t('club_member', lang)}</span>
+                    : <span className="inline-flex h-6 items-center rounded-[2px_2px_8px_2px] border border-white px-2.5 font-display text-[13px] font-semibold">{t('guest', lang)}</span>}
                 </div>
                 {clubPos && (
-                  <div className="flex gap-5 text-xs text-gray-500">
-                    <span>{t('overall', lang)} rank: <strong className="text-red-700">#{clubPos.rank}/{clubPos.total}</strong></span>
-                    <span>{t('total_points', lang)}: <strong className="text-gray-700">{clubPos.pts}</strong></span>
-                    <span>{t('competitions', lang)}: <strong className="text-gray-700">{eventList.length}</strong></span>
-                  </div>
+                  <dl className="m-0 mt-3 grid grid-cols-3 gap-3">
+                    <div><dt className="text-[13px] text-[#c3c6d1]">{t('overall', lang)} rank</dt><dd className="m-0 font-display text-2xl font-semibold">#{clubPos.rank}<span className="text-base text-[#c3c6d1]">/{clubPos.total}</span></dd></div>
+                    <div><dt className="text-[13px] text-[#c3c6d1]">{t('total_points', lang)}</dt><dd className="m-0 font-display text-2xl font-semibold">{clubPos.pts}</dd></div>
+                    <div><dt className="text-[13px] text-[#c3c6d1]">{t('competitions', lang)}</dt><dd className="m-0 font-display text-2xl font-semibold">{eventList.length}</dd></div>
+                  </dl>
                 )}
               </div>
 
               {/* Event table */}
-              <div className="bg-white rounded-lg shadow-sm border border-gray-100 overflow-x-auto">
-                <table className="min-w-full text-xs">
+              <div className="overflow-x-auto">
+                <table className="min-w-full text-[15px]">
                   <thead>
-                    <tr className="bg-gray-50 border-b border-gray-200 text-[11px] uppercase tracking-wider text-gray-500">
-                      <th scope="col" className="px-3 py-2 text-left font-semibold">{t('year', lang)}</th>
-                      <th scope="col" className="px-3 py-2 text-left font-semibold">{t('select_event', lang).replace(':', '')}</th>
-                      <th scope="col" className="px-3 py-2 text-left font-semibold">{t('class_rank', lang)}</th>
-                      <th scope="col" className="px-3 py-2 text-left font-semibold hidden sm:table-cell">{t('overall_rank', lang)}</th>
-                      <th scope="col" className="px-3 py-2 text-left font-semibold hidden sm:table-cell">{t('club_rank', lang)}</th>
-                      <th scope="col" className="px-3 py-2 text-right font-semibold">{t('points', lang)}</th>
-                      <th scope="col" className="px-3 py-2 text-left font-semibold">{t('total_time', lang)}</th>
+                    <tr className="text-left font-display text-sm text-white [&>th]:bg-navy">
+                      <th scope="col" className="px-3 py-3 text-left font-semibold">{t('year', lang)}</th>
+                      <th scope="col" className="px-3 py-3 text-left font-semibold">{t('select_event', lang).replace(':', '')}</th>
+                      <th scope="col" className="px-3 py-3 text-left font-semibold">{t('class_rank', lang)}</th>
+                      <th scope="col" className="px-3 py-3 text-left font-semibold hidden sm:table-cell">{t('overall_rank', lang)}</th>
+                      <th scope="col" className="px-3 py-3 text-left font-semibold hidden sm:table-cell">{t('club_rank', lang)}</th>
+                      <th scope="col" className="px-3 py-3 text-right font-semibold">{t('points', lang)}</th>
+                      <th scope="col" className="px-3 py-3 text-left font-semibold">{t('total_time', lang)}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -198,24 +196,24 @@ export function AthletesTab({ data, athleteNames, allTimeRankings, lang, initial
                       const isPB = e.time_seconds > 0 && personalBests[e.type] === e.time_seconds
                       const delta = prevYearTime[`${e.type}_${e.year}`]
                       return (
-                        <tr key={key} className={`border-b border-gray-100 hover:bg-blue-50/20 transition-colors ${i % 2 === 0 ? 'bg-white' : 'bg-gray-50/40'}`}>
-                          <th scope="row" className="px-3 py-1.5 text-gray-500 font-normal">{e.year}</th>
-                          <td className="px-3 py-1.5 capitalize font-medium text-gray-700">{t(e.type, lang)}</td>
-                          <td className="px-3 py-1.5 text-gray-600">{e.finished ? `${e.rank}/${e.class_total}` : '—'}</td>
-                          <td className="px-3 py-1.5 text-gray-500 hidden sm:table-cell">{e.finished && typeof e.overall_rank === 'number' && e.overall_rank > 0 ? `${e.overall_rank}/${e.overall_total}` : '—'}</td>
-                          <td className="px-3 py-1.5 text-gray-500 hidden sm:table-cell">{e.finished && e.is_club_member ? String(e.club_member_rank) : '—'}</td>
-                          <td className={`px-3 py-1.5 text-right tabular-nums ${e.points > 0 ? 'font-bold text-red-700' : 'text-gray-500'}`}>{e.points}</td>
-                          <td className="px-3 py-1.5 font-mono text-gray-700 whitespace-nowrap">
+                        <tr key={key} className={`border-b border-line hover:bg-mist ${i % 2 === 0 ? 'bg-white' : 'bg-[#f9f9fb]'}`}>
+                          <th scope="row" className="px-3 py-2.5 text-muted font-normal">{e.year}</th>
+                          <td className="px-3 py-2.5 capitalize font-medium text-ink">{t(e.type, lang)}</td>
+                          <td className="px-3 py-2.5 text-muted">{e.finished ? `${e.rank}/${e.class_total}` : '—'}</td>
+                          <td className="px-3 py-2.5 text-muted hidden sm:table-cell">{e.finished && typeof e.overall_rank === 'number' && e.overall_rank > 0 ? `${e.overall_rank}/${e.overall_total}` : '—'}</td>
+                          <td className="px-3 py-2.5 text-muted hidden sm:table-cell">{e.finished && e.is_club_member ? String(e.club_member_rank) : '—'}</td>
+                          <td className={`px-3 py-2.5 text-right tabular-nums ${e.points > 0 ? 'font-bold text-brand' : 'text-muted'}`}>{e.points}</td>
+                          <td className="px-3 py-2.5 font-display font-semibold text-navy tabular-nums whitespace-nowrap">
                             {e.finished
                               ? fmt(e.time)
-                              : <span className="font-sans font-semibold text-gray-500">{t('dnf', lang)}</span>}
+                              : <span className="font-sans font-semibold text-muted">{t('dnf', lang)}</span>}
                             {isPB && (
-                              <span className="ml-1.5 text-[9px] font-bold text-green-700 bg-green-50 border border-green-200 rounded px-1 py-px">
+                              <span className="ml-1.5 inline-flex h-5 items-center rounded-[2px_2px_8px_2px] bg-brand px-1.5 font-display text-[11px] font-semibold text-white">
                                 {t('personal_best', lang)}
                               </span>
                             )}
                             {delta !== undefined && (
-                              <span className={`ml-1.5 text-[9px] ${delta <= 0 ? 'text-green-700' : 'text-orange-700'}`}>
+                              <span className={`ml-1.5 text-xs ${delta <= 0 ? 'text-[#1b7a3a]' : 'text-[#9a4a00]'}`}>
                                 {formatDelta(delta)}
                               </span>
                             )}
@@ -233,8 +231,8 @@ export function AthletesTab({ data, athleteNames, allTimeRankings, lang, initial
 
       {/* Charts — full width below */}
       {selected && eventList.length > 0 && (
-        <div className={`bg-white rounded-lg shadow-sm border border-gray-100 p-3 transition-opacity duration-150 ${isStale ? 'opacity-50' : ''}`}>
-          <h4 className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide mb-2">{t('class_rank', lang)} &amp; {t('total_time', lang)}</h4>
+        <div className={`rounded-[4px_4px_40px_4px] p-5 ring-1 ring-line transition-opacity duration-150 ${isStale ? 'opacity-50' : ''}`}>
+          <h4 className="mb-3 mt-0 font-display text-[22px] font-semibold text-navy">{t('class_rank', lang)} &amp; {t('total_time', lang)}</h4>
           <AthleteRankChart events={chartEvents} allData={data} lang={lang} />
         </div>
       )}

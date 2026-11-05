@@ -1,6 +1,7 @@
 'use client'
 import { useMemo } from 'react'
-import { t } from '@/lib/translations'
+import { t, tf } from '@/lib/translations'
+import { CARD_MIST, MEDAL_COLORS, PageTitle } from '@/components/ui/brand'
 import { getClubRankings } from '@/lib/data'
 import type { CompetitionsData, Lang, ClubAthlete } from '@/lib/types'
 
@@ -15,51 +16,38 @@ interface Props {
   onYearChange: (year: string) => void
 }
 
-const MEDAL_COLOR: Record<number, string> = {
-  1: '#7D6300',
-  2: '#56677A',
-  3: '#85552B',
-}
-const MEDAL_BG: Record<number, string> = {
-  1: 'bg-amber-50/60',
-  2: 'bg-slate-50/80',
-  3: 'bg-orange-50/50',
-}
-
 function RankTable({ data, lang, onAthleteClick }: {
   data: ReturnType<typeof getClubRankings>
   lang: Lang
   onAthleteClick?: (name: string) => void
 }) {
-  if (!data.length) return <p className="text-center text-xs text-gray-500 py-6">{t('not_ranked', lang)}</p>
+  if (!data.length) return <p className="py-6 text-center text-[15px] text-muted">{t('not_ranked', lang)}</p>
   return (
-    <table className="min-w-full text-xs">
+    <table className="min-w-full text-[15px]">
       <thead>
-        <tr className="bg-gray-50 border-b border-gray-200 text-[11px] uppercase tracking-wider text-gray-500">
-          <th scope="col" className="px-3 py-2 text-left w-10 font-semibold">{t('rank', lang)}</th>
-          <th scope="col" className="px-3 py-2 text-left font-semibold">{t('athlete', lang)}</th>
-          <th scope="col" className="px-3 py-2 text-right font-semibold">{t('total_points', lang)}</th>
-          <th scope="col" className="px-3 py-2 text-right font-semibold hidden sm:table-cell">{t('competitions', lang)}</th>
+        <tr className="text-left font-display text-sm text-white">
+          <th scope="col" className="w-14 bg-navy px-4 py-3 font-semibold">{t('rank', lang)}</th>
+          <th scope="col" className="bg-navy px-3 py-3 font-semibold">{t('athlete', lang)}</th>
+          <th scope="col" className="bg-navy px-3 py-3 text-right font-semibold">{t('competitions', lang)}</th>
+          <th scope="col" className="bg-navy px-4 py-3 text-right font-semibold">{t('total_points', lang)}</th>
         </tr>
       </thead>
       <tbody>
         {data.map((a, i) => {
           const rank = i + 1
-          const bg = MEDAL_BG[rank] ?? (i % 2 === 0 ? 'bg-white' : 'bg-gray-50/40')
-          const color = MEDAL_COLOR[rank] ?? '#6B7280'
           return (
-            <tr key={a.name} className={`${bg} border-b border-gray-100 hover:bg-blue-50/20 transition-colors`}>
-              <th scope="row" className="px-3 py-1.5 font-bold tabular-nums" style={{ color }}>{rank}</th>
-              <td className="px-3 py-1.5 font-medium text-gray-800">
+            <tr key={a.name} className={`border-b border-line ${i % 2 ? 'bg-[#f9f9fb]' : 'bg-white'} hover:bg-mist`}>
+              <th scope="row" className="px-4 py-2.5 text-left font-display font-semibold tabular-nums" style={{ color: MEDAL_COLORS[i] ?? '#4a4e57' }}>{rank}</th>
+              <td className="px-3 py-2.5">
                 {onAthleteClick ? (
-                  <button onClick={() => onAthleteClick(a.name)}
-                    className="py-1 -my-1 hover:text-red-700 hover:underline transition-colors text-left focus-visible:ring-2 focus-visible:ring-red-700 focus-visible:ring-offset-1 rounded">
+                  <button type="button" onClick={() => onAthleteClick(a.name)}
+                    className="rounded text-left font-semibold text-navy hover:text-brand hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand">
                     {a.name}
                   </button>
-                ) : a.name}
+                ) : <span className="font-semibold text-navy">{a.name}</span>}
               </td>
-              <td className="px-3 py-1.5 text-right font-bold tabular-nums" style={{ color }}>{a.total_points}</td>
-              <td className="px-3 py-1.5 text-right text-gray-500 hidden sm:table-cell">{a.competitions.length}</td>
+              <td className="px-3 py-2.5 text-right text-muted">{a.competitions.length}</td>
+              <td className="px-4 py-2.5 text-right font-display font-semibold tabular-nums text-brand">{a.total_points}</td>
             </tr>
           )
         })}
@@ -87,36 +75,38 @@ export function RankingsTab({ data, allTimeRankings, lang, onAthleteClick, year,
   }, [data, allTimeRankings, year])
 
   return (
-    <div className="space-y-3">
-      <div className="bg-white rounded-lg shadow-sm border border-gray-100 px-4 py-3">
-        <h2 className="text-sm font-semibold text-red-700 mb-0.5">{t('club_rankings_title', lang)}</h2>
-        <p className="text-xs text-gray-500">{t('club_rankings_text1', lang)}</p>
-        <p className="text-xs text-gray-500 mt-1">{t('club_rankings_text2', lang)}</p>
+    <div className="flex flex-col gap-9">
+      <div className="flex flex-wrap items-end justify-between gap-x-10 gap-y-6">
+        <PageTitle
+          eyebrow={t('ov_standings_eyebrow', lang)}
+          title={year === 'all' ? t('nav_rankings', lang) : tf('rank_title_year', lang, { year })}
+          subtitle={year === 'all' ? t('rank_sub_all', lang) : t('rank_sub_year', lang)}
+        />
+        <label htmlFor="rankings-year" className="flex flex-col gap-1 text-sm font-semibold text-navy">{t('res_filter_year', lang)}
+          <select id="rankings-year" value={year} onChange={(e) => onYearChange(e.target.value)}
+            className="h-12 min-w-[160px] rounded border border-line bg-mist px-3 text-[15px] font-medium text-navy focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand">
+            {years.map((y) => (
+              <option key={y} value={y}>{y === 'all' ? t('all_years', lang) : y}</option>
+            ))}
+          </select>
+        </label>
       </div>
 
-      <div className="bg-white rounded-lg shadow-sm border border-gray-100 px-4 py-2.5 flex items-center gap-3">
-        <label htmlFor="rankings-year" className="text-[11px] font-medium text-gray-500 uppercase tracking-wide">{t('select_year', lang)}</label>
-        <select id="rankings-year" value={year} onChange={(e) => onYearChange(e.target.value)}
-          className="min-h-6 border border-gray-200 rounded px-2 py-1 text-xs bg-white focus-visible:ring-2 focus-visible:ring-red-700 focus-visible:ring-offset-1">
-          {years.map((y) => (
-            <option key={y} value={y}>{y === 'all' ? t('all_years', lang) : y}</option>
-          ))}
-        </select>
-      </div>
+      <section className={`${CARD_MIST} px-6 py-5`}>
+        <h3 className="mb-1.5 mt-0 font-display text-[22px] font-semibold text-navy">{t('club_rankings_title', lang)}</h3>
+        <p className="m-0 text-[15px] leading-relaxed">{t('club_rankings_text1', lang)}</p>
+        <p className="mb-0 mt-1.5 text-[15px] leading-relaxed">{t('club_rankings_text2', lang)}</p>
+      </section>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <div className="bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden">
-          <h3 className="px-4 py-2 text-xs font-semibold text-gray-600 border-b border-gray-100 bg-gray-50/50">
-            {t('womens_rankings', lang)}
-          </h3>
-          <RankTable data={women} lang={lang} onAthleteClick={onAthleteClick} />
-        </div>
-        <div className="bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden">
-          <h3 className="px-4 py-2 text-xs font-semibold text-gray-600 border-b border-gray-100 bg-gray-50/50">
-            {t('mens_rankings', lang)}
-          </h3>
-          <RankTable data={men} lang={lang} onAthleteClick={onAthleteClick} />
-        </div>
+      <div className="grid gap-8 lg:grid-cols-2">
+        {([['womens_rankings', women], ['mens_rankings', men]] as const).map(([key, list]) => (
+          <section key={key} aria-label={t(key, lang)}>
+            <h3 className="mb-3 mt-0 font-display text-[26px] font-semibold text-navy">{t(key, lang)}</h3>
+            <div className="overflow-x-auto">
+              <RankTable data={list} lang={lang} onAthleteClick={onAthleteClick} />
+            </div>
+          </section>
+        ))}
       </div>
     </div>
   )

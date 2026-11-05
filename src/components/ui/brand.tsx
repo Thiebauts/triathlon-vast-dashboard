@@ -22,13 +22,14 @@ export function Eyebrow({ children, light = false, className = '' }: { children:
 }
 
 /** The page's main heading block: eyebrow, big title, optional italic subtitle and a short rule. */
-export function PageTitle({ eyebrow, title, subtitle }: { eyebrow: string; title: string; subtitle?: React.ReactNode }) {
+export function PageTitle({ eyebrow, title, subtitle, intro }: { eyebrow: string; title: string; subtitle?: React.ReactNode; intro?: React.ReactNode }) {
   return (
     <div>
       <Eyebrow>{eyebrow}</Eyebrow>
       <h2 className="mt-1.5 font-display text-[36px] font-semibold leading-[1.16] text-navy sm:text-[52px]">{title}</h2>
       {subtitle && <p className="m-0 font-display text-lg font-semibold italic leading-snug text-muted sm:text-2xl">{subtitle}</p>}
       <div aria-hidden="true" className="mt-5 h-px w-20 bg-[#a3a8ac]" />
+      {intro && <p className="mb-0 mt-4 max-w-[720px] text-[15px] leading-relaxed text-muted">{intro}</p>}
     </div>
   )
 }

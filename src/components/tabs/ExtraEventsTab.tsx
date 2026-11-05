@@ -1,6 +1,7 @@
 'use client'
 import { useMemo, useCallback, Fragment } from 'react'
 import { t } from '@/lib/translations'
+import { BTN_PRIMARY, PageTitle } from '@/components/ui/brand'
 import { athleteKey, computeSplitRanks, type SplitRanks } from '@/lib/data'
 import { csvEscape, toCsvFile } from '@/lib/csv'
 import { formatDate } from '@/lib/dates'
@@ -13,10 +14,10 @@ const MEDAL = {
 } as Record<number, { color: string }>
 
 function RankCell({ n }: { n: number | undefined }) {
-  if (!n) return <span className="text-gray-500 text-[11px]">—</span>
+  if (!n) return <span className="text-muted text-[13px]">—</span>
   const style = MEDAL[n] ?? { color: '#6B7280' }
   const weight = n <= 3 ? 'font-semibold' : 'font-normal'
-  return <span style={style} className={`text-[11px] tabular-nums ${weight}`}>{n}</span>
+  return <span style={style} className={`text-[13px] tabular-nums ${weight}`}>{n}</span>
 }
 
 function fmt(v: string | undefined) {
@@ -152,50 +153,50 @@ export function ExtraEventsTab({ events, lang, eventDate, category, onEventChang
   }, [event, rows, category, lang])
 
   return (
-    <div className="space-y-3">
-      <div className="bg-white rounded-lg shadow-sm border border-gray-100 px-4 py-3">
-        <h2 className="text-sm font-semibold text-red-700 mb-0.5">{t('extra_events_title', lang)}</h2>
-        <p className="text-xs text-gray-500 leading-relaxed">{t('extra_events_text1', lang)}</p>
-        <p className="text-xs text-gray-500 leading-relaxed mt-1">{t('extra_events_text2', lang)}</p>
+    <div className="flex flex-col gap-6">
+      <PageTitle eyebrow={t('nav_group_other', lang)} title={t('extra_events_title', lang)} />
+      <div className="-mt-2 max-w-[760px]">
+        <p className="m-0 text-[15px] leading-relaxed">{t('extra_events_text1', lang)}</p>
+        <p className="mb-0 mt-1.5 text-[15px] leading-relaxed text-muted">{t('extra_events_text2', lang)}</p>
       </div>
 
       {events.length === 0 ? (
-        <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-8 text-center text-xs text-gray-500">
+        <div className="rounded bg-mist p-8 text-center text-[15px] text-muted">
           {t('no_extra_events', lang)}
         </div>
       ) : (
         <>
           {/* Filters */}
-          <div className="bg-white rounded-lg shadow-sm border border-gray-100 px-4 py-2.5 flex flex-wrap items-end gap-4">
+          <div className="flex flex-wrap items-end gap-4">
             {/* min-w-0 + w-full: a select is as wide as its longest option, and
                 the event titles are long enough to overflow a phone screen */}
             <div className="min-w-0 max-w-full">
-              <label htmlFor="extra-event" className="block text-[11px] font-medium text-gray-500 uppercase tracking-wide mb-1">{t('select_event', lang)}</label>
+              <label htmlFor="extra-event" className="mb-1 block text-sm font-semibold text-navy">{t('select_event', lang)}</label>
               <select id="extra-event" value={event.file}
                 onChange={(e) => {
                   const date = events.find((ev) => ev.file === e.target.value)?.date
                   if (date) onEventChange(date)
                 }}
-                className="w-full max-w-full truncate min-h-6 border border-gray-200 rounded px-2 py-1 text-xs bg-white focus-visible:ring-2 focus-visible:ring-red-700 focus-visible:ring-offset-1">
+                className="h-12 w-full max-w-full truncate rounded border border-line bg-mist px-3 text-[15px] font-medium text-navy focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand">
                 {events.map((e) => (
                   <option key={e.file} value={e.file}>{e.title[lang]} — {formatDate(e.date, lang)}</option>
                 ))}
               </select>
             </div>
             <div>
-              <label htmlFor="extra-category" className="block text-[11px] font-medium text-gray-500 uppercase tracking-wide mb-1">{t('select_category', lang)}</label>
+              <label htmlFor="extra-category" className="mb-1 block text-sm font-semibold text-navy">{t('select_category', lang)}</label>
               <select id="extra-category" value={category} onChange={(e) => onCategoryChange(e.target.value as ExtraCategory)}
-                className="min-h-6 border border-gray-200 rounded px-2 py-1 text-xs bg-white focus-visible:ring-2 focus-visible:ring-red-700 focus-visible:ring-offset-1">
+                className="h-12 min-w-[130px] rounded border border-line bg-mist px-3 text-[15px] font-medium text-navy focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand">
                 <option value="all">{t('overall', lang)}</option>
                 <option value="men">{t('men_only', lang)}</option>
                 <option value="women">{t('women_only', lang)}</option>
               </select>
             </div>
             <div className="flex flex-wrap items-center gap-3 ml-auto self-center">
-              {event.location && <span className="text-xs text-gray-500">📍 {event.location}</span>}
-              <span className="text-xs text-gray-500" aria-live="polite">{rows.length} {t('total_results', lang)}</span>
+              {event.location && <span className="text-sm text-muted">{event.location}</span>}
+              <span className="text-xs text-muted" aria-live="polite">{rows.length} {t('total_results', lang)}</span>
               <button onClick={exportCsv}
-                className="text-[11px] text-gray-500 hover:text-red-700 min-h-6 border border-gray-200 rounded px-2 py-1 transition-colors focus-visible:ring-2 focus-visible:ring-red-700 focus-visible:ring-offset-1">
+                className={BTN_PRIMARY}>
                 {t('export_csv', lang)}
               </button>
             </div>
@@ -203,35 +204,35 @@ export function ExtraEventsTab({ events, lang, eventDate, category, onEventChang
 
           {/* Event context: format, distances, who it's for (from the manifest) */}
           {event.description?.[lang] && (
-            <div className="bg-white rounded-lg shadow-sm border border-gray-100 px-4 py-3">
-              <h3 className="text-xs font-semibold text-gray-700 mb-0.5">{event.title[lang]} — {formatDate(event.date, lang)}</h3>
-              <p className="text-xs text-gray-500 leading-relaxed">{event.description[lang]}</p>
+            <div className="rounded-[4px_4px_40px_4px] bg-mist px-6 py-5">
+              <h3 className="mb-1.5 mt-0 font-display text-[24px] font-semibold leading-tight text-navy">{event.title[lang]} — {formatDate(event.date, lang)}</h3>
+              <p className="m-0 text-[15px] leading-relaxed">{event.description[lang]}</p>
             </div>
           )}
 
           {segs.length > 0 && (
-            <p className="text-[11px] text-gray-500 sm:hidden px-1">{t('split_times_hint', lang)}</p>
+            <p className="text-[13px] text-muted sm:hidden px-1">{t('split_times_hint', lang)}</p>
           )}
 
           {/* Results table */}
-          <div className="bg-white rounded-lg shadow-sm border border-gray-100 overflow-x-auto">
+          <div className="overflow-x-auto">
             {rows.length === 0 ? (
-              <p className="p-8 text-center text-xs text-gray-500">{t('no_data_available', lang)} {t(event.format, lang)}</p>
+              <p className="p-8 text-center text-xs text-muted">{t('no_data_available', lang)} {t(event.format, lang)}</p>
             ) : (
-              <table className="min-w-full text-xs">
+              <table className="min-w-full text-[15px]">
                 <thead>
-                  <tr className="bg-gray-50 border-b border-gray-200 text-[11px] uppercase tracking-wider text-gray-500">
-                    <th scope="col" className="px-3 py-2 text-left font-semibold">
+                  <tr className="text-left font-display text-sm text-white [&>th]:bg-navy">
+                    <th scope="col" className="px-3 py-3 text-left font-semibold">
                       {category === 'all' ? t('overall_rank', lang) : t('class_rank', lang)}
                     </th>
-                    <th scope="col" className="px-3 py-2 text-left font-semibold">{t('name', lang)}</th>
-                    <th scope="col" className={`px-3 py-2 text-left font-semibold ${D}`}>{t('club', lang)}</th>
-                    <th scope="col" className={`px-3 py-2 text-left font-semibold ${D}`}>{t('gender', lang)}</th>
-                    <th scope="col" className="px-3 py-2 text-left font-semibold">{t('total_time', lang)}</th>
+                    <th scope="col" className="px-3 py-3 text-left font-semibold">{t('name', lang)}</th>
+                    <th scope="col" className={`px-3 py-3 text-left font-semibold ${D}`}>{t('club', lang)}</th>
+                    <th scope="col" className={`px-3 py-3 text-left font-semibold ${D}`}>{t('gender', lang)}</th>
+                    <th scope="col" className="px-3 py-3 text-left font-semibold">{t('total_time', lang)}</th>
                     {segs.map((s) => (
                       <Fragment key={s.labelKey}>
-                        <th scope="col" className={`px-2 py-2 text-left font-semibold border-l border-gray-100 ${D}`}>{t(s.labelKey, lang)}</th>
-                        <th scope="col" className={`px-2 py-2 text-center font-semibold text-gray-300 ${D}`}>#</th>
+                        <th scope="col" className={`px-2 py-3 text-left font-semibold border-l border-line ${D}`}>{t(s.labelKey, lang)}</th>
+                        <th scope="col" className={`px-2 py-3 text-center font-semibold text-[#c3c6d1] ${D}`}>#</th>
                       </Fragment>
                     ))}
                   </tr>
@@ -244,33 +245,29 @@ export function ExtraEventsTab({ events, lang, eventDate, category, onEventChang
                     const csvRank = category === 'all' ? a.Overall_Rank : a.Class_Rank
                     const rank = !isPartial && csvRank > 0 ? csvRank : null
                     const sr = splitRankLookup?.[athleteKey(a)] ?? {}
-                    const bg = rank === 1 ? 'bg-amber-50/60'
-                             : rank === 2 ? 'bg-slate-50/80'
-                             : rank === 3 ? 'bg-orange-50/50'
-                             : a.is_club_member ? 'bg-red-50/30'
-                             : i % 2 === 0 ? 'bg-white' : 'bg-gray-50/40'
+                    const bg = i % 2 === 0 ? 'bg-white' : 'bg-[#f9f9fb]'
                     return (
                       <tr key={`${a.Name}-${i}`}
-                        className={`${bg} border-b border-gray-100 hover:bg-blue-50/20 transition-colors`}>
-                        <th scope="row" className="px-3 py-1.5 font-semibold tabular-nums">
+                        className={`${bg} border-b border-line hover:bg-mist`}>
+                        <th scope="row" className="px-3 py-2.5 font-semibold tabular-nums">
                           {rank !== null
                             ? <span style={MEDAL[rank] ?? { color: '#6B7280' }}>{rank}</span>
-                            : <span className="text-gray-500 font-normal">—</span>}
+                            : <span className="text-muted font-normal">—</span>}
                         </th>
-                        <td className="px-3 py-1.5 whitespace-nowrap font-medium text-gray-800">{a.Name}</td>
-                        <td className={`px-3 py-1.5 text-gray-500 ${D}`}>{a.is_club_member ? a.Club : t('guest', lang)}</td>
-                        <td className={`px-3 py-1.5 text-gray-500 ${D}`}>{a.Class}</td>
-                        <td className="px-3 py-1.5 font-mono font-semibold text-gray-800">
+                        <td className="px-3 py-2.5 whitespace-nowrap font-semibold text-navy">{a.Name}</td>
+                        <td className={`px-3 py-2.5 text-muted ${D}`}>{a.is_club_member ? a.Club : t('guest', lang)}</td>
+                        <td className={`px-3 py-2.5 text-muted ${D}`}>{a.Class}</td>
+                        <td className="px-3 py-2.5 font-display font-semibold tabular-nums text-navy">
                           {isPartial
-                            ? <span className="font-sans font-normal text-gray-500">{completedLegsLabel(a, event, lang)}</span>
+                            ? <span className="font-sans font-normal text-muted">{completedLegsLabel(a, event, lang)}</span>
                             : fmt(a.Total_Time)}
                         </td>
                         {segs.map((s) => (
                           <Fragment key={s.labelKey}>
-                            <td className={`px-2 py-1.5 font-mono text-gray-500 border-l border-gray-100 ${D}`}>
+                            <td className={`px-2 py-2.5 tabular-nums border-l border-line ${D}`}>
                               {fmt(a[s.timeKey] as string | undefined)}
                             </td>
-                            <td className={`px-2 py-1.5 text-center ${D}`}>
+                            <td className={`px-2 py-2.5 text-center ${D}`}>
                               <RankCell n={sr[s.rankKey]} />
                             </td>
                           </Fragment>
