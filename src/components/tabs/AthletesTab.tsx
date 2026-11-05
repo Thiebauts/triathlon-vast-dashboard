@@ -1,16 +1,18 @@
 'use client'
 import { useState, useMemo, useDeferredValue } from 'react'
 import dynamic from 'next/dynamic'
-import { t } from '@/lib/translations'
-import { PageTitle } from '@/components/ui/brand'
+import { t, tf } from '@/lib/translations'
+import { CARD_MIST, CARD_NAVY, Eyebrow, PageTitle } from '@/components/ui/brand'
 import { displayTime } from '@/lib/season'
+import { currentCourseFrom } from '@/lib/records'
 import { getAthleteEvents } from '@/lib/data'
-import { matchesSearch } from '@/lib/search'
-import type { CompetitionsData, Lang, ClubAthlete } from '@/lib/types'
+import { AthleteSearch } from '@/components/shell/AthleteSearch'
+import type { TimePoint } from '@/components/charts/AthleteTimeChart'
+import type { CompetitionsData, Lang, ClubAthlete, EventResult, SportType } from '@/lib/types'
 
-const AthleteRankChart = dynamic(
-  () => import('@/components/charts/AthleteCharts').then((m) => m.AthleteRankChart),
-  { ssr: false, loading: () => <div className="h-[380px] bg-gray-50 animate-pulse rounded" /> },
+const AthleteTimeChart = dynamic(
+  () => import('@/components/charts/AthleteTimeChart').then((m) => m.AthleteTimeChart),
+  { ssr: false, loading: () => <div className="h-[300px] animate-pulse rounded bg-mist" /> },
 )
 
 interface Props {
@@ -24,216 +26,251 @@ interface Props {
   onAthleteChange?: (name: string) => void
 }
 
+const SPORT_ORDER: SportType[] = ['triathlon', 'duathlon', 'swimming', 'cycling', 'running', 'swimrun']
+
 function fmt(v: string | undefined) {
   return v && v !== 'N/A' ? displayTime(v) : '—'
 }
 
+/** "−0:48" / "+1:08" for a change in seconds. */
 function formatDelta(seconds: number): string {
   const abs = Math.abs(Math.round(seconds))
-  const sign = seconds < 0 ? '-' : '+'
-  const m = Math.floor(abs / 60)
-  const s = abs % 60
-  if (m > 0) return `${sign}${m}:${String(s).padStart(2, '0')}`
-  return `${sign}${s}s`
+  const sign = seconds < 0 ? '−' : '+'
+  return `${sign}${Math.floor(abs / 60)}:${String(abs % 60).padStart(2, '0')}`
+}
+
+const isAdult = (e: EventResult) => e.gender_class.toLowerCase() === 'herr' || e.gender_class.toLowerCase() === 'dam'
+/** Raced as an adult on today's course: compares with the athlete's best. */
+const comparable = (e: EventResult) => e.finished && isAdult(e) && Number(e.year) >= currentCourseFrom(e.type)
+
+interface SportSummary {
+  sport: SportType
+  races: number
+  best: EventResult | null
+  latest: EventResult | null
+  /** Latest comparable time minus the one before it (negative = faster). */
+  change: number | null
+  points: TimePoint[]
 }
 
 export function AthletesTab({ data, athleteNames, allTimeRankings, lang, initialAthlete, onAthleteChange }: Props) {
-  const [search, setSearch] = useState('')
-  const deferredSearch = useDeferredValue(search)
   const [selected, setSelected] = useState<string | null>(initialAthlete ?? null)
   const deferredSelected = useDeferredValue(selected)
   const isStale = selected !== deferredSelected
-  const [prevInitial, setPrevInitial] = useState<string | null | undefined>(initialAthlete)
+  const [chartSport, setChartSport] = useState<SportType | null>(null)
 
+  // Follow athletes picked elsewhere (header search, a name in Results)
+  const [prevInitial, setPrevInitial] = useState<string | null | undefined>(initialAthlete)
   if (initialAthlete !== prevInitial) {
     setPrevInitial(initialAthlete)
-    if (initialAthlete) setSelected(initialAthlete)
+    if (initialAthlete) { setSelected(initialAthlete); setChartSport(null) }
   }
 
-  const filtered = useMemo(
-    () => athleteNames.filter((n) => matchesSearch(n, deferredSearch)),
-    [athleteNames, deferredSearch],
+  const pick = (name: string) => {
+    setSelected(name)
+    setChartSport(null)
+    onAthleteChange?.(name)
+  }
+
+  // Quick picks before a search: the members with the most races
+  const mostActive = useMemo(
+    () => [...allTimeRankings].sort((a, b) => b.competitions.length - a.competitions.length || b.total_points - a.total_points).slice(0, 12),
+    [allTimeRankings],
   )
 
   const events = useMemo(
     () => (deferredSelected ? getAthleteEvents(data, deferredSelected) : {}),
     [data, deferredSelected],
   )
-
-  const clubPos = useMemo(() => {
-    if (!selected) return null
-    const idx = allTimeRankings.findIndex((a) => a.name === selected)
-    return idx >= 0 ? { rank: idx + 1, total: allTimeRankings.length, pts: allTimeRankings[idx].total_points } : null
-  }, [allTimeRankings, selected])
-
   const eventList = useMemo(
-    () => Object.entries(events).sort(([, a], [, b]) => b.year.localeCompare(a.year)),
+    () => Object.values(events).sort((a, b) => b.year.localeCompare(a.year) || SPORT_ORDER.indexOf(a.type) - SPORT_ORDER.indexOf(b.type)),
     [events],
   )
-  const isMember = eventList[0]?.[1]?.is_club_member ?? false
+  const clubPos = useMemo(() => {
+    if (!deferredSelected) return null
+    const idx = allTimeRankings.findIndex((a) => a.name === deferredSelected)
+    return idx >= 0 ? { rank: idx + 1, total: allTimeRankings.length, pts: allTimeRankings[idx].total_points } : null
+  }, [allTimeRankings, deferredSelected])
+  const isMember = eventList.some((e) => e.is_club_member)
+  const years = eventList.map((e) => e.year).sort()
+  const yearSpan = years.length ? (years[0] === years.at(-1) ? years[0] : `${years[0]}–${years.at(-1)}`) : ''
 
-  // Personal bests per sport — DNF rows carry a sentinel time, never a PB
-  const personalBests = useMemo(() => {
-    const bests: Record<string, number> = {}
-    for (const [, e] of eventList) {
-      if (e.finished && e.time_seconds > 0) {
-        if (!bests[e.type] || e.time_seconds < bests[e.type]) {
-          bests[e.type] = e.time_seconds
-        }
-      }
-    }
-    return bests
-  }, [eventList])
+  const sports = useMemo<SportSummary[]>(() => SPORT_ORDER.flatMap((sport) => {
+    const list = eventList.filter((e) => e.type === sport).sort((a, b) => a.year.localeCompare(b.year))
+    if (!list.length) return []
+    const comp = list.filter(comparable)
+    const best = comp.reduce<EventResult | null>((m, e) => (!m || e.time_seconds < m.time_seconds ? e : m), null)
+    const finished = list.filter((e) => e.finished)
+    const change = comp.length >= 2 ? comp[comp.length - 1].time_seconds - comp[comp.length - 2].time_seconds : null
+    const points: TimePoint[] = finished.map((e) => ({
+      year: e.year,
+      seconds: e.time_seconds,
+      time: displayTime(e.time),
+      memberPlace: typeof e.club_member_rank === 'number' ? e.club_member_rank : null,
+      memberField: 0,
+      comparable: comparable(e),
+      best: !!best && e === best,
+    }))
+    return [{ sport, races: list.length, best, latest: finished.at(-1) ?? null, change, points }]
+  }), [eventList])
 
-  // Previous year time per sport for delta. Only finished races compare —
-  // a DNF's sentinel time would otherwise produce a ±16,000-minute "delta"
-  // on the surrounding years.
-  const prevYearTime = useMemo(() => {
-    const bySport: Record<string, Array<{ year: string; time_seconds: number }>> = {}
-    for (const [, e] of eventList) {
-      if (e.finished && e.time_seconds > 0) {
-        bySport[e.type] = bySport[e.type] ?? []
-        bySport[e.type].push({ year: e.year, time_seconds: e.time_seconds })
-      }
+  // Members in the same class and race, for "3rd of 12 members" in the chart
+  const memberFields = useMemo(() => {
+    const out: Record<string, number> = {}
+    for (const e of eventList) {
+      out[`${e.type}_${e.year}`] = data[e.type].filter((a) => a.Competition_Year === e.year && a.is_club_member
+        && a.Class === e.gender_class && a.Status !== 'dnf' && a.Status !== 'dns' && a.Total_Time_Seconds > 0).length
     }
-    const prev: Record<string, number> = {}
-    for (const [sport, entries] of Object.entries(bySport)) {
-      const sorted = [...entries].sort((a, b) => a.year.localeCompare(b.year))
-      for (let i = 1; i < sorted.length; i++) {
-        prev[`${sport}_${sorted[i].year}`] = sorted[i].time_seconds - sorted[i - 1].time_seconds
-      }
-    }
-    return prev
-  }, [eventList])
+    return out
+  }, [data, eventList])
 
-  const chartEvents = useMemo(
-    () => Object.fromEntries(eventList.map(([k, v]) => [k, {
-      type: v.type, year: v.year, rank: v.rank,
-      time_seconds: v.time_seconds, time: v.time,
-      gender_class: v.gender_class, class_total: v.class_total,
-    }])),
-    [eventList],
-  )
+  // Chart sport: the one picked, else the most recently raced
+  const activeSport = chartSport && sports.some((s) => s.sport === chartSport) ? chartSport : (eventList[0]?.type ?? null)
+  const active = sports.find((s) => s.sport === activeSport) ?? null
+  const chartPoints = active?.points.map((p) => ({ ...p, memberField: memberFields[`${active.sport}_${p.year}`] ?? 0 })) ?? []
 
   return (
     <div className="flex flex-col gap-8">
       <PageTitle eyebrow={t('athlete_profiles_title', lang)} title={t('nav_athletes', lang)} intro={t('athlete_profiles_text', lang)} />
 
-      {/* Top row: search (left) + summary & event table (right) */}
-      <div className="flex flex-col gap-5 md:flex-row">
-        {/* Athlete list */}
-        <div className="shrink-0 rounded-[4px_4px_32px_4px] bg-mist p-4 md:sticky md:top-4 md:w-72 md:self-start">
-          <label htmlFor="athlete-search" className="mb-1.5 block text-xs font-bold uppercase tracking-[0.06em] text-muted">
-            {t('select_athlete', lang)}
-          </label>
-          <input
-            id="athlete-search"
-            type="text"
-            placeholder={t('search_athlete', lang)}
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="mb-2 h-11 w-full rounded border border-line bg-white px-3 text-[15px] text-navy focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
-          />
-          <ul className="max-h-[260px] overflow-y-auto">
-            {filtered.map((name) => (
-              <li key={name}>
-                <button
-                  onClick={() => { setSelected(name); onAthleteChange?.(name) }}
-                  className={`flex min-h-11 w-full items-center rounded px-3 text-left text-[15px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand ${
-                    selected === name
-                      ? 'bg-white font-bold text-brand'
-                      : 'font-semibold text-navy hover:bg-white/70'
-                  }`}
-                >
-                  {name}
+      {/* Find an athlete: one search field, plus quick picks */}
+      <section aria-labelledby="ath-find" className={`${CARD_MIST} px-5 py-5 sm:px-6`}>
+        <h3 id="ath-find" className="mb-3 mt-0 font-display text-[22px] font-semibold text-navy">{t('ath_find', lang)}</h3>
+        <div className="max-w-[480px]">
+          <AthleteSearch athleteNames={athleteNames} lang={lang} onSelect={pick} />
+        </div>
+        <div className="mt-4">
+          <div className="mb-2 text-xs font-bold uppercase tracking-[0.06em] text-muted">{t('ath_most_active', lang)}</div>
+          <ul className="m-0 flex list-none flex-wrap gap-2 p-0">
+            {mostActive.map((a) => (
+              <li key={a.name}>
+                <button type="button" onClick={() => pick(a.name)} aria-pressed={selected === a.name}
+                  className={`min-h-10 rounded-[4px_4px_14px_4px] px-3.5 text-[15px] font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand ${
+                    selected === a.name ? 'bg-brand text-white' : 'bg-white text-navy hover:bg-white/70'}`}>
+                  {a.name}
                 </button>
               </li>
             ))}
           </ul>
         </div>
+      </section>
 
-        {/* Summary + event table */}
-        <div className={`flex-1 min-w-0 space-y-5 transition-opacity duration-150 ${isStale ? 'opacity-50' : ''}`} aria-busy={isStale}>
-          {!selected ? (
-            <div className="rounded-[4px_4px_40px_4px] p-8 text-center text-[15px] text-muted ring-1 ring-line">
-              {t('select_athlete_prompt', lang)}
+      {!selected ? (
+        <p className="m-0 rounded-[4px_4px_40px_4px] p-8 text-center text-[15px] text-muted ring-1 ring-line">{t('select_athlete_prompt', lang)}</p>
+      ) : (
+        <div className={`flex flex-col gap-8 transition-opacity duration-150 ${isStale ? 'opacity-50' : ''}`} aria-busy={isStale}>
+          {/* Who */}
+          <section className={`${CARD_NAVY} px-6 py-6 lg:rounded-[4px_4px_48px_4px]`}>
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <h3 className="m-0 font-display text-[32px] font-semibold leading-tight">{deferredSelected}</h3>
+              {isMember
+                ? <span className="inline-flex h-7 items-center rounded-[2px_2px_10px_2px] bg-brand px-3 font-display text-sm font-semibold">{t('club_member', lang)}</span>
+                : <span className="inline-flex h-7 items-center rounded-[2px_2px_10px_2px] border border-white px-3 font-display text-sm font-semibold">{t('guest', lang)}</span>}
             </div>
-          ) : (
-            <>
-              {/* Summary */}
-              <div className="rounded-[4px_4px_40px_4px] bg-navy px-6 py-5 text-white">
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                  <h3 className="m-0 font-display text-[30px] font-semibold leading-tight">{selected}</h3>
-                  {isMember
-                    ? <span className="inline-flex h-6 items-center rounded-[2px_2px_8px_2px] bg-brand px-2.5 font-display text-[13px] font-semibold">{t('club_member', lang)}</span>
-                    : <span className="inline-flex h-6 items-center rounded-[2px_2px_8px_2px] border border-white px-2.5 font-display text-[13px] font-semibold">{t('guest', lang)}</span>}
-                </div>
-                {clubPos && (
-                  <dl className="m-0 mt-3 grid grid-cols-3 gap-3">
-                    <div><dt className="text-[13px] text-[#c3c6d1]">{t('athlete_overall_rank', lang)}</dt><dd className="m-0 font-display text-2xl font-semibold">#{clubPos.rank}<span className="text-base text-[#c3c6d1]">/{clubPos.total}</span></dd></div>
-                    <div><dt className="text-[13px] text-[#c3c6d1]">{t('total_points', lang)}</dt><dd className="m-0 font-display text-2xl font-semibold">{clubPos.pts}</dd></div>
-                    <div><dt className="text-[13px] text-[#c3c6d1]">{t('competitions', lang)}</dt><dd className="m-0 font-display text-2xl font-semibold">{eventList.length}</dd></div>
-                  </dl>
-                )}
-              </div>
+            <dl className="m-0 mt-4 grid grid-cols-2 gap-4 sm:grid-cols-4">
+              <div><dt className="text-[13px] text-[#c3c6d1]">{t('ath_years', lang)}</dt><dd className="m-0 font-display text-2xl font-semibold">{yearSpan}</dd></div>
+              <div><dt className="text-[13px] text-[#c3c6d1]">{t('ath_races', lang)}</dt><dd className="m-0 font-display text-2xl font-semibold">{eventList.length}</dd></div>
+              {clubPos && <>
+                <div><dt className="text-[13px] text-[#c3c6d1]">{t('total_points', lang)}</dt><dd className="m-0 font-display text-2xl font-semibold">{clubPos.pts}</dd></div>
+                <div><dt className="text-[13px] text-[#c3c6d1]">{t('athlete_overall_rank', lang)}</dt><dd className="m-0 font-display text-2xl font-semibold">#{clubPos.rank}<span className="text-base text-[#c3c6d1]"> / {clubPos.total}</span></dd></div>
+              </>}
+            </dl>
+          </section>
 
-              {/* Event table */}
-              <div className="overflow-x-auto">
-                <table className="min-w-full text-[15px]">
-                  <thead>
-                    <tr className="text-left font-display text-sm text-white [&>th]:bg-navy">
-                      <th scope="col" className="px-3 py-3 text-left font-semibold">{t('year', lang)}</th>
-                      <th scope="col" className="px-3 py-3 text-left font-semibold">{t('res_filter_sport', lang)}</th>
-                      <th scope="col" className="px-3 py-3 text-left font-semibold">{t('class_rank', lang)}</th>
-                      <th scope="col" className="px-3 py-3 text-left font-semibold hidden sm:table-cell">{t('overall_rank', lang)}</th>
-                      <th scope="col" className="px-3 py-3 text-left font-semibold hidden sm:table-cell">{t('club_rank', lang)}</th>
-                      <th scope="col" className="px-3 py-3 text-right font-semibold">{t('points', lang)}</th>
-                      <th scope="col" className="px-3 py-3 text-left font-semibold">{t('total_time', lang)}</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {eventList.map(([key, e], i) => {
-                      const isPB = e.time_seconds > 0 && personalBests[e.type] === e.time_seconds
-                      const delta = prevYearTime[`${e.type}_${e.year}`]
-                      return (
-                        <tr key={key} className={`border-b border-line hover:bg-mist ${i % 2 === 0 ? 'bg-white' : 'bg-[#f9f9fb]'}`}>
-                          <th scope="row" className="px-3 py-2.5 text-muted font-normal">{e.year}</th>
-                          <td className="px-3 py-2.5 capitalize font-medium text-ink">{t(e.type, lang)}</td>
-                          <td className="px-3 py-2.5 text-muted">{e.finished ? `${e.rank}/${e.class_total}` : '—'}</td>
-                          <td className="px-3 py-2.5 text-muted hidden sm:table-cell">{e.finished && typeof e.overall_rank === 'number' && e.overall_rank > 0 ? `${e.overall_rank}/${e.overall_total}` : '—'}</td>
-                          <td className="px-3 py-2.5 text-muted hidden sm:table-cell">{e.finished && e.is_club_member ? String(e.club_member_rank) : '—'}</td>
-                          <td className={`px-3 py-2.5 text-right tabular-nums ${e.points > 0 ? 'font-bold text-brand' : 'text-muted'}`}>{e.points}</td>
-                          <td className="px-3 py-2.5 font-display font-semibold text-navy tabular-nums whitespace-nowrap">
-                            {e.finished
-                              ? fmt(e.time)
-                              : <span className="font-sans font-semibold text-muted">{t('dnf', lang)}</span>}
-                            {isPB && (
-                              <span className="ml-1.5 inline-flex h-5 items-center rounded-[2px_2px_8px_2px] bg-brand px-1.5 font-display text-[11px] font-semibold text-white">
-                                {t('personal_best', lang)}
-                              </span>
-                            )}
-                            {delta !== undefined && (
-                              <span className={`ml-1.5 text-xs ${delta <= 0 ? 'text-[#1b7a3a]' : 'text-[#9a4a00]'}`}>
-                                {formatDelta(delta)}
-                              </span>
-                            )}
-                          </td>
-                        </tr>
-                      )
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            </>
+          {/* One card per sport: best, latest, change — and picks the chart */}
+          <section aria-labelledby="ath-sports">
+            <h3 id="ath-sports" className="mb-1 mt-0 font-display text-[30px] font-semibold text-navy">{t('ath_by_sport', lang)}</h3>
+            <p className="mb-4 mt-0 text-[15px] text-muted">{t('ath_by_sport_text', lang)}</p>
+            <div className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,240px),1fr))] gap-4">
+              {sports.map((s) => {
+                const on = s.sport === activeSport
+                return (
+                  <button key={s.sport} type="button" onClick={() => setChartSport(s.sport)} aria-pressed={on}
+                    className={`flex flex-col gap-1 rounded-[4px_4px_32px_4px] px-5 py-4 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand ${
+                      on ? 'bg-white ring-2 ring-brand' : 'bg-mist hover:ring-1 hover:ring-line'}`}>
+                    <span className="flex items-baseline justify-between gap-2">
+                      <span className="font-display text-xl font-semibold text-navy">{t(s.sport, lang)}</span>
+                      <span className="text-sm text-muted">{s.races === 1 ? t('ov_races_one', lang) : tf('ov_races_n', lang, { n: s.races })}</span>
+                    </span>
+                    {s.best ? (
+                      <span className="text-[15px]">
+                        <span className="text-muted">{t('ath_best', lang)}: </span>
+                        <strong className="font-display text-lg text-brand">{fmt(s.best.time)}</strong>
+                        <span className="text-muted"> ({s.best.year})</span>
+                      </span>
+                    ) : <span className="text-sm text-muted">{t('ath_no_best', lang)}</span>}
+                    {s.latest && (
+                      <span className="text-[15px]">
+                        <span className="text-muted">{t('ath_latest', lang)}: </span>
+                        <strong className="font-display text-navy">{fmt(s.latest.time)}</strong>
+                        <span className="text-muted"> ({s.latest.year})</span>
+                        {s.change !== null && (
+                          <span className={`ml-1.5 text-sm font-semibold ${s.change < 0 ? 'text-[#1b7a3a]' : 'text-[#9a4a00]'}`}>
+                            {formatDelta(s.change)} {s.change < 0 ? t('ath_faster', lang) : t('ath_slower', lang)}
+                          </span>
+                        )}
+                      </span>
+                    )}
+                  </button>
+                )
+              })}
+            </div>
+          </section>
+
+          {/* One clear chart: time per year in the chosen sport */}
+          {active && chartPoints.length > 0 && (
+            <section aria-labelledby="ath-chart" className="rounded-[4px_4px_40px_4px] px-5 pb-5 pt-5 ring-1 ring-line sm:px-6">
+              <Eyebrow>{t(active.sport, lang)}</Eyebrow>
+              <h3 id="ath-chart" className="mb-2 mt-0.5 font-display text-[26px] font-semibold text-navy">{t('ath_chart_title', lang)}</h3>
+              {chartPoints.length === 1
+                ? <p className="m-0 text-[15px] text-muted">{tf('ath_one_race', lang, { year: chartPoints[0].year, time: chartPoints[0].time })}</p>
+                : <AthleteTimeChart points={chartPoints} lang={lang} />}
+            </section>
           )}
-        </div>
-      </div>
 
-      {/* Charts — full width below */}
-      {selected && eventList.length > 0 && (
-        <div className={`rounded-[4px_4px_40px_4px] p-5 ring-1 ring-line transition-opacity duration-150 ${isStale ? 'opacity-50' : ''}`}>
-          <h4 className="mb-3 mt-0 font-display text-[22px] font-semibold text-navy">{t('class_rank', lang)} &amp; {t('total_time', lang)}</h4>
-          <AthleteRankChart events={chartEvents} allData={data} lang={lang} />
+          {/* Every race */}
+          <section aria-labelledby="ath-all">
+            <h3 id="ath-all" className="mb-3 mt-0 font-display text-[30px] font-semibold text-navy">{t('ath_all_races', lang)}</h3>
+            <div className="overflow-x-auto">
+              <table className="min-w-full text-[15px]">
+                <thead>
+                  <tr className="text-left font-display text-sm text-white [&>th]:bg-navy">
+                    <th scope="col" className="px-3 py-3 font-semibold">{t('year', lang)}</th>
+                    <th scope="col" className="px-3 py-3 font-semibold">{t('res_filter_sport', lang)}</th>
+                    <th scope="col" className="px-3 py-3 font-semibold">{t('total_time', lang)}</th>
+                    <th scope="col" className="px-3 py-3 font-semibold">{t('class_rank', lang)}</th>
+                    <th scope="col" className="hidden px-3 py-3 font-semibold sm:table-cell">{t('overall_rank', lang)}</th>
+                    <th scope="col" className="hidden px-3 py-3 font-semibold sm:table-cell">{t('club_rank', lang)}</th>
+                    <th scope="col" className="px-3 py-3 text-right font-semibold">{t('points', lang)}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {eventList.map((e, i) => {
+                    const sum = sports.find((s) => s.sport === e.type)
+                    const isBest = !!sum?.best && sum.best === e
+                    return (
+                      <tr key={`${e.type}_${e.year}`} className={`border-b border-line hover:bg-mist ${i % 2 === 0 ? 'bg-white' : 'bg-[#f9f9fb]'}`}>
+                        <th scope="row" className="px-3 py-2.5 text-left font-normal text-muted">{e.year}</th>
+                        <td className="px-3 py-2.5 font-semibold text-navy">{t(e.type, lang)}</td>
+                        <td className="whitespace-nowrap px-3 py-2.5 font-display font-semibold tabular-nums text-navy">
+                          {e.finished ? fmt(e.time) : <span className="font-sans text-muted">{t('dnf', lang)}</span>}
+                          {isBest && (
+                            <span className="ml-1.5 inline-flex h-5 items-center rounded-[2px_2px_8px_2px] bg-brand px-1.5 font-display text-[11px] font-semibold text-white">
+                              {t('personal_best', lang)}
+                            </span>
+                          )}
+                        </td>
+                        <td className="px-3 py-2.5 text-muted">{e.finished ? `${e.rank}/${e.class_total}` : '—'}</td>
+                        <td className="hidden px-3 py-2.5 text-muted sm:table-cell">{e.finished && typeof e.overall_rank === 'number' && e.overall_rank > 0 ? `${e.overall_rank}/${e.overall_total}` : '—'}</td>
+                        <td className="hidden px-3 py-2.5 text-muted sm:table-cell">{e.finished && e.is_club_member ? String(e.club_member_rank) : '—'}</td>
+                        <td className={`px-3 py-2.5 text-right tabular-nums ${e.points > 0 ? 'font-display font-semibold text-brand' : 'text-muted'}`}>{e.points}</td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </section>
         </div>
       )}
     </div>

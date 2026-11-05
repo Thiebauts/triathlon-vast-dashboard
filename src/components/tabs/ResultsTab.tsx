@@ -160,11 +160,15 @@ function ResultRow({ a, rank, i, lang, yearValue, segs, splitRank, points, tag, 
       <td className="border-l border-line px-3 py-2.5 font-display font-semibold tabular-nums text-navy">
         {finished ? fmt(a.Total_Time) : <span className="font-sans text-muted">{t('dnf', lang)}</span>}
       </td>
-      <td className="px-4 py-2.5 text-right font-display font-semibold tabular-nums">
-        {earnsPoints(a, rank)
-          ? <span className={points > 0 ? 'text-brand' : 'text-muted'}>{points}</span>
-          : <span className="text-muted">—</span>}
-      </td>
+      {/* Points only for one race: across all years the column would just
+          repeat 40, 35, 30… for every year's winners */}
+      {yearValue !== 'all' && (
+        <td className="px-4 py-2.5 text-right font-display font-semibold tabular-nums">
+          {earnsPoints(a, rank)
+            ? <span className={points > 0 ? 'text-brand' : 'text-muted'}>{points}</span>
+            : <span className="text-muted">—</span>}
+        </td>
+      )}
     </tr>
   )
 }
@@ -187,9 +191,11 @@ function ResultCard({ a, rank, lang, yearValue, segs, points, tag, best, onAthle
         </span>
         <span className="text-right">
           <span className="block font-display text-lg font-semibold text-navy">{rank !== null ? fmt(a.Total_Time) : t('dnf', lang)}</span>
-          <span className="block font-display text-sm font-semibold text-brand">
-            {earnsPoints(a, rank) ? `${points} ${t('season_points_unit', lang)}` : <span className="font-sans font-normal text-muted">{t('res_no_points', lang)}</span>}
-          </span>
+          {yearValue !== 'all' && (
+            <span className="block font-display text-sm font-semibold text-brand">
+              {earnsPoints(a, rank) ? `${points} ${t('season_points_unit', lang)}` : <span className="font-sans font-normal text-muted">{t('res_no_points', lang)}</span>}
+            </span>
+          )}
         </span>
       </div>
       {(segs.length > 0 || onShare) && (
@@ -475,7 +481,8 @@ export function ResultsTab({ data, lang, lastUpdated, raceDates, onAthleteClick,
     URL.revokeObjectURL(url)
   }, [rows, sport, yearValue, category, lang, pointsLookup])
 
-  const colCount = 6 + (yearValue === 'all' ? 1 : 0) + segs.length * 2
+  // Six base columns either way: one race has Points, all years has Year instead
+  const colCount = 6 + segs.length * 2
   const selectCls = 'h-12 min-w-[130px] rounded border border-line bg-mist px-3 text-[15px] font-medium text-navy focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand'
   const labelCls = 'flex flex-col gap-1 text-sm font-semibold text-navy'
   const showRaceBlocks = oneYear && category !== 'youth' && race !== null
@@ -630,7 +637,7 @@ export function ResultsTab({ data, lang, lastUpdated, raceDates, onAthleteClick,
             <span>· {tf('res_tag_summary', lang, tagCounts)}</span>
           </>}
           {bestSplits && <span className="basis-full sm:basis-auto"><span className={GREEN}>{t('res_best_split', lang)}</span></span>}
-          <span className="basis-full">{t('res_no_points_note', lang)}</span>
+          {oneYear && <span className="basis-full">{t('res_no_points_note', lang)}</span>}
         </p>
 
         {rows.length === 0 && separateRaces.length === 0 ? (
@@ -674,7 +681,7 @@ export function ResultsTab({ data, lang, lastUpdated, raceDates, onAthleteClick,
                       </Fragment>
                     ))}
                     <th scope="col" className="border-l border-[#3a4250] bg-navy px-3 py-3 font-semibold">{t('total_time', lang)}</th>
-                    <th scope="col" className="bg-navy px-4 py-3 text-right font-semibold">{t('points', lang)}</th>
+                    {oneYear && <th scope="col" className="bg-navy px-4 py-3 text-right font-semibold">{t('points', lang)}</th>}
                   </tr>
                 </thead>
                 <tbody>

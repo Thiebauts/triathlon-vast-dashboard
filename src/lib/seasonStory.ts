@@ -31,7 +31,7 @@ export function seasonStory(s: SeasonSummary, lang: Lang): { short: string; long
     ? tf('season_story_record_one', lang, { name: newRecords[0].name, sport: sportName(newRecords[0].sport, lang) })
     : newRecords.length > 1 ? tf('season_story_record_many', lang, { n: newRecords.length }) : ''
 
-  const short = tf('season_story_short', lang, {
+  const short = tf(s.firstSeason ? 'season_story_short_first' : 'season_story_short', lang, {
     year: s.year, races: s.races.length, starts: s.participations.total, people: s.people.total,
     members: s.people.members, guests: s.people.guests, newMembers: s.newMembers, pbs, records,
     menWinner: s.pointsPodium.men[0]?.name ?? '—', womenWinner: s.pointsPodium.women[0]?.name ?? '—',
@@ -102,7 +102,8 @@ export function seasonStory(s: SeasonSummary, lang: Lang): { short: string; long
     const parts = [tf('season_story_race_winners', lang, { sport: t(r.sport, lang), winners: list(winners, lang) })]
     for (const rec of r.records ?? []) parts.push(tf('season_story_race_record', lang, { name: rec.name, time: displayTime(rec.time) }))
     const pbs = r.personalBests
-    if (pbs === null) parts.push(t('season_story_race_new_course', lang))
+    if (s.firstSeason) { /* first year: no earlier times to compare */ }
+    else if (pbs === null) parts.push(t('season_story_race_new_course', lang))
     else if (pbs.length === 0) parts.push(t('season_story_race_no_pbs', lang))
     else {
       const names = list(pbs.map((p) => `${p.name} (−${gain(p.gain)})`), lang)
@@ -113,7 +114,8 @@ export function seasonStory(s: SeasonSummary, lang: Lang): { short: string; long
 
   // 6. Newcomers last: always good to welcome them by name
   const { members: newM, guests: newG } = s.newcomers
-  if (newM.length || newG.length) {
+  // (not in the very first season, when everyone was new)
+  if (!s.firstSeason && (newM.length || newG.length)) {
     const guests = newG.length ? tf('season_story_welcome_guests', lang, { names: list(newG, lang) }) : ''
     long.push(newG.length
       ? tf('season_story_welcome', lang, { n: newM.length + newG.length, m: newM.length, g: newG.length, year: s.year, members: list(newM, lang), guests })

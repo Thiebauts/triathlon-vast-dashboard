@@ -20,6 +20,11 @@ export const COURSE_HISTORY: Record<SportType, Array<{ place: string; from: numb
   running: [{ place: 'Åby / Slottsskogsvallen', from: 2021 }],
 }
 
+/** First year of the course a sport is raced on today (times before it don't compare). */
+export function currentCourseFrom(sport: SportType): number {
+  return COURSE_HISTORY[sport][COURSE_HISTORY[sport].length - 1].from
+}
+
 export interface RecordHolder { name: string; time: string; seconds: number; year: string }
 export interface CourseRecords {
   sport: SportType

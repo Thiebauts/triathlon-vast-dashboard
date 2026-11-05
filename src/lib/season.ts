@@ -9,7 +9,7 @@ import { getClubRankings, isFinisher, isRelay, racesOverall } from './data.ts'
 import type { AthleteResult, CompetitionsData, SportType } from './types'
 
 /** Seasons published on the Season tab, newest first — add a year once its numbers are checked. */
-export const SEASON_YEARS: readonly string[] = ['2026']
+export const SEASON_YEARS: readonly string[] = ['2026', '2025', '2024', '2023', '2022', '2021']
 
 export const SEASON_SPORTS: readonly SportType[] = ['cycling', 'duathlon', 'swimming', 'triathlon', 'swimrun', 'running']
 
@@ -84,6 +84,10 @@ export interface SeasonSummary {
   everyRace: string[]
   /** Members by number of championships raced: { 1: 32, 2: 17, … }. */
   racesPerMember: Record<number, number>
+  /** Names of the members per number of championships raced, alphabetical. */
+  membersByRaceCount: Record<number, string[]>
+  /** The first season of the club championships: nothing earlier to compare with. */
+  firstSeason: boolean
   /** Members whose first club championship ever was this season (= newcomers.members.length). */
   newMembers: number
   /** Everyone (relay runners included) whose first club championship ever was this season. */
@@ -229,7 +233,12 @@ export function getSeasonSummary(data: CompetitionsData, year: string): SeasonSu
     racesByMember.set(a.Name, (racesByMember.get(a.Name) ?? new Set()).add(s))
   }
   const racesPerMember: Record<number, number> = {}
-  for (const sports of racesByMember.values()) racesPerMember[sports.size] = (racesPerMember[sports.size] ?? 0) + 1
+  const membersByRaceCount: Record<number, string[]> = {}
+  for (const [name, sports] of racesByMember) {
+    racesPerMember[sports.size] = (racesPerMember[sports.size] ?? 0) + 1
+    ;(membersByRaceCount[sports.size] ??= []).push(name)
+  }
+  for (const names of Object.values(membersByRaceCount)) names.sort((a, b) => a.localeCompare(b, 'sv'))
 
   const earlierNames = new Set(SEASON_SPORTS.flatMap((s) => data[s].filter((a) => a.Competition_Year < year).flatMap(peopleOf)))
   const newcomers = { members: [] as string[], guests: [] as string[] }
@@ -268,6 +277,8 @@ export function getSeasonSummary(data: CompetitionsData, year: string): SeasonSu
     races,
     everyRace: [...racesByMember].filter(([, s]) => s.size === races.length).map(([n]) => n).sort(),
     racesPerMember,
+    membersByRaceCount,
+    firstSeason: !SEASON_SPORTS.some((sp) => data[sp].some((a) => a.Competition_Year < year)),
     newMembers: newcomers.members.length,
     newcomers,
     history,

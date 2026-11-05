@@ -179,3 +179,13 @@ test('seasonStory: long text opens with the yearly trend, describes changes in w
   assert.equal(en.long[en.long.length - 1], 'A warm welcome to the 2 athletes (1 members, 1 guests) who raced their first club championship in 2026: Cleo, and our guests Gus.')
   assert.match(seasonStory(s, 'sv').long[0], /Det kan jämföras med 2 år 2025/)
 })
+
+test('names per number of races, and the first season flag', () => {
+  const d = empty()
+  d.running = [mk('Ann', 'Dam', 'TriVäst', '2025', 1300), mk('Bo', 'Herr', 'TriVäst', '2025', 1100), mk('Ann', 'Dam', 'TriVäst', '2026', 1290)]
+  d.cycling = [mk('Ann', 'Dam', 'TriVäst', '2026', 1700), mk('Cy', 'Herr', 'TriVäst', '2026', 1600)]
+  const s2026 = getSeasonSummary(d, '2026')
+  assert.deepEqual(s2026.membersByRaceCount, { 2: ['Ann'], 1: ['Cy'] })
+  assert.equal(s2026.firstSeason, false)
+  assert.equal(getSeasonSummary(d, '2025').firstSeason, true)
+})

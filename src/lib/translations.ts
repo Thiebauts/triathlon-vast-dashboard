@@ -149,6 +149,25 @@ const TRANSLATIONS: Record<string, { en: string; sv: string }> = {
   share_fastest:      { en: 'Fastest of the day', sv: 'Dagens snabbaste' },
   share_footer:       { en: 'Triathlon Väst club championship', sv: 'Triathlon Västs klubbmästerskap' },
 
+  // Athlete page
+  ath_find:           { en: 'Find an athlete', sv: 'Hitta en idrottare' },
+  ath_most_active:    { en: 'Most races', sv: 'Flest lopp' },
+  ath_years:          { en: 'Years', sv: 'År' },
+  ath_races:          { en: 'Races', sv: 'Lopp' },
+  ath_by_sport:       { en: 'By sport', sv: 'Per gren' },
+  ath_by_sport_text:  { en: 'Best and latest time in each sport. Pick a sport to see its times year by year below.', sv: 'Bästa och senaste tid i varje gren. Välj en gren för att se tiderna år för år nedan.' },
+  ath_best:           { en: 'Best', sv: 'Bästa' },
+  ath_no_best:        { en: 'No adult time on today\'s course yet', sv: 'Ingen vuxentid på dagens bana än' },
+  ath_latest:         { en: 'Latest', sv: 'Senaste' },
+  ath_faster:         { en: 'faster', sv: 'snabbare' },
+  ath_slower:         { en: 'slower', sv: 'långsammare' },
+  ath_chart_title:    { en: 'Time year by year', sv: 'Tid år för år' },
+  ath_one_race:       { en: 'Only one race so far: {time} in {year}.', sv: 'Bara ett lopp hittills: {time} år {year}.' },
+  ath_lower_faster:   { en: 'Lower is faster.', sv: 'Lägre är snabbare.' },
+  ath_not_comparable: { en: 'Other course or youth race, not compared', sv: 'Annan bana eller ungdomslopp, jämförs inte' },
+  ath_member_place:   { en: '{n} of {m} members in the class', sv: '{n} av {m} medlemmar i klassen' },
+  ath_all_races:      { en: 'All races', sv: 'Alla lopp' },
+
   // Club records
   nav_records:        { en: 'Club records', sv: 'Klubbrekord' },
   rec_eyebrow:        { en: 'All-time bests', sv: 'Alla tiders bästa' },
@@ -308,6 +327,12 @@ const TRANSLATIONS: Record<string, { en: string; sv: string }> = {
     en: 'In {year} the club raced {races} championships: {starts} starts by {people} different people ({members} members, {guests} guests), and {newMembers} members raced their first club championship. Members set {pbs} personal bests{records}. {menWinner} and {womenWinner} won the season points ranking.',
     sv: 'Under {year} körde klubben {races} klubbmästerskap: {starts} starter av {people} olika deltagare ({members} medlemmar, {guests} gäster), och {newMembers} medlemmar körde sitt första klubbmästerskap. Medlemmarna satte {pbs} personbästan{records}. {menWinner} och {womenWinner} vann säsongens poängranking.',
   },
+  season_story_short_first: {
+    en: 'In {year}, the first year of the club championships, the club raced {races} championships: {starts} starts by {people} different people ({members} members, {guests} guests). {menWinner} and {womenWinner} won the season points ranking.',
+    sv: 'Under {year}, klubbmästerskapens första år, körde klubben {races} klubbmästerskap: {starts} starter av {people} olika deltagare ({members} medlemmar, {guests} gäster). {menWinner} och {womenWinner} vann säsongens poängranking.',
+  },
+  season_loyalty_n:        { en: 'Raced {n}:', sv: 'Körde {n}:' },
+  season_first_note:       { en: 'The first year of the club championships, so there are no earlier times to compare with: no personal bests, newcomers or broken records this season.', sv: 'Klubbmästerskapens första år, så det finns inga tidigare tider att jämföra med: inga personbästan, nykomlingar eller slagna rekord den här säsongen.' },
   season_story_record_one: { en: ' and {name} set a new course record in {sport}', sv: ' och {name} satte nytt banrekord i {sport}' },
   season_story_record_many:{ en: ' and {n} new course records', sv: ' och {n} nya banrekord' },
   season_story_trend_record: { en: 'With {starts} starts, {year} was the busiest season since the club championships began in {first}.', sv: 'Med {starts} starter var {year} den mest välbesökta säsongen sedan klubbmästerskapen började {first}.' },

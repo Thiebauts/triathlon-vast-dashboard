@@ -296,96 +296,75 @@ async function run() {
     await header.waitFor({ state: 'visible', timeout: 5000 })
   })
 
+  const athSearch = () => page.locator('#view-athletes input[type=search]')
+  const athOptions = () => page.locator('#view-athletes [role=option]:visible')
+
   await test('Athlete search input visible', async () => {
-    // Both Results and Athletes tabs render an input with this placeholder; the
-    // hidden one is in the DOM but display:none, so filter to visible.
-    const input = page.locator('input[placeholder="Search athlete…"]:visible')
-    await input.waitFor({ state: 'visible', timeout: 3000 })
+    await athSearch().waitFor({ state: 'visible', timeout: 3000 })
   })
 
-  await test('Athlete list populated', async () => {
-    const items = page.locator('#view-athletes ul li button:visible')
-    const count = await items.count()
-    if (count === 0) throw new Error('No athletes in list')
-    console.log(`     (${count} athletes found)`)
+  await test('Quick picks list the most active members', async () => {
+    const count = await page.locator('#view-athletes ul li button:visible').count()
+    if (count < 5) throw new Error(`Only ${count} quick picks`)
   })
 
   await test('Select prompt shown before selection', async () => {
-    const prompt = page.locator('text=Please select an athlete')
-    await prompt.waitFor({ state: 'visible', timeout: 3000 })
+    await page.locator('text=Please select an athlete').waitFor({ state: 'visible', timeout: 3000 })
   })
 
-  await test('Search filters athlete list', async () => {
-    const input = page.locator('input[placeholder="Search athlete…"]:visible')
-    await input.fill('Jon')
+  await test('Search suggests matching athletes', async () => {
+    await athSearch().fill('Jon')
     await page.waitForTimeout(300)
-    const items = page.locator('#view-athletes ul li button:visible')
-    const count = await items.count()
-    if (count === 0) throw new Error('Search returned 0 results for "Jon"')
-    const all = await items.allTextContents()
-    // Search ignores accents, so "Jon" also finds "Jönsson"
+    const all = await athOptions().allTextContents()
+    if (all.length === 0) throw new Error('No suggestions for "Jon"')
     const fold = (s) => s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
-    if (!all.every(n => fold(n).includes('jon'))) throw new Error('Search not filtering correctly')
+    if (!all.every(n => fold(n).includes('jon'))) throw new Error(`Not filtering: ${JSON.stringify(all)}`)
   })
 
   await test('Search ignores accents ("arnstrom" finds Arnström)', async () => {
-    const input = page.locator('input[placeholder="Search athlete…"]:visible')
-    await input.fill('arnstrom')
+    await athSearch().fill('arnstrom')
     await page.waitForTimeout(300)
-    const all = await page.locator('#view-athletes ul li button:visible').allTextContents()
+    const all = await athOptions().allTextContents()
     if (!all.includes('Erik Arnström')) throw new Error(`Got ${JSON.stringify(all)}`)
-    await input.fill('Jon')
-    await page.waitForTimeout(300)
   })
 
-  await test('Select first athlete shows profile', async () => {
-    const input = page.locator('input[placeholder="Search athlete…"]:visible')
-    await input.clear()
-    await page.waitForTimeout(300)
-    const firstAthlete = page.locator('#view-athletes ul li button:visible').first()
-    const name = await firstAthlete.textContent()
-    await firstAthlete.click()
+  await test('Picking a suggestion shows the profile', async () => {
+    await athOptions().first().click()
     await page.waitForTimeout(800)
-    // Name should appear in the profile header
-    const nameEl = page.locator('h3', { hasText: name?.trim() ?? '' })
-    await nameEl.waitFor({ state: 'visible', timeout: 3000 })
-    console.log(`     (selected: ${name?.trim()})`)
+    await page.locator('#view-athletes h3', { hasText: 'Erik Arnström' }).waitFor({ state: 'visible', timeout: 3000 })
   })
 
-  await test('Athlete chart renders after selection', async () => {
-    // Recharts renders SVGs inside the visible Athletes subtree.
-    const svgs = page.locator('div:not([hidden]) svg')
-    await svgs.first().waitFor({ state: 'visible', timeout: 5000 })
-    const count = await svgs.count()
-    if (count < 1) throw new Error('No chart SVG found after athlete selection')
+  await test('Quick pick opens a profile with sport cards and a chart', async () => {
+    const pickBtn = page.locator('#view-athletes ul li button:visible').first()
+    const name = (await pickBtn.textContent())?.trim() ?? ''
+    await pickBtn.click()
+    await page.waitForTimeout(900)
+    await page.locator('#view-athletes h3', { hasText: name }).first().waitFor({ state: 'visible', timeout: 3000 })
+    const cards = page.locator('#view-athletes button[aria-pressed]:visible', { hasText: 'Best' })
+    if (await cards.count() < 2) throw new Error('Expected sport cards for an athlete with many races')
+    await page.locator('#view-athletes section[aria-labelledby="ath-chart"] svg').first().waitFor({ state: 'visible', timeout: 5000 })
+    console.log(`     (selected: ${name})`)
+  })
+
+  await test('A sport card switches the chart', async () => {
+    const cards = page.locator('#view-athletes button[aria-pressed]:visible', { hasText: 'Best' })
+    const second = cards.nth(1)
+    const sport = (await second.locator('span span').first().textContent())?.trim()
+    await second.click()
+    await page.waitForTimeout(400)
+    const eyebrow = await page.locator('#view-athletes section[aria-labelledby="ath-chart"]').innerText()
+    if (!eyebrow.includes(sport)) throw new Error(`Chart did not switch to ${sport}`)
   })
 
   await test('Event table shows for selected athlete', async () => {
-    // Multiple tables exist (Results tab is mounted but hidden); count visible rows only.
-    const rows = page.locator('table tbody tr:visible')
-    const count = await rows.count()
+    const count = await page.locator('#view-athletes table tbody tr:visible').count()
     if (count === 0) throw new Error('No event rows for selected athlete')
   })
 
   await test('Club member badge shown on profile', async () => {
-    // Either "TriVäst Member" badge or "Guest"
-    const memberBadge = page.locator('text=TriVäst Member')
-    const guestBadge = page.locator('text=Guest')
-    const hasMember = await memberBadge.count() > 0
-    const hasGuest = await guestBadge.count() > 0
+    const hasMember = await page.locator('#view-athletes').getByText('TriVäst Member', { exact: true }).count() > 0
+    const hasGuest = await page.locator('#view-athletes').getByText('Guest', { exact: true }).count() > 0
     if (!hasMember && !hasGuest) throw new Error('No member/guest badge found')
-  })
-
-  await test('Select a different athlete', async () => {
-    const athletes = page.locator('#view-athletes ul li button:visible')
-    const count = await athletes.count()
-    const secondIdx = Math.min(5, count - 1)
-    const second = athletes.nth(secondIdx)
-    const name = await second.textContent()
-    await second.click()
-    await page.waitForTimeout(600)
-    const nameEl = page.locator('h3', { hasText: name?.trim() ?? '' })
-    await nameEl.waitFor({ state: 'visible', timeout: 3000 })
   })
 
   // ── RANKINGS TAB ─────────────────────────────────────────────────────────────
