@@ -275,12 +275,12 @@ async function run() {
     }
   })
 
-  await test('How points work explains the rules with a real example', async () => {
+  await test('How points work explains the points and the rules', async () => {
     await page.goto(`${BASE}/#points`, { waitUntil: 'networkidle' })
     const view = page.locator('#view-points')
     await view.locator('h2', { hasText: 'How points work' }).waitFor({ state: 'visible', timeout: 5000 })
     const text = await view.innerText()
-    for (const s of ['Members only', 'Running 2026, women', 'guest, no place']) {
+    for (const s of ['Points per place', 'Members only', 'Men and women apart']) {
       if (!text.includes(s)) throw new Error(`Missing ${s}`)
     }
   })
@@ -303,9 +303,10 @@ async function run() {
     await athSearch().waitFor({ state: 'visible', timeout: 3000 })
   })
 
-  await test('Quick picks list the most active members', async () => {
-    const count = await page.locator('#view-athletes ul li button:visible').count()
-    if (count < 5) throw new Error(`Only ${count} quick picks`)
+  await test('A–Ö letters: letters without athletes are disabled', async () => {
+    const letters = page.locator('#view-athletes ul[aria-labelledby="ath-letters"] button')
+    if (await letters.count() !== 29) throw new Error(`Expected 29 letters, got ${await letters.count()}`)
+    if (!(await letters.filter({ hasText: /^Q$/ }).isDisabled())) throw new Error('Q should be disabled')
   })
 
   await test('Select prompt shown before selection', async () => {
@@ -334,10 +335,13 @@ async function run() {
     await page.locator('#view-athletes h3', { hasText: 'Erik Arnström' }).waitFor({ state: 'visible', timeout: 3000 })
   })
 
-  await test('Quick pick opens a profile with sport cards and a chart', async () => {
-    const pickBtn = page.locator('#view-athletes ul li button:visible').first()
-    const name = (await pickBtn.textContent())?.trim() ?? ''
-    await pickBtn.click()
+  await test('A letter lists its athletes and opens a profile with sport cards and a chart', async () => {
+    await page.locator('#view-athletes ul[aria-labelledby="ath-letters"] button', { hasText: /^J$/ }).click()
+    await page.waitForTimeout(300)
+    const names = await page.locator('#view-athletes ul[aria-label^="Athletes whose"] button').allTextContents()
+    if (!names.length || !names.every((n) => n.startsWith('J'))) throw new Error(`Letter list wrong: ${JSON.stringify(names.slice(0, 5))}`)
+    const name = 'Jonatan Hägerström'
+    await page.locator('#view-athletes ul[aria-label^="Athletes whose"] button', { hasText: name }).click()
     await page.waitForTimeout(900)
     await page.locator('#view-athletes h3', { hasText: name }).first().waitFor({ state: 'visible', timeout: 3000 })
     const cards = page.locator('#view-athletes button[aria-pressed]:visible', { hasText: 'Best' })

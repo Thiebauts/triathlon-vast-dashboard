@@ -26,6 +26,8 @@ interface Props {
   onAthleteChange?: (name: string) => void
 }
 
+const ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZÅÄÖ'.split('')
+
 const SPORT_ORDER: SportType[] = ['triathlon', 'duathlon', 'swimming', 'cycling', 'running', 'swimrun']
 
 function fmt(v: string | undefined) {
@@ -72,11 +74,20 @@ export function AthletesTab({ data, athleteNames, allTimeRankings, lang, initial
     onAthleteChange?.(name)
   }
 
-  // Quick picks before a search: the members with the most races
-  const mostActive = useMemo(
-    () => [...allTimeRankings].sort((a, b) => b.competitions.length - a.competitions.length || b.total_points - a.total_points).slice(0, 12),
-    [allTimeRankings],
-  )
+  // Browse by first letter of the first name: everyone listed the same way,
+  // no hand-picked names. Å, Ä and Ö keep their own letters (Swedish order).
+  const [letter, setLetter] = useState<string | null>(null)
+  const byLetter = useMemo(() => {
+    const out = new Map<string, string[]>()
+    for (const name of athleteNames) {
+      const c = name.trim().charAt(0).toUpperCase()
+      const key = 'ÅÄÖ'.includes(c) ? c : c.normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+      if (!out.has(key)) out.set(key, [])
+      out.get(key)!.push(name)
+    }
+    for (const list of out.values()) list.sort((a, b) => a.localeCompare(b, 'sv'))
+    return out
+  }, [athleteNames])
 
   const events = useMemo(
     () => (deferredSelected ? getAthleteEvents(data, deferredSelected) : {}),
@@ -139,19 +150,36 @@ export function AthletesTab({ data, athleteNames, allTimeRankings, lang, initial
         <div className="max-w-[480px]">
           <AthleteSearch athleteNames={athleteNames} lang={lang} onSelect={pick} />
         </div>
-        <div className="mt-4">
-          <div className="mb-2 text-xs font-bold uppercase tracking-[0.06em] text-muted">{t('ath_most_active', lang)}</div>
-          <ul className="m-0 flex list-none flex-wrap gap-2 p-0">
-            {mostActive.map((a) => (
-              <li key={a.name}>
-                <button type="button" onClick={() => pick(a.name)} aria-pressed={selected === a.name}
-                  className={`min-h-10 rounded-[4px_4px_14px_4px] px-3.5 text-[15px] font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand ${
-                    selected === a.name ? 'bg-brand text-white' : 'bg-white text-navy hover:bg-white/70'}`}>
-                  {a.name}
-                </button>
-              </li>
-            ))}
+        <div className="mt-5">
+          <div id="ath-letters" className="mb-2 text-xs font-bold uppercase tracking-[0.06em] text-muted">{t('ath_browse', lang)}</div>
+          <ul aria-labelledby="ath-letters" className="m-0 flex list-none flex-wrap gap-1.5 p-0">
+            {ALPHABET.map((l) => {
+              const has = byLetter.has(l)
+              return (
+                <li key={l}>
+                  <button type="button" disabled={!has} onClick={() => setLetter(letter === l ? null : l)} aria-pressed={letter === l}
+                    aria-label={has ? tf('ath_letter_label', lang, { l, n: byLetter.get(l)!.length }) : l}
+                    className={`h-10 w-10 rounded-[4px_4px_12px_4px] font-display text-base font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand ${
+                      letter === l ? 'bg-brand text-white' : has ? 'bg-white text-navy hover:bg-white/70' : 'cursor-default bg-transparent text-[#b6bac1]'}`}>
+                    {l}
+                  </button>
+                </li>
+              )
+            })}
           </ul>
+          {letter && byLetter.has(letter) && (
+            <ul aria-label={tf('ath_letter_list', lang, { l: letter })} className="m-0 mt-3 grid list-none grid-cols-[repeat(auto-fill,minmax(min(100%,200px),1fr))] gap-1 p-0">
+              {byLetter.get(letter)!.map((name) => (
+                <li key={name}>
+                  <button type="button" onClick={() => pick(name)} aria-current={selected === name ? 'true' : undefined}
+                    className={`flex min-h-10 w-full items-center rounded px-3 text-left text-[15px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand ${
+                      selected === name ? 'bg-white font-bold text-brand' : 'font-semibold text-navy hover:bg-white/70'}`}>
+                    {name}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
       </section>
 

@@ -126,12 +126,6 @@ const TRANSLATIONS: Record<string, { en: string; sv: string }> = {
   pts_rule_ties:      { en: 'Places follow the exact timing, to the tenth of a second. Only exactly equal times share a place and its points.', sv: 'Placeringen följer den exakta tiden, ner till tiondels sekund. Bara exakt lika tider delar plats och poäng.' },
   pts_rule_season_t:  { en: 'The season', sv: 'Säsongen' },
   pts_rule_season:    { en: 'Points from all the year\'s championships add up to the season ranking. The winners are celebrated at Novemberplågan, the club\'s end-of-year gathering.', sv: 'Poängen från årets alla klubbmästerskap läggs ihop till säsongens ranking. Vinnarna firas på Novemberplågan, klubbens avslutning för året.' },
-  pts_example_eyebrow:{ en: 'An example', sv: 'Ett exempel' },
-  pts_example_title:  { en: '{sport} {year}, women', sv: '{sport} {year}, damer' },
-  pts_example_text:   { en: 'The first women across the line, with the place each one took in the points list.', sv: 'De första damerna i mål, med den plats var och en fick i poänglistan.' },
-  pts_col_finish:     { en: 'Finish', sv: 'Mål' },
-  pts_col_member:     { en: 'Member place', sv: 'Medlemsplats' },
-  pts_guest_note:     { en: 'guest, no place', sv: 'gäst, ingen plats' },
   pts_wrong:          { en: 'Think your points are wrong? Email schirmer.thiebaut@gmail.com and it will be checked.', sv: 'Tror du att dina poäng är fel? Mejla schirmer.thiebaut@gmail.com så kontrollerar vi det.' },
 
   // Share picture
@@ -151,7 +145,9 @@ const TRANSLATIONS: Record<string, { en: string; sv: string }> = {
 
   // Athlete page
   ath_find:           { en: 'Find an athlete', sv: 'Hitta en idrottare' },
-  ath_most_active:    { en: 'Most races', sv: 'Flest lopp' },
+  ath_browse:         { en: 'Or browse by first name', sv: 'Eller bläddra efter förnamn' },
+  ath_letter_label:   { en: '{l}: {n} athletes', sv: '{l}: {n} idrottare' },
+  ath_letter_list:    { en: 'Athletes whose first name starts with {l}', sv: 'Idrottare vars förnamn börjar på {l}' },
   ath_years:          { en: 'Years', sv: 'År' },
   ath_races:          { en: 'Races', sv: 'Lopp' },
   ath_by_sport:       { en: 'By sport', sv: 'Per gren' },
