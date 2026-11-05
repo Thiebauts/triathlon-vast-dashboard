@@ -60,9 +60,9 @@ async function run() {
     await btn.waitFor({ state: 'visible', timeout: 5000 })
   })
 
-  await test('6 menu items visible', async () => {
+  await test('7 menu items visible', async () => {
     const count = await page.locator('#side-menu').getByRole('button').count()
-    if (count !== 6) throw new Error(`Found ${count} menu items, expected 6`)
+    if (count !== 7) throw new Error(`Found ${count} menu items, expected 7`)
   })
 
   await test('Discipline cards visible', async () => {
@@ -262,6 +262,16 @@ async function run() {
     for (const [name, time] of [['Rasmus Johansson', '18:31'], ['Sofia Haglund', '22:45']]) {
       const row = await page.locator('#view-results table tbody tr', { hasText: name }).last().innerText()
       if (!row.includes(time)) throw new Error(`${name}: ${row}`)
+    }
+  })
+
+  await test('Club records list the fastest member per course', async () => {
+    await page.goto(`${BASE}/#records`, { waitUntil: 'networkidle' })
+    const view = page.locator('#view-records')
+    await view.locator('h2', { hasText: 'Club records' }).waitFor({ state: 'visible', timeout: 5000 })
+    const text = await view.innerText()
+    for (const s of ['Emma Nilsson', '1:04:38', 'Earlier courses', 'Sätila']) {
+      if (!text.includes(s)) throw new Error(`Missing ${s}`)
     }
   })
 

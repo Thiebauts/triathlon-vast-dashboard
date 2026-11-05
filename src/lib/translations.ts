@@ -99,6 +99,23 @@ const TRANSLATIONS: Record<string, { en: string; sv: string }> = {
   res_no_points_note: { en: 'Guests, youth and relay teams are listed but earn no club points.', sv: 'Gäster, ungdomar och stafettlag visas men får inga klubbpoäng.' },
   res_split_rank:     { en: 'Rank in {leg}', sv: 'Placering {leg}' },
 
+  // Club records
+  nav_records:        { en: 'Club records', sv: 'Klubbrekord' },
+  rec_eyebrow:        { en: 'All-time bests', sv: 'Alla tiders bästa' },
+  rec_title:          { en: 'Club records', sv: 'Klubbrekord' },
+  rec_subtitle:       { en: 'The fastest club member on each course, since 2021', sv: 'Den snabbaste klubbmedlemmen på varje bana, sedan 2021' },
+  rec_holders:        { en: 'Record holders', sv: 'Rekordhållare' },
+  rec_holds_women:    { en: '{name} holds {n} of the {total} women\'s records.', sv: '{name} har {n} av de {total} damrekorden.' },
+  rec_holds_men:      { en: '{name} holds {n} of the {total} men\'s records.', sv: '{name} har {n} av de {total} herrekorden.' },
+  rec_new:            { en: 'New in {year}', sv: 'Nytt {year}' },
+  rec_none:           { en: 'No club result yet', sv: 'Inget klubbresultat än' },
+  rec_all_time:       { en: 'All-time list', sv: 'Alla tiders lista' },
+  rec_earlier:        { en: 'Earlier courses', sv: 'Tidigare banor' },
+  rec_earlier_text:   { en: 'When a race moves, its times can no longer be compared, so the old course keeps its own record.', sv: 'När ett lopp flyttar går tiderna inte längre att jämföra, så den gamla banan behåller sitt eget rekord.' },
+  rec_race:           { en: 'Race', sv: 'Lopp' },
+  rec_course:         { en: 'Course', sv: 'Bana' },
+  rec_note:           { en: 'Only club members\' adult results count. Guests, youth races and relay teams are not included.', sv: 'Bara klubbmedlemmars vuxenresultat räknas. Gäster, ungdomslopp och stafettlag ingår inte.' },
+
   // Short tab labels for narrow screens
   tab_short_overview: { en: 'Overview',  sv: 'Översikt' },
   tab_short_results:  { en: 'Results',   sv: 'Resultat' },

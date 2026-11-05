@@ -15,6 +15,7 @@ const GROUPS: { title: string | null; items: { tab: Tab; label: string }[] }[] =
     { tab: 'results', label: 'nav_results' },
     { tab: 'season', label: 'nav_season' },
     { tab: 'rankings', label: 'nav_rankings' },
+    { tab: 'records', label: 'nav_records' },
   ] },
   { title: 'nav_group_people', items: [{ tab: 'athletes', label: 'nav_athletes' }] },
   { title: 'nav_group_other', items: [{ tab: 'extra', label: 'nav_extra' }] },
