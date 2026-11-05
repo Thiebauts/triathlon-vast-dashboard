@@ -99,6 +99,7 @@ const TRANSLATIONS: Record<string, { en: string; sv: string }> = {
   res_no_points_note: { en: 'Guests, youth and relay teams are listed but earn no club points.', sv: 'Gäster, ungdomar och stafettlag visas men får inga klubbpoäng.' },
   res_split_rank:     { en: 'Rank in {leg}', sv: 'Placering {leg}' },
 
+  athlete_overall_rank: { en: 'Overall rank', sv: 'Placering totalt' },
   rank_title_year:    { en: 'Club ranking {year}', sv: 'Klubbranking {year}' },
   rank_sub_all:       { en: 'Points from every club championship since 2021', sv: 'Poäng från alla klubbmästerskap sedan 2021' },
   rank_sub_year:      { en: 'Points from this year\'s club championships', sv: 'Poäng från årets klubbmästerskap' },
@@ -238,8 +239,8 @@ const TRANSLATIONS: Record<string, { en: string; sv: string }> = {
 
   athlete_profiles_title: { en: 'Individual athlete profiles', sv: 'Individuella idrottarprofiler' },
   athlete_profiles_text:  {
-    en: "The Athlete Profiles section provides a personalised view of each member's competitive journey: performance history, progress over time, and how individual results contribute to club rankings.",
-    sv: 'Sektionen Idrottarprofiler ger en personlig vy över varje medlems tävlingsresa: prestationshistorik, framsteg över tid och hur individuella resultat bidrar till klubbrankingen.',
+    en: "Each profile gives a personal view of a member's racing over the years: every result, progress over time, and how each race adds to the club ranking.",
+    sv: 'Varje profil visar en medlems tävlande genom åren: alla resultat, utvecklingen över tid och hur varje lopp bidrar till klubbrankingen.',
   },
 
   contact_title:        { en: 'Contact & Contribute', sv: 'Kontakt & Bidra' },
@@ -253,7 +254,7 @@ const TRANSLATIONS: Record<string, { en: string; sv: string }> = {
     sv: 'Om du är bekant med kod kan du även föreslå ändringar direkt på GitHub — öppna ett ärende eller skicka en pull request så granskar vi det tillsammans.',
   },
 
-  participation_by_year:   { en: 'Participation by Year and Event Type', sv: 'Deltagande per År och Tävlingstyp' },
+  participation_by_year:   { en: 'Participation by Year and Event Type', sv: 'Deltagande per år och gren' },
 
   // Season recap
   season_title:            { en: 'Season recap', sv: 'Säsongssammanfattning' },
@@ -352,14 +353,14 @@ const TRANSLATIONS: Record<string, { en: string; sv: string }> = {
     sv: 'Hittat en felaktig tid eller ett felstavat namn? Mejla schirmer.thiebaut@gmail.com så rättar vi det.',
   },
 
-  select_event:    { en: 'Select Event:',    sv: 'Välj Tävling:' },
-  select_year:     { en: 'Select Year:',     sv: 'Välj År:' },
-  select_category: { en: 'Select Category:', sv: 'Välj Kategori:' },
-  all_years:       { en: 'All Years (Combined)', sv: 'Alla År (Kombinerat)' },
-  all_mixed:       { en: 'Adults (Mixed)',   sv: 'Vuxna (Mixed)' },
-  men_only:        { en: 'Men Only',         sv: 'Endast Herrar' },
-  women_only:      { en: 'Women Only',       sv: 'Endast Damer' },
-  youth_only:      { en: 'Youth Only',       sv: 'Endast Ungdom' },
+  select_event:    { en: 'Select Event:',    sv: 'Välj tävling:' },
+  select_year:     { en: 'Select Year:',     sv: 'Välj år:' },
+  select_category: { en: 'Select Category:', sv: 'Välj kategori:' },
+  all_years:       { en: 'All Years (Combined)', sv: 'Alla år (sammanlagt)' },
+  all_mixed:       { en: 'Adults (Mixed)',   sv: 'Vuxna (alla)' },
+  men_only:        { en: 'Men Only',         sv: 'Endast herrar' },
+  women_only:      { en: 'Women Only',       sv: 'Endast damer' },
+  youth_only:      { en: 'Youth Only',       sv: 'Endast ungdom' },
   relay_team:      { en: 'Relay team',       sv: 'Stafettlag' },
 
   cycling:   { en: 'Cycling',   sv: 'Cykling' },
@@ -369,7 +370,7 @@ const TRANSLATIONS: Record<string, { en: string; sv: string }> = {
   swimrun:   { en: 'Swimrun',   sv: 'Swimrun' },
   triathlon: { en: 'Triathlon', sv: 'Triathlon' },
 
-  select_athlete:         { en: 'Select Athlete:', sv: 'Välj Idrottare:' },
+  select_athlete:         { en: 'Select Athlete:', sv: 'Välj idrottare:' },
   select_athlete_prompt:  { en: 'Please select an athlete to view their profile.', sv: 'Välj en idrottare för att visa profil.' },
   club_member:            { en: 'TriVäst Member', sv: 'TriVäst-medlem' },
   guest:                  { en: 'Guest', sv: 'Gäst' },
@@ -378,18 +379,18 @@ const TRANSLATIONS: Record<string, { en: string; sv: string }> = {
   mens_rankings:        { en: "Men's Rankings",   sv: 'Herrranking' },
   rank:         { en: 'Rank',         sv: 'Placering' },
   athlete:      { en: 'Athlete',      sv: 'Idrottare' },
-  total_points: { en: 'Total Points', sv: 'Totala Poäng' },
+  total_points: { en: 'Total Points', sv: 'Poäng totalt' },
   competitions: { en: 'Competitions', sv: 'Tävlingar' },
 
-  overall_rank:  { en: 'Overall Rank', sv: 'Total Placering' },
+  overall_rank:  { en: 'Overall Rank', sv: 'Placering' },
   class_rank:    { en: 'Class Rank',   sv: 'Klassplacering' },
   separate_race: { en: 'separate race', sv: 'separat lopp' },
-  all_time_rank: { en: 'All-Time Rank', sv: 'Alla Tiders Placering' },
+  all_time_rank: { en: 'All-Time Rank', sv: 'Placering alla år' },
   name:          { en: 'Name',         sv: 'Namn' },
   gender:        { en: 'Gender',       sv: 'Kön' },
   club:          { en: 'Club',         sv: 'Klubb' },
   year:          { en: 'Year',         sv: 'År' },
-  total_time:    { en: 'Total Time',   sv: 'Total Tid' },
+  total_time:    { en: 'Total Time',   sv: 'Totaltid' },
   points:        { en: 'Points',       sv: 'Poäng' },
   swim:          { en: 'Swim',         sv: 'Sim' },
   bike:          { en: 'Bike',         sv: 'Cykel' },

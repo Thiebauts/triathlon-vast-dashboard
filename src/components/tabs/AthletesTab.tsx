@@ -170,7 +170,7 @@ export function AthletesTab({ data, athleteNames, allTimeRankings, lang, initial
                 </div>
                 {clubPos && (
                   <dl className="m-0 mt-3 grid grid-cols-3 gap-3">
-                    <div><dt className="text-[13px] text-[#c3c6d1]">{t('overall', lang)} rank</dt><dd className="m-0 font-display text-2xl font-semibold">#{clubPos.rank}<span className="text-base text-[#c3c6d1]">/{clubPos.total}</span></dd></div>
+                    <div><dt className="text-[13px] text-[#c3c6d1]">{t('athlete_overall_rank', lang)}</dt><dd className="m-0 font-display text-2xl font-semibold">#{clubPos.rank}<span className="text-base text-[#c3c6d1]">/{clubPos.total}</span></dd></div>
                     <div><dt className="text-[13px] text-[#c3c6d1]">{t('total_points', lang)}</dt><dd className="m-0 font-display text-2xl font-semibold">{clubPos.pts}</dd></div>
                     <div><dt className="text-[13px] text-[#c3c6d1]">{t('competitions', lang)}</dt><dd className="m-0 font-display text-2xl font-semibold">{eventList.length}</dd></div>
                   </dl>
@@ -183,7 +183,7 @@ export function AthletesTab({ data, athleteNames, allTimeRankings, lang, initial
                   <thead>
                     <tr className="text-left font-display text-sm text-white [&>th]:bg-navy">
                       <th scope="col" className="px-3 py-3 text-left font-semibold">{t('year', lang)}</th>
-                      <th scope="col" className="px-3 py-3 text-left font-semibold">{t('select_event', lang).replace(':', '')}</th>
+                      <th scope="col" className="px-3 py-3 text-left font-semibold">{t('res_filter_sport', lang)}</th>
                       <th scope="col" className="px-3 py-3 text-left font-semibold">{t('class_rank', lang)}</th>
                       <th scope="col" className="px-3 py-3 text-left font-semibold hidden sm:table-cell">{t('overall_rank', lang)}</th>
                       <th scope="col" className="px-3 py-3 text-left font-semibold hidden sm:table-cell">{t('club_rank', lang)}</th>
