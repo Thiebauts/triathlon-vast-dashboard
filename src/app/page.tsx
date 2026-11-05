@@ -11,15 +11,15 @@ export default function Home() {
   const extraEvents = loadExtraEvents()
   const lastUpdated = getLatestResultDate()
 
+  // The Dashboard renders the whole page frame (header, side menu, <main>,
+  // footer), since the header search and the menu drive its views.
   return (
-    <main id="main">
-      <Dashboard
-        data={data}
-        athleteNames={athleteNames}
-        allTimeRankings={allTimeRankings}
-        extraEvents={extraEvents}
-        lastUpdated={lastUpdated}
-      />
-    </main>
+    <Dashboard
+      data={data}
+      athleteNames={athleteNames}
+      allTimeRankings={allTimeRankings}
+      extraEvents={extraEvents}
+      lastUpdated={lastUpdated}
+    />
   )
 }

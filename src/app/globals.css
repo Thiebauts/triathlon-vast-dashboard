@@ -1,13 +1,33 @@
 @import "tailwindcss";
 
+/*
+ * Club look (design B): colours and fonts taken from triathlonvast.se.
+ * Use these tokens (bg-brand, text-navy, font-display, …) instead of raw hex
+ * values so the whole dashboard stays in one palette.
+ */
+@theme {
+  --color-brand: #d52435;       /* club red: buttons, active menu item, points */
+  --color-brand-dark: #ad1d1d;  /* footer bottom bar */
+  --color-link: #af0000;        /* text links (passes 4.5:1 on white) */
+  --color-navy: #212934;        /* headings, dark panels */
+  --color-ink: #383838;         /* body text */
+  --color-muted: #4a4e57;       /* secondary text (passes 4.5:1 on white and mist) */
+  --color-mist: #f2f3f5;        /* light grey panels and the side menu */
+  --color-line: #e2e2e2;        /* borders and dividers */
+
+  --font-sans: var(--font-raleway), 'Segoe UI', system-ui, sans-serif;
+  --font-display: var(--font-plex), 'Segoe UI', system-ui, sans-serif;
+  --font-script: var(--font-yellowtail), cursive;
+}
+
 html {
   font-size: 16px;
 }
 
 body {
-  background: #f1f3f5;
-  color: #1a1a2e;
-  font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+  background: #ffffff;
+  color: var(--color-ink);
+  font-family: var(--font-sans);
 }
 
 /* Tighter table rows globally */

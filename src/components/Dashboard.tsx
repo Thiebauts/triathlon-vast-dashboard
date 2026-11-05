@@ -1,8 +1,8 @@
 'use client'
-import { useState, useCallback, useEffect, useMemo, useRef } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 import { useLang } from './LanguageProvider'
 import { t } from '@/lib/translations'
-import { buildHash, parseHash, TABS, type Tab } from '@/lib/deeplink'
+import { buildHash, parseHash, type Tab } from '@/lib/deeplink'
 import { OverviewTab } from './tabs/OverviewTab'
 import { ResultsTab } from './tabs/ResultsTab'
 import { AthletesTab } from './tabs/AthletesTab'
@@ -10,9 +10,10 @@ import { RankingsTab } from './tabs/RankingsTab'
 import { ExtraEventsTab } from './tabs/ExtraEventsTab'
 import { SeasonTab } from './tabs/SeasonTab'
 import { SEASON_YEARS } from '@/lib/season'
+import { SiteHeader } from './shell/SiteHeader'
+import { SideNav } from './shell/SideNav'
+import { SiteFooter } from './shell/SiteFooter'
 import type { CompetitionsData, ClubAthlete, ExtraCategory, ExtraEvent, ResultsCategory, SportType } from '@/lib/types'
-
-const TAB_ORDER = TABS
 
 const VALID_SPORTS: readonly string[] = ['triathlon', 'duathlon', 'swimming', 'cycling', 'running', 'swimrun']
 const RESULTS_CATEGORIES: readonly string[] = ['all', 'men', 'women', 'youth']
@@ -30,7 +31,7 @@ interface Props {
 }
 
 export function Dashboard({ data, athleteNames, allTimeRankings, extraEvents, lastUpdated }: Props) {
-  const { lang } = useLang()
+  const { lang, setLang } = useLang()
   const [tab, setTab] = useState<Tab>('overview')
   // Panels mount on first visit and then stay mounted: the server renders only
   // the Overview tab (smaller HTML), while revisited tabs keep their filter
@@ -47,10 +48,44 @@ export function Dashboard({ data, athleteNames, allTimeRankings, extraEvents, la
   const [rankingsYear, setRankingsYear] = useState('all')
   const [seasonYear, setSeasonYear] = useState(SEASON_YEARS[0])
 
+  // Side menu: a column on desktop (the header button hides it), a drawer
+  // over the page on phones and tablets.
+  const [desktopMenuOpen, setDesktopMenuOpen] = useState(true)
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [isDesktop, setIsDesktop] = useState(true)
+  const menuButtonRef = useRef<HTMLButtonElement>(null)
+
+  useEffect(() => {
+    const mq = window.matchMedia('(min-width: 1024px)')
+    const update = () => setIsDesktop(mq.matches)
+    update()
+    mq.addEventListener('change', update)
+    return () => mq.removeEventListener('change', update)
+  }, [])
+
+  const toggleMenu = useCallback(() => {
+    if (window.matchMedia('(min-width: 1024px)').matches) setDesktopMenuOpen((o) => !o)
+    else setMobileMenuOpen(true)
+  }, [])
+
+  const closeMobileMenu = useCallback(() => {
+    setMobileMenuOpen(false)
+    menuButtonRef.current?.focus()
+  }, [])
+
   const selectTab = useCallback((id: Tab) => {
     setTab(id)
     setVisited((prev) => (prev.has(id) ? prev : new Set(prev).add(id)))
+    setMobileMenuOpen(false)
   }, [])
+
+  const viewLabel = (id: Tab) => t(`nav_${id}`, lang)
+
+  // Picking a menu item starts the new view at the top
+  const selectTabFromMenu = useCallback((id: Tab) => {
+    selectTab(id)
+    window.scrollTo({ top: 0 })
+  }, [selectTab])
 
   const navigateToAthlete = useCallback((name: string) => {
     setSelectedAthlete(name)
@@ -138,75 +173,48 @@ export function Dashboard({ data, athleteNames, allTimeRankings, extraEvents, la
     window.history.replaceState(null, '', hash || window.location.pathname + window.location.search)
   }, [tab, sport, resultsYear, resultsCategory, selectedAthlete, extraDate, extraCategory, rankingsYear, seasonYear])
 
-  const onTabKeyDown = useCallback((e: React.KeyboardEvent, index: number) => {
-    let next: number
-    if (e.key === 'ArrowRight') next = (index + 1) % TAB_ORDER.length
-    else if (e.key === 'ArrowLeft') next = (index + TAB_ORDER.length - 1) % TAB_ORDER.length
-    else if (e.key === 'Home') next = 0
-    else if (e.key === 'End') next = TAB_ORDER.length - 1
-    else return
-    e.preventDefault()
-    selectTab(TAB_ORDER[next])
-    document.getElementById(`tab-${TAB_ORDER[next]}`)?.focus()
-  }, [selectTab])
-
-  // Short labels for narrow screens, full labels on wider ones
-  const tabs = useMemo<{ id: Tab; full: string; short: string }[]>(() => [
-    { id: 'overview', full: t('tab_overview', lang),      short: t('tab_short_overview', lang) },
-    { id: 'results',  full: t('tab_event_results', lang), short: t('tab_short_results', lang) },
-    { id: 'athletes', full: t('tab_athletes', lang),      short: t('tab_short_athletes', lang) },
-    { id: 'rankings', full: t('tab_rankings', lang),      short: t('tab_short_rankings', lang) },
-    { id: 'season',   full: t('tab_season', lang),        short: t('tab_short_season', lang) },
-    { id: 'extra',    full: t('tab_extra', lang),         short: t('tab_short_extra', lang) },
-  ], [lang])
-
   return (
-    // 7xl (1280px): wide enough for the tri/du results table — splits plus
-    // the points column — without horizontal scroll on desktop
-    <div className="max-w-7xl mx-auto px-4 py-4">
-      {/* Tab bar */}
-      {/* Six tabs crowd one row on phones: two rows of three below 480px */}
-      <div role="tablist" aria-label="Dashboard"
-        className="flex max-[479px]:flex-wrap border-b border-gray-200 mb-4 bg-white rounded-t-lg shadow-sm">
-        {tabs.map(({ id, full, short }, i) => (
-          <button
-            key={id}
-            id={`tab-${id}`}
-            role="tab"
-            aria-selected={tab === id}
-            aria-controls={`tabpanel-${id}`}
-            tabIndex={tab === id ? 0 : -1}
-            onClick={() => selectTab(id)}
-            onKeyDown={(e) => onTabKeyDown(e, i)}
-            className={`flex-1 max-[479px]:flex-none max-[479px]:basis-1/3 py-2.5 text-[11px] sm:text-xs font-semibold tracking-wide border-b-2 transition-all text-center uppercase focus-visible:ring-2 focus-visible:ring-red-700 focus-visible:ring-offset-1 ${
-              tab === id
-                ? 'border-red-700 text-red-700 bg-red-50/50'
-                : 'border-transparent text-gray-500 hover:text-gray-600 hover:border-gray-300 hover:bg-gray-50/50'
-            }`}
-          >
-            <span className="sm:hidden">{short}</span>
-            <span className="hidden sm:inline">{full}</span>
-          </button>
-        ))}
-      </div>
-
-      <div role="tabpanel" id="tabpanel-overview" aria-labelledby="tab-overview" hidden={tab !== 'overview'}>
-        {visited.has('overview') && <OverviewTab data={data} lang={lang} lastUpdated={lastUpdated} onNavigateToExtra={navigateToExtra} onNavigateToSeason={navigateToSeason} onNavigateToSport={navigateToSport} />}
-      </div>
-      <div role="tabpanel" id="tabpanel-results" aria-labelledby="tab-results" hidden={tab !== 'results'}>
-        {visited.has('results') && <ResultsTab data={data} lang={lang} lastUpdated={lastUpdated} onAthleteClick={navigateToAthlete} sport={sport} year={resultsYear} category={resultsCategory} onSportChange={changeSport} onYearChange={setResultsYear} onCategoryChange={setResultsCategory} />}
-      </div>
-      <div role="tabpanel" id="tabpanel-athletes" aria-labelledby="tab-athletes" hidden={tab !== 'athletes'}>
-        {visited.has('athletes') && <AthletesTab data={data} athleteNames={athleteNames} allTimeRankings={allTimeRankings} lang={lang} initialAthlete={selectedAthlete} onAthleteChange={setSelectedAthlete} />}
-      </div>
-      <div role="tabpanel" id="tabpanel-rankings" aria-labelledby="tab-rankings" hidden={tab !== 'rankings'}>
-        {visited.has('rankings') && <RankingsTab data={data} allTimeRankings={allTimeRankings} lang={lang} onAthleteClick={navigateToAthlete} year={rankingsYear} onYearChange={setRankingsYear} />}
-      </div>
-      <div role="tabpanel" id="tabpanel-season" aria-labelledby="tab-season" hidden={tab !== 'season'}>
-        {visited.has('season') && <SeasonTab data={data} lang={lang} year={seasonYear} onYearChange={setSeasonYear} onAthleteClick={navigateToAthlete} onNavigateToRankings={navigateToSeasonRankings} />}
-      </div>
-      <div role="tabpanel" id="tabpanel-extra" aria-labelledby="tab-extra" hidden={tab !== 'extra'}>
-        {visited.has('extra') && <ExtraEventsTab events={extraEvents} lang={lang} eventDate={extraDate} category={extraCategory} onEventChange={setExtraDate} onCategoryChange={setExtraCategory} />}
+    <div className="flex min-h-screen flex-col">
+      <SiteHeader
+        ref={menuButtonRef}
+        lang={lang}
+        onLangChange={setLang}
+        menuExpanded={isDesktop ? desktopMenuOpen : mobileMenuOpen}
+        menuShowsHide={isDesktop && desktopMenuOpen}
+        onToggleMenu={toggleMenu}
+        menuId={isDesktop ? 'side-menu' : 'side-menu-mobile'}
+        onHome={() => selectTabFromMenu('overview')}
+        athleteNames={athleteNames}
+        onAthleteSelect={navigateToAthlete}
+      />
+      <div className="flex flex-1 items-stretch">
+        <SideNav current={tab} lang={lang} desktopOpen={desktopMenuOpen} mobileOpen={mobileMenuOpen}
+          onSelect={selectTabFromMenu} onCloseMobile={closeMobileMenu} />
+        <div className="flex min-w-0 flex-1 flex-col">
+          {/* 1200px: wide enough for the tri/du results table — splits plus
+              the points column — next to the side menu */}
+          <main id="main" tabIndex={-1} className="w-full max-w-[1200px] px-4 py-6 focus:outline-none sm:px-8 lg:px-10">
+            <section id="view-overview" aria-label={viewLabel('overview')} hidden={tab !== 'overview'}>
+              {visited.has('overview') && <OverviewTab data={data} lang={lang} lastUpdated={lastUpdated} onNavigateToExtra={navigateToExtra} onNavigateToSeason={navigateToSeason} onNavigateToSport={navigateToSport} />}
+            </section>
+            <section id="view-results" aria-label={viewLabel('results')} hidden={tab !== 'results'}>
+              {visited.has('results') && <ResultsTab data={data} lang={lang} lastUpdated={lastUpdated} onAthleteClick={navigateToAthlete} sport={sport} year={resultsYear} category={resultsCategory} onSportChange={changeSport} onYearChange={setResultsYear} onCategoryChange={setResultsCategory} />}
+            </section>
+            <section id="view-athletes" aria-label={viewLabel('athletes')} hidden={tab !== 'athletes'}>
+              {visited.has('athletes') && <AthletesTab data={data} athleteNames={athleteNames} allTimeRankings={allTimeRankings} lang={lang} initialAthlete={selectedAthlete} onAthleteChange={setSelectedAthlete} />}
+            </section>
+            <section id="view-rankings" aria-label={viewLabel('rankings')} hidden={tab !== 'rankings'}>
+              {visited.has('rankings') && <RankingsTab data={data} allTimeRankings={allTimeRankings} lang={lang} onAthleteClick={navigateToAthlete} year={rankingsYear} onYearChange={setRankingsYear} />}
+            </section>
+            <section id="view-season" aria-label={viewLabel('season')} hidden={tab !== 'season'}>
+              {visited.has('season') && <SeasonTab data={data} lang={lang} year={seasonYear} onYearChange={setSeasonYear} onAthleteClick={navigateToAthlete} onNavigateToRankings={navigateToSeasonRankings} />}
+            </section>
+            <section id="view-extra" aria-label={viewLabel('extra')} hidden={tab !== 'extra'}>
+              {visited.has('extra') && <ExtraEventsTab events={extraEvents} lang={lang} eventDate={extraDate} category={extraCategory} onEventChange={setExtraDate} onCategoryChange={setExtraCategory} />}
+            </section>
+          </main>
+          <SiteFooter lang={lang} lastUpdated={lastUpdated} />
+        </div>
       </div>
     </div>
   )

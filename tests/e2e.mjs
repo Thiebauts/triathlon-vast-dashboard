@@ -25,6 +25,9 @@ async function test(name, fn) {
   }
 }
 
+// Side menu item (desktop column). Exact match: "Season" must not hit other buttons.
+const menu = (page, name) => page.locator('#side-menu').getByRole('button', { name, exact: true })
+
 async function run() {
   const browser = await chromium.launch({ headless: true })
   const page = await browser.newPage()
@@ -57,10 +60,9 @@ async function run() {
     await btn.waitFor({ state: 'visible', timeout: 5000 })
   })
 
-  await test('6 tab buttons visible', async () => {
-    // role=tab — text matching would also count the Overview navigation links
-    const count = await page.getByRole('tab').count()
-    if (count !== 6) throw new Error(`Found ${count} tabs, expected 6`)
+  await test('6 menu items visible', async () => {
+    const count = await page.locator('#side-menu').getByRole('button').count()
+    if (count !== 6) throw new Error(`Found ${count} menu items, expected 6`)
   })
 
   await test('Discipline cards visible', async () => {
@@ -86,7 +88,7 @@ async function run() {
     const header = page.locator('text=Extra events & timed trainings')
     await header.waitFor({ state: 'visible', timeout: 3000 })
     // Return to Overview — the following tests expect it to be active
-    await page.locator('button', { hasText: 'Overview' }).click()
+    await menu(page, 'Overview').click()
     await page.waitForTimeout(400)
   })
 
@@ -101,7 +103,7 @@ async function run() {
     const value = await sportSelect.inputValue()
     if (value !== 'running') throw new Error(`Sport select is "${value}", expected "running"`)
     // Return to Overview — the following tests expect it to be active
-    await page.getByRole('tab', { name: 'Overview' }).click()
+    await menu(page, 'Overview').click()
     await page.waitForTimeout(400)
   })
 
@@ -138,7 +140,7 @@ async function run() {
   console.log('\n🏆 Event Results Tab')
 
   await test('Click Event Results tab', async () => {
-    const tab = page.locator('button', { hasText: 'Event Results' })
+    const tab = menu(page, 'Results')
     await tab.click()
     await page.waitForTimeout(800)
     const header = page.locator('text=Event results & all-time rankings')
@@ -269,7 +271,7 @@ async function run() {
   console.log('\n🏅 Athletes Tab')
 
   await test('Click Athletes tab', async () => {
-    const tab = page.locator('button', { hasText: 'Athlete Profiles' })
+    const tab = menu(page, 'Athletes')
     await tab.click()
     await page.waitForTimeout(800)
     const header = page.locator('text=Individual athlete profiles')
@@ -372,7 +374,7 @@ async function run() {
   console.log('\n🥇 Rankings Tab')
 
   await test('Click Rankings tab', async () => {
-    const tab = page.locator('button', { hasText: 'Club Rankings' })
+    const tab = menu(page, 'Club ranking')
     await tab.click()
     await page.waitForTimeout(800)
     const header = page.locator('text=Club rankings & points system')
@@ -432,9 +434,7 @@ async function run() {
   console.log('\n🎽 Extra Events Tab')
 
   await test('Click Extra Events tab', async () => {
-    // getByRole('tab') — a plain locator would also match the Overview block's
-    // "View the results in the Extra Events tab" button
-    const tab = page.getByRole('tab', { name: 'Extra Events' })
+        const tab = menu(page, 'Training & extra events')
     await tab.click()
     await page.waitForTimeout(800)
     const header = page.locator('text=Extra events & timed trainings')
@@ -518,7 +518,7 @@ async function run() {
   })
 
   // Return to Rankings — the language tests below expect it to be active
-  await page.locator('button', { hasText: 'Club Rankings' }).click()
+  await menu(page, 'Club ranking').click()
   await page.waitForTimeout(500)
 
   // ── LANGUAGE IN CONTEXT ───────────────────────────────────────────────────────
@@ -533,7 +533,7 @@ async function run() {
   })
 
   await test('Season tab shows key numbers and every race', async () => {
-    const panel = page.locator('#tabpanel-season')
+    const panel = page.locator('#view-season')
     await panel.locator('h2', { hasText: 'Season recap' }).waitFor({ state: 'visible', timeout: 5000 })
     for (const label of ['Participations', 'Different people', 'Personal bests', 'Course records']) {
       // .first(): the tiles come before the race cards, whose blocks reuse some labels
@@ -544,7 +544,7 @@ async function run() {
   })
 
   await test('Season summary text has a short version and a full one on demand', async () => {
-    const panel = page.locator('#tabpanel-season')
+    const panel = page.locator('#view-season')
     if (!(await panel.getByText(/In 20\d\d the club raced \d+ championships/).isVisible())) throw new Error('No short summary')
     const full = panel.locator('details', { hasText: 'Read the full recap' })
     if (await full.getByText(/won the club title/).first().isVisible()) throw new Error('Full recap open before clicking')
@@ -553,35 +553,35 @@ async function run() {
   })
 
   await test('Each race shows its course record for men and women', async () => {
-    const running = page.locator('#tabpanel-season section', { has: page.locator('#season-running') })
+    const running = page.locator('#view-season section', { has: page.locator('#season-running') })
     const block = running.locator('div', { has: page.locator('h4', { hasText: 'Course records' }) }).last()
     const text = await block.innerText()
     if (!/Men[\s\S]*\(20\d\d\)[\s\S]*Women[\s\S]*\(20\d\d\)/.test(text)) throw new Error(`Got: ${text.slice(0, 120)}`)
   })
 
   await test('Season podiums count club members only, with the faster guest noted', async () => {
-    const swim = page.locator('#tabpanel-season section', { has: page.locator('#season-swimming') })
+    const swim = page.locator('#view-season section', { has: page.locator('#season-swimming') })
     if (!(await swim.getByText(/Fastest overall: guest/).isVisible())) throw new Error('No guest note on swimming')
   })
 
   await test('Personal bests show the year of the previous best', async () => {
-    const text = await page.locator('#tabpanel-season').innerText()
+    const text = await page.locator('#view-season').innerText()
     if (!/best in 20\d\d/.test(text)) throw new Error('No "best in <year>" label')
   })
 
   await test('Swimrun card explains why no records are compared', async () => {
-    const swimrun = page.locator('#tabpanel-season section', { has: page.locator('#season-swimrun') })
+    const swimrun = page.locator('#view-season section', { has: page.locator('#season-swimrun') })
     if (!(await swimrun.getByText(/New course this season/).isVisible())) throw new Error('No new-course note')
   })
 
   await test('Exact times open under the personal-best chart', async () => {
-    const details = page.locator('#tabpanel-season details', { hasText: 'Exact times' }).first()
+    const details = page.locator('#view-season details', { hasText: 'Exact times' }).first()
     await details.locator('summary').click()
     if (!(await details.locator('table').isVisible())) throw new Error('Table not shown')
   })
 
   await test('Full ranking opens Club Rankings on the season year', async () => {
-    await page.locator('#tabpanel-season button', { hasText: 'Full ranking' }).click()
+    await page.locator('#view-season button', { hasText: 'Full ranking' }).click()
     await page.waitForTimeout(500)
     if (!page.url().endsWith('#rankings/2026')) throw new Error(`URL is ${page.url()}`)
   })
@@ -589,8 +589,8 @@ async function run() {
   await test('Season deep link opens the recap directly', async () => {
     await page.goto(`${BASE}/#season/2026`, { waitUntil: 'networkidle' })
     await page.waitForTimeout(600)
-    const selected = await page.getByRole('tab', { name: 'Season Recap' }).getAttribute('aria-selected')
-    if (selected !== 'true') throw new Error('Season tab not selected')
+    const selected = await menu(page, 'Season').getAttribute('aria-current')
+    if (selected !== 'page') throw new Error('Season tab not selected')
   })
 
   await test('Season tab fits a 320px phone without sideways scrolling', async () => {
@@ -617,12 +617,12 @@ async function run() {
   })
 
   await test('Tabs translate to Swedish', async () => {
-    const tab = page.locator('button', { hasText: 'Översikt' })
+    const tab = menu(page, 'Översikt')
     await tab.waitFor({ state: 'visible', timeout: 3000 })
   })
 
   await test('Navigate to Översikt in Swedish', async () => {
-    const tab = page.locator('button', { hasText: 'Översikt' })
+    const tab = menu(page, 'Översikt')
     await tab.click()
     await page.waitForTimeout(600)
     const sv = page.locator('text=Skapad av medlemmar')
@@ -710,7 +710,7 @@ async function run() {
   })
 
   await test('Extra events URL carries the event date and category', async () => {
-    await page.getByRole('tab', { name: 'Extra Events' }).click()
+    await menu(page, 'Training & extra events').click()
     await page.waitForTimeout(400)
     if (!page.url().includes('#extra/2026-06-10')) throw new Error(`URL is ${page.url()}`)
     await page.locator('select:visible').nth(1).selectOption('women')
@@ -726,28 +726,28 @@ async function run() {
   })
 
   await test('Tab clicks update the URL hash', async () => {
-    await page.getByRole('tab', { name: 'Club Rankings' }).click()
+    await menu(page, 'Club ranking').click()
     await page.waitForTimeout(400)
     if (!page.url().includes('#rankings')) throw new Error(`URL is ${page.url()}`)
   })
 
   await test('Overview clears the hash', async () => {
-    await page.getByRole('tab', { name: 'Overview' }).click()
+    await menu(page, 'Overview').click()
     await page.waitForTimeout(400)
     if (page.url().includes('#')) throw new Error(`URL still has a hash: ${page.url()}`)
   })
 
   await test('Refresh keeps the current view (supersprint event)', async () => {
     // Navigate by clicking (like a real user), then reload the page
-    await page.getByRole('tab', { name: 'Extra Events' }).click()
+    await menu(page, 'Training & extra events').click()
     await page.waitForTimeout(400)
     await page.reload({ waitUntil: 'networkidle' })
     await page.waitForTimeout(600)
     const header = page.locator('text=Extra events & timed trainings')
     await header.waitFor({ state: 'visible', timeout: 5000 })
-    const tab = page.getByRole('tab', { name: 'Extra Events' })
-    const selected = await tab.getAttribute('aria-selected')
-    if (selected !== 'true') throw new Error('Extra Events tab not active after reload')
+    const tab = menu(page, 'Training & extra events')
+    const selected = await tab.getAttribute('aria-current')
+    if (selected !== 'page') throw new Error('Extra Events tab not active after reload')
   })
 
   await test('Refresh keeps the selected athlete', async () => {
