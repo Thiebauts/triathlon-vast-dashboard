@@ -244,7 +244,7 @@ async function run() {
     // Rank cell is `<th scope="row">` for accessibility, not `<td>`. Visible
     // rows only: hidden tab panels (and the Overview chart's screen-reader
     // table) also hold tables.
-    const firstRank = await page.locator('table tbody tr:visible').first().locator('th[scope="row"]').first().textContent()
+    const firstRank = await page.locator('table tbody tr:visible th[scope="row"]').first().textContent()
     if (firstRank?.trim() !== '1') throw new Error(`First rank is "${firstRank}", expected "1"`)
   })
 

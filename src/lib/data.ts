@@ -18,6 +18,54 @@ export function athleteKey(a: AthleteResult): string {
  * athlete's rank for every split. Rank 1 = fastest.
  * Returns a Map keyed by athleteKey().
  */
+const SPLIT_FIELDS = {
+  triathlon: ['Swim_Seconds', 'T1_Seconds', 'Bike_Seconds', 'T2_Seconds', 'Run_Seconds'],
+  duathlon: ['Run1_Seconds', 'T1_Seconds', 'Bike_Seconds', 'T2_Seconds', 'Run2_Seconds'],
+} as const
+
+/**
+ * Whether one split of a multisport result can be trusted. A missed timing mat
+ * leaves a leg at 0 and folds its time into the next one (a "bike" of 53:04
+ * that is really the clock at bike-in). So a split counts only when it was
+ * recorded and the leg before it was too; a row with every leg recorded whose
+ * legs don't add up to the finish time has no trustworthy split at all.
+ * Untrusted splits are not shown, ranked or eligible for "fastest of the day";
+ * the finish time, place and points are unaffected.
+ * `field` is the seconds column ('Bike_Seconds'). The sport defaults to what
+ * the row's columns say (only duathlon has Run 1).
+ */
+export function isReliableSplit(a: AthleteResult, field: string, sport?: 'triathlon' | 'duathlon'): boolean {
+  const fields: readonly string[] = SPLIT_FIELDS[sport ?? (a.Run1_Seconds !== undefined ? 'duathlon' : 'triathlon')]
+  const values = fields.map((f) => Number((a as unknown as Record<string, unknown>)[f]) || 0)
+  const i = fields.indexOf(field)
+  if (i === -1 || values[i] <= 0 || (i > 0 && values[i - 1] <= 0)) return false
+  return values.some((v) => v <= 0) || Math.abs(values.reduce((x, y) => x + y, 0) - a.Total_Time_Seconds) <= 2
+}
+
+/**
+ * The longest an untrusted split can really have been, in seconds, or null
+ * when nothing is known. After a missed mat the next recorded "split" is the
+ * race clock at that point, so the legs it swallowed took at most that clock
+ * minus the legs timed before the gap. Lets "fastest of the day" notice that
+ * someone without a usable split was certainly faster than the best recorded one.
+ */
+export function splitUpperBound(a: AthleteResult, field: string, sport?: 'triathlon' | 'duathlon'): number | null {
+  const fields: readonly string[] = SPLIT_FIELDS[sport ?? (a.Run1_Seconds !== undefined ? 'duathlon' : 'triathlon')]
+  const values = fields.map((f) => Number((a as unknown as Record<string, unknown>)[f]) || 0)
+  const i = fields.indexOf(field)
+  if (i === -1 || isReliableSplit(a, field, sport) || !values.some((v) => v <= 0)) return null
+  // The clock reading that covers this leg: itself, or the next one recorded
+  const k = values.findIndex((v, j) => j >= i && v > 0)
+  if (k === -1) return null
+  // Start of the gap (run of missing legs) in front of that reading
+  let gap = k
+  while (gap > 0 && values[gap - 1] <= 0) gap--
+  if (gap > i || gap === k) return null
+  const before = fields.slice(0, gap)
+  const timedBefore = before.every((f) => isReliableSplit(a, f, sport)) ? values.slice(0, gap).reduce((x, y) => x + y, 0) : 0
+  return values[k] - timedBefore
+}
+
 export function computeSplitRanks(
   athletes: AthleteResult[],
   sport: 'triathlon' | 'duathlon',
@@ -32,11 +80,14 @@ export function computeSplitRanks(
 
   for (const [field, key] of fields) {
     const sorted = athletes
+      .filter((a) => isReliableSplit(a, field, sport))
       .map((a) => ({ a, val: (a[field] as number | undefined) ?? 0 }))
-      .filter((x) => x.val > 0)
       .sort((a, b) => a.val - b.val)
-    sorted.forEach(({ a }, idx) => {
-      result.get(athleteKey(a))![key] = idx + 1
+    // Equal splits share a rank (1, 1, 3, …)
+    let rank = 0
+    sorted.forEach(({ a, val }, idx) => {
+      if (idx === 0 || val !== sorted[idx - 1].val) rank = idx + 1
+      result.get(athleteKey(a))![key] = rank
     })
   }
   return result
@@ -61,6 +112,9 @@ export const CLUB_ALIASES: ReadonlySet<string> = new Set(['triväst', 'triathlon
  */
 export const CLUB_CORRECTIONS: ReadonlyMap<string, string> = new Map([
   ['Erik Arnström', 'TriVäst'],
+  // Entered as guests in one race each (cycling 2026, swimming 2023)
+  ['Karl Wackerberg', 'TriVäst'],
+  ['Jonas Örarbäck', 'TriVäst'],
 ])
 
 /**
@@ -138,6 +192,12 @@ const RELAY_CLASSES = ['staffet', 'stafett', 'relay']
 /** Whether this result belongs to a relay team rather than an individual. */
 export function isRelay(a: AthleteResult): boolean {
   return RELAY_CLASSES.some((r) => a.class_lower.includes(r))
+}
+
+/** Runners of a relay team, from "Team name (A / B / C)". */
+export function relayRunners(teamName: string): string[] {
+  const m = teamName.match(/\(([^)]*)\)\s*$/)
+  return m ? m[1].split('/').map((s) => s.trim()).filter(Boolean) : []
 }
 
 /**
@@ -358,7 +418,19 @@ export function getClubRankings(
     }
   }
 
-  return Object.values(map).sort((a, b) => b.total_points - a.total_points)
+  // Most points first; equal totals in name order, so the list never depends
+  // on the order of the result files
+  return Object.values(map).sort((a, b) => b.total_points - a.total_points || a.name.localeCompare(b.name, 'sv'))
+}
+
+/**
+ * Place of each athlete in a list sorted by points, most first. Equal totals
+ * share a place and the next one is skipped (1, 2, 2, 4, …).
+ */
+export function pointsRanks(sorted: ReadonlyArray<{ total_points: number }>): number[] {
+  const out: number[] = []
+  sorted.forEach((a, i) => out.push(i > 0 && a.total_points === sorted[i - 1].total_points ? out[i - 1] : i + 1))
+  return out
 }
 
 // ─── Participation chart data ──────────────────────────────────────────────────
@@ -371,7 +443,8 @@ export function getParticipationByYear(
   for (const [sport, athletes] of Object.entries(data) as [SportType, AthleteResult[]][]) {
     for (const a of athletes) {
       byYear[a.Competition_Year] = byYear[a.Competition_Year] ?? { triathlon: 0, duathlon: 0, swimming: 0, cycling: 0, running: 0, swimrun: 0 }
-      byYear[a.Competition_Year][sport]++
+      // Every start counts, like everywhere else on the site: a relay team is its runners
+      byYear[a.Competition_Year][sport] += isRelay(a) ? Math.max(1, relayRunners(a.Name).length) : 1
     }
   }
 

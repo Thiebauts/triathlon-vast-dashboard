@@ -3,6 +3,7 @@ import { useMemo } from 'react'
 import { t, tf } from '@/lib/translations'
 import { displayTime, getSeasonSummary, SEASON_YEARS, type PodiumEntry, type RaceSummary } from '@/lib/season'
 import { seasonStory } from '@/lib/seasonStory'
+import { COURSE_HISTORY } from '@/lib/courses'
 import { clock, MembersPerRaceCount, ParticipationBars, PersonalBestChart } from '@/components/charts/SeasonCharts'
 import type { CompetitionsData, Lang } from '@/lib/types'
 import { CARD_MIST, LINK_BTN, MEDAL_COLORS, PageTitle } from '@/components/ui/brand'
@@ -69,14 +70,17 @@ function Block({ title, children, className = '' }: { title: string; children: R
   )
 }
 
-function CourseRecords({ race, year, lang, onAthleteClick, firstSeason }: { race: RaceSummary; year: string; lang: Lang; onAthleteClick?: (name: string) => void; firstSeason: boolean }) {
-  if (race.courseRecords === null) {
-    return <p className="m-0 text-sm leading-relaxed text-muted">{t('season_note_swimrun', lang)}</p>
-  }
+function CourseRecords({ race, year, lang, onAthleteClick }: { race: RaceSummary; year: string; lang: Lang; onAthleteClick?: (name: string) => void }) {
+  const { course } = race
+  const years = (c: { from: number; to?: number }) => (c.to === undefined ? tf('course_since', lang, { year: c.from }) : c.to === c.from ? String(c.from) : `${c.from}–${c.to}`)
+  // Only worth a note when the sport has been raced on more than one course
+  const note = course.newThisSeason && course.previous
+    ? tf('season_note_new_course', lang, { place: course.place, previous: `${course.previous.place}, ${years(course.previous)}` })
+    : COURSE_HISTORY[race.sport].length > 1 ? tf('season_note_course', lang, { place: course.place, years: years(course) }) : null
   return (
     <div className="space-y-2.5">
       {(['men', 'women'] as const).map((g) => {
-        const rec = race.courseRecords![g]
+        const rec = race.courseRecords[g]
         const beaten = race.records?.find((r) => r.gender === g)?.previous
         return (
           <div key={g}>
@@ -87,13 +91,13 @@ function CourseRecords({ race, year, lang, onAthleteClick, firstSeason }: { race
                   <span className="font-medium"><Name name={rec.name} onClick={onAthleteClick} /></span>
                   <span className="tabular-nums">{displayTime(rec.time)}</span>
                   <span className="text-muted">({rec.year})</span>
-                  {rec.setThisSeason && !firstSeason && (
+                  {rec.setThisSeason && beaten && (
                     <span className="inline-flex h-[22px] items-center rounded-[2px_2px_8px_2px] bg-brand px-2 font-display text-sm font-semibold text-white">
                       {tf('season_record_new_badge', lang, { y: year })}
                     </span>
                   )}
                 </div>
-                {rec.setThisSeason && !firstSeason && beaten && (
+                {rec.setThisSeason && beaten && (
                   <div className="text-[13px] text-muted">
                     {tf('season_record_beat', lang, { name: beaten.name, time: displayTime(beaten.time), year: beaten.year })}
                   </div>
@@ -103,12 +107,12 @@ function CourseRecords({ race, year, lang, onAthleteClick, firstSeason }: { race
           </div>
         )
       })}
-      {race.sport === 'triathlon' && <p className="text-[13px] text-muted leading-relaxed">{t('season_note_triathlon', lang)}</p>}
+      {note && <p className="m-0 text-[13px] leading-relaxed text-muted">{note}</p>}
     </div>
   )
 }
 
-function RaceCard({ race, year, lang, onAthleteClick, firstSeason }: { race: RaceSummary; year: string; lang: Lang; onAthleteClick?: (name: string) => void; firstSeason: boolean }) {
+function RaceCard({ race, year, lang, onAthleteClick }: { race: RaceSummary; year: string; lang: Lang; onAthleteClick?: (name: string) => void }) {
   const toEntries = (p: PodiumEntry[]) => p.map((e) => ({ name: e.name, value: displayTime(e.time) }))
   const pbs = race.personalBests
   return (
@@ -134,11 +138,11 @@ function RaceCard({ race, year, lang, onAthleteClick, firstSeason }: { race: Rac
           </div>
         </Block>
         <Block title={t('season_course_records', lang)}>
-          <CourseRecords race={race} year={year} lang={lang} onAthleteClick={onAthleteClick} firstSeason={firstSeason} />
+          <CourseRecords race={race} year={year} lang={lang} onAthleteClick={onAthleteClick} />
         </Block>
       </div>
 
-      {pbs && !firstSeason && (
+      {pbs && race.comparable > 0 && (
         <Block title={tf('season_pbs', lang, { n: pbs.length, m: race.comparable })} className="mt-3 !bg-white ring-1 ring-line">
           {pbs.length === 0 ? (
             <p className="text-sm text-muted">{t('season_pbs_none', lang)}</p>
@@ -272,7 +276,7 @@ export function SeasonTab({ data, lang, year, onYearChange, onAthleteClick, onNa
         </section>
       </div>
 
-      {s.races.map((r) => <RaceCard key={r.sport} race={r} year={year} lang={lang} onAthleteClick={onAthleteClick} firstSeason={s.firstSeason} />)}
+      {s.races.map((r) => <RaceCard key={r.sport} race={r} year={year} lang={lang} onAthleteClick={onAthleteClick} />)}
     </div>
   )
 }

@@ -2,7 +2,8 @@
 import { useState, useMemo, useCallback, useDeferredValue, Fragment } from 'react'
 import { t, tf } from '@/lib/translations'
 import type { AthleteResult, CompetitionsData, SportType, Lang, ResultsCategory } from '@/lib/types'
-import { athleteKey, computeSplitRanks, computeEventPoints, isFinisher, isRelay, type SplitRanks } from '@/lib/data'
+import { athleteKey, computeSplitRanks, computeEventPoints, isFinisher, isReliableSplit, isRelay, type SplitRanks } from '@/lib/data'
+import { COURSE_HISTORY, courseIndex } from '@/lib/courses'
 import { matchesSearch } from '@/lib/search'
 import { formatDate } from '@/lib/dates'
 import { displayTime, getSeasonSummary } from '@/lib/season'
@@ -19,6 +20,13 @@ function fmt(v: string | undefined) {
   return v && v !== 'N/A' ? displayTime(v) : '—'
 }
 
+const splitOk = (a: AthleteResult, timeKey: string) => isReliableSplit(a, timeKey.replace('_Time', '_Seconds'))
+
+/** A split time, or a dash when it can't be trusted (see isReliableSplit). */
+function splitText(a: AthleteResult, timeKey: string) {
+  return splitOk(a, timeKey) ? fmt((a as unknown as Record<string, string>)[timeKey]) : '—'
+}
+
 /** Split column key → the leg in getFastestOfDay(). */
 const LEG_OF: Record<string, LegKey> = { Swim_Time: 'swim', Bike_Time: 'bike', Run_Time: 'run', Run1_Time: 'run1', Run2_Time: 'run2' }
 
@@ -26,7 +34,7 @@ const LEG_OF: Record<string, LegKey> = { Swim_Time: 'swim', Bike_Time: 'bike', R
 type BestSplits = Record<string, Record<string, string>>
 
 const isBestSplit = (a: AthleteResult, timeKey: string, best: BestSplits | null) =>
-  !!best && !!best[a.class_lower]?.[timeKey] && (a as unknown as Record<string, string>)[timeKey] === best[a.class_lower][timeKey]
+  !!best && !!best[a.class_lower]?.[timeKey] && splitOk(a, timeKey) && (a as unknown as Record<string, string>)[timeKey] === best[a.class_lower][timeKey]
 
 /** PB / Debut tag: club-styled label with the one rounded corner. */
 function Tag({ tag, lang }: { tag: ResultTag; lang: Lang }) {
@@ -150,7 +158,7 @@ function ResultRow({ a, rank, i, lang, yearValue, segs, splitRank, points, tag, 
       {segs.map((s) => (
         <Fragment key={s.label}>
           <td className={`border-l border-line px-2 py-2.5 tabular-nums ${isBestSplit(a, s.timeKey, best) ? GREEN : ''}`}>
-            {fmt((a as unknown as Record<string, string>)[s.timeKey])}
+            {splitText(a, s.timeKey)}
           </td>
           <td className="px-2 py-2.5 text-center text-[13px] tabular-nums text-muted">
             {(splitRank as Record<string, number | undefined>)[s.rankKey] ?? '—'}
@@ -205,7 +213,7 @@ function ResultCard({ a, rank, lang, yearValue, segs, points, tag, best, onAthle
               {segs.map((s) => (
                 <div key={s.label}>
                   <dt className="text-muted">{s.label}</dt>
-                  <dd className={`m-0 tabular-nums ${isBestSplit(a, s.timeKey, best) ? GREEN : 'font-semibold text-navy'}`}>{fmt((a as unknown as Record<string, string>)[s.timeKey])}</dd>
+                  <dd className={`m-0 tabular-nums ${isBestSplit(a, s.timeKey, best) ? GREEN : 'font-semibold text-navy'}`}>{splitText(a, s.timeKey)}</dd>
                 </div>
               ))}
             </dl>
@@ -283,7 +291,11 @@ export function ResultsTab({ data, lang, lastUpdated, raceDates, onAthleteClick,
     let pool = data[sport].filter((a) => inCategory(a, category))
     if (yearValue !== 'all') pool = pool.filter((a) => a.Competition_Year === yearValue)
     const out: Record<string, SplitRanks> = {}
-    computeSplitRanks(pool, sport as 'triathlon' | 'duathlon').forEach((v, k) => { out[k] = v })
+    // Like the finish ranks below: never across a course change
+    for (let c = 0; c < COURSE_HISTORY[sport].length; c++) {
+      computeSplitRanks(pool.filter((a) => courseIndex(sport, a.Competition_Year) === c), sport as 'triathlon' | 'duathlon')
+        .forEach((v, k) => { out[k] = v })
+    }
     return out
   }, [data, sport, isMultiSport, category, yearValue])
 
@@ -306,16 +318,31 @@ export function ResultsTab({ data, lang, lastUpdated, raceDates, onAthleteClick,
     let list = data[sport]
     if (yearValue !== 'all') list = list.filter((a) => a.Competition_Year === yearValue)
     list = list.filter((a) => inCategory(a, category))
-    const finishers = list.filter(isFinisher)
-      .sort((a, b) => a.Total_Time_Seconds - b.Total_Time_Seconds)
-    const out: Array<{ athlete: AthleteResult; rank: number | null }> = []
-    finishers.forEach((athlete, i) => {
-      const tiedWithPrev = i > 0 && athlete.Total_Time_Seconds === finishers[i - 1].Total_Time_Seconds
-      out.push({ athlete, rank: tiedWithPrev ? out[i - 1].rank : i + 1 })
-    })
-    for (const athlete of list.filter((a) => !isFinisher(a))) out.push({ athlete, rank: null })
+    // Times on different courses can't be compared, so the all-years list is
+    // one ranked list per course (today's course first), never one mixed list.
+    const out: Array<{ athlete: AthleteResult; rank: number | null; course: number }> = []
+    for (let course = COURSE_HISTORY[sport].length - 1; course >= 0; course--) {
+      const onCourse = list.filter((a) => courseIndex(sport, a.Competition_Year) === course)
+      const finishers = onCourse.filter(isFinisher)
+        .sort((a, b) => a.Total_Time_Seconds - b.Total_Time_Seconds)
+      const start = out.length
+      finishers.forEach((athlete, i) => {
+        const tiedWithPrev = i > 0 && athlete.Total_Time_Seconds === finishers[i - 1].Total_Time_Seconds
+        out.push({ athlete, rank: tiedWithPrev ? out[start + i - 1].rank : i + 1, course })
+      })
+      for (const athlete of onCourse.filter((a) => !isFinisher(a))) out.push({ athlete, rank: null, course })
+    }
     return out
   }, [data, sport, yearValue, category])
+
+  // Course headings between the lists — only in the all-years view of a sport
+  // that has moved (triathlon, swimrun)
+  const showCourses = yearValue === 'all' && COURSE_HISTORY[sport].length > 1
+  const courseHeading = useCallback((course: number) => {
+    const c = COURSE_HISTORY[sport][course]
+    const years = c.to === undefined ? tf('course_since', lang, { year: c.from }) : c.to === c.from ? String(c.from) : `${c.from}–${c.to}`
+    return `${c.place} · ${years}`
+  }, [sport, lang])
 
   // Search filter kept separate so typing never re-sorts the pool.
   const rows = useMemo(() => {
@@ -411,7 +438,7 @@ export function ResultsTab({ data, lang, lastUpdated, raceDates, onAthleteClick,
   }, [data, sport, yearValue, pointsLookup])
 
   const subtitle = useMemo(() => {
-    if (!oneYear) return t('res_sub_all', lang)
+    if (!oneYear) return t(COURSE_HISTORY[sport].length > 1 ? 'res_sub_all_courses' : 'res_sub_all', lang)
     const list = data[sport].filter((a) => a.Competition_Year === yearValue)
     const finishers = list.filter((a) => isFinisher(a) && !isRelay(a)).length
     const relays = list.filter(isRelay).length
@@ -447,7 +474,7 @@ export function ResultsTab({ data, lang, lastUpdated, raceDates, onAthleteClick,
       tag,
       splits: segs.filter((s) => LEG_OF[s.timeKey]).map((s) => ({
         label: s.label,
-        time: fmt((a as unknown as Record<string, string>)[s.timeKey]),
+        time: splitText(a, s.timeKey),
         fastest: isBestSplit(a, s.timeKey, bestSplits),
       })),
       raceLabel: t(`discipline_${sport}_title`, lang),
@@ -646,10 +673,15 @@ export function ResultsTab({ data, lang, lastUpdated, raceDates, onAthleteClick,
           <>
             {/* Phones: one card per finisher */}
             <ol className="m-0 flex list-none flex-col gap-2.5 p-0 sm:hidden">
-              {rows.map(({ athlete: a, rank }, i) => (
-                <ResultCard key={`${a.Name}-${a.Competition_Year}-${i}`} a={a} rank={rank} lang={lang} yearValue={yearValue} segs={segs}
-                  points={pointsLookup[athleteKey(a)] ?? 0} tag={tags.get(athleteKey(a))} best={bestSplits} onAthleteClick={onAthleteClick}
-                  onShare={canShareRow(a) ? () => openShare(a) : undefined} />
+              {rows.map(({ athlete: a, rank, course }, i) => (
+                <Fragment key={`${a.Name}-${a.Competition_Year}-${i}`}>
+                  {showCourses && (i === 0 || rows[i - 1].course !== course) && (
+                    <li className={`${i === 0 ? '' : 'mt-3 '}text-xs font-bold uppercase tracking-[0.06em] text-muted`}>{courseHeading(course)}</li>
+                  )}
+                  <ResultCard a={a} rank={rank} lang={lang} yearValue={yearValue} segs={segs}
+                    points={pointsLookup[athleteKey(a)] ?? 0} tag={tags.get(athleteKey(a))} best={bestSplits} onAthleteClick={onAthleteClick}
+                    onShare={canShareRow(a) ? () => openShare(a) : undefined} />
+                </Fragment>
               ))}
               {classBlocks.map((group) => (
                 <Fragment key={group.cls}>
@@ -685,14 +717,21 @@ export function ResultsTab({ data, lang, lastUpdated, raceDates, onAthleteClick,
                   </tr>
                 </thead>
                 <tbody>
-                  {rows.map(({ athlete: a, rank }, i) => (
-                    <ResultRow key={`${a.Name}-${a.Competition_Year}-${i}`}
-                      a={a} rank={rank} i={i} lang={lang} yearValue={yearValue} segs={segs}
-                      splitRank={splitRankLookup?.[athleteKey(a)] ?? {}}
-                      points={pointsLookup[athleteKey(a)] ?? 0}
-                      tag={tags.get(athleteKey(a))} best={bestSplits}
-                      onAthleteClick={onAthleteClick}
-                      onShare={canShareRow(a) ? () => openShare(a) : undefined} />
+                  {rows.map(({ athlete: a, rank, course }, i) => (
+                    <Fragment key={`${a.Name}-${a.Competition_Year}-${i}`}>
+                      {showCourses && (i === 0 || rows[i - 1].course !== course) && (
+                        <tr className="border-y border-line bg-mist">
+                          <td colSpan={colCount} className="px-4 py-2 text-xs font-bold uppercase tracking-[0.06em] text-muted">{courseHeading(course)}</td>
+                        </tr>
+                      )}
+                      <ResultRow
+                        a={a} rank={rank} i={i} lang={lang} yearValue={yearValue} segs={segs}
+                        splitRank={splitRankLookup?.[athleteKey(a)] ?? {}}
+                        points={pointsLookup[athleteKey(a)] ?? 0}
+                        tag={tags.get(athleteKey(a))} best={bestSplits}
+                        onAthleteClick={onAthleteClick}
+                        onShare={canShareRow(a) ? () => openShare(a) : undefined} />
+                    </Fragment>
                   ))}
 
                   {/* Classes shown apart from the ranked field — separate-course

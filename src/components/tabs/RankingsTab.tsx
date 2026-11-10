@@ -2,7 +2,7 @@
 import { useMemo } from 'react'
 import { t, tf } from '@/lib/translations'
 import { CARD_MIST, MEDAL_COLORS, PageTitle } from '@/components/ui/brand'
-import { getClubRankings } from '@/lib/data'
+import { getClubRankings, pointsRanks } from '@/lib/data'
 import type { CompetitionsData, Lang, ClubAthlete } from '@/lib/types'
 
 interface Props {
@@ -22,6 +22,7 @@ function RankTable({ data, lang, onAthleteClick }: {
   onAthleteClick?: (name: string) => void
 }) {
   if (!data.length) return <p className="py-6 text-center text-[15px] text-muted">{t('not_ranked', lang)}</p>
+  const ranks = pointsRanks(data)
   return (
     <table className="min-w-full text-[15px]">
       <thead>
@@ -34,10 +35,10 @@ function RankTable({ data, lang, onAthleteClick }: {
       </thead>
       <tbody>
         {data.map((a, i) => {
-          const rank = i + 1
+          const rank = ranks[i]
           return (
             <tr key={a.name} className={`border-b border-line ${i % 2 ? 'bg-[#f9f9fb]' : 'bg-white'} hover:bg-mist`}>
-              <th scope="row" className="px-4 py-2.5 text-left font-display font-semibold tabular-nums" style={{ color: MEDAL_COLORS[i] ?? '#4a4e57' }}>{rank}</th>
+              <th scope="row" className="px-4 py-2.5 text-left font-display font-semibold tabular-nums" style={{ color: MEDAL_COLORS[rank - 1] ?? '#4a4e57' }}>{rank}</th>
               <td className="px-3 py-2.5">
                 {onAthleteClick ? (
                   <button type="button" onClick={() => onAthleteClick(a.name)}

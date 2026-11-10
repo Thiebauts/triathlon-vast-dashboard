@@ -99,8 +99,15 @@ export function AthletesTab({ data, athleteNames, allTimeRankings, lang, initial
   )
   const clubPos = useMemo(() => {
     if (!deferredSelected) return null
-    const idx = allTimeRankings.findIndex((a) => a.name === deferredSelected)
-    return idx >= 0 ? { rank: idx + 1, total: allTimeRankings.length, pts: allTimeRankings[idx].total_points } : null
+    const me = allTimeRankings.find((a) => a.name === deferredSelected)
+    if (!me) return null
+    // Same table as the Club ranking page: men and women are ranked apart,
+    // and equal points share a place
+    const table = allTimeRankings.filter((a) => a.gender === me.gender)
+    return {
+      rank: table.filter((a) => a.total_points > me.total_points).length + 1,
+      total: table.length, pts: me.total_points, women: me.gender === 'dam',
+    }
   }, [allTimeRankings, deferredSelected])
   const isMember = eventList.some((e) => e.is_club_member)
   const years = eventList.map((e) => e.year).sort()
@@ -200,7 +207,7 @@ export function AthletesTab({ data, athleteNames, allTimeRankings, lang, initial
               <div><dt className="text-[13px] text-[#c3c6d1]">{t('ath_races', lang)}</dt><dd className="m-0 font-display text-2xl font-semibold">{eventList.length}</dd></div>
               {clubPos && <>
                 <div><dt className="text-[13px] text-[#c3c6d1]">{t('total_points', lang)}</dt><dd className="m-0 font-display text-2xl font-semibold">{clubPos.pts}</dd></div>
-                <div><dt className="text-[13px] text-[#c3c6d1]">{t('athlete_overall_rank', lang)}</dt><dd className="m-0 font-display text-2xl font-semibold">#{clubPos.rank}<span className="text-base text-[#c3c6d1]"> / {clubPos.total}</span></dd></div>
+                <div><dt className="text-[13px] text-[#c3c6d1]">{t(clubPos.women ? 'athlete_rank_women' : 'athlete_rank_men', lang)}</dt><dd className="m-0 font-display text-2xl font-semibold">#{clubPos.rank}<span className="text-base text-[#c3c6d1]"> / {clubPos.total}</span></dd></div>
               </>}
             </dl>
           </section>

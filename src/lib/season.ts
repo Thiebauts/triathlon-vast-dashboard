@@ -5,29 +5,14 @@
 // the Season tab, the members' email and the review table, so every published
 // number comes from the same code.
 
-import { getClubRankings, isFinisher, isRelay, racesOverall } from './data.ts'
+import { courseOf, sameCourse, type Course } from './courses.ts'
+import { getClubRankings, isFinisher, isRelay, racesOverall, relayRunners } from './data.ts'
 import type { AthleteResult, CompetitionsData, SportType } from './types'
 
 /** Seasons published on the Season tab, newest first — add a year once its numbers are checked. */
 export const SEASON_YEARS: readonly string[] = ['2026', '2025', '2024', '2023', '2022', '2021']
 
 export const SEASON_SPORTS: readonly SportType[] = ['cycling', 'duathlon', 'swimming', 'triathlon', 'swimrun', 'running']
-
-/**
- * Which years are comparable for records and improvements. A time only counts
- * against times set on the same course.
- * - triathlon: 2021–22 were raced at Sätila; Inseros from 2023 on.
- * - swimrun: moved from Sisjön (2025) to a three-lap course at Frökens udde (2026).
- * - running: always a 5 km track race (Åby or Slottsskogsvallen: same distance).
- */
-export const COURSES: Record<SportType, { since?: number; excluded?: boolean }> = {
-  cycling: {},
-  duathlon: {},
-  swimming: {},
-  running: {},
-  triathlon: { since: 2023 },
-  swimrun: { excluded: true },
-}
 
 type Gender = 'men' | 'women'
 const GENDER_CLASS: Record<Gender, string> = { men: 'herr', women: 'dam' }
@@ -60,17 +45,22 @@ export interface RaceSummary {
   podium: Record<Gender, PodiumEntry[]>
   /** A guest faster than the club winner, per gender (shown as a note). */
   fasterGuest: Partial<Record<Gender, PodiumEntry>>
-  /** Course records broken this season (beat an earlier club record); null when the course isn't comparable. */
-  records: RecordEntry[] | null
-  /** Current course record per gender (set this season or earlier); null when not comparable. */
-  courseRecords: Record<Gender, CourseRecord | null> | null
   /**
-   * Every member who beat their best earlier comparable time, biggest gain
-   * first (the first three are the race's top improvements); null when the
-   * course isn't comparable.
+   * The course raced this season. `newThisSeason`: the race moved here this
+   * year (`previous` is where it was before), so nothing earlier compares.
+   */
+  course: { place: string; from: number; to?: number; newThisSeason: boolean; previous?: Course }
+  /** Course records broken this season (beat an earlier club record on the same course); null in a course's first year after a move. */
+  records: RecordEntry[] | null
+  /** Record on this season's course per gender, up to and including this season. */
+  courseRecords: Record<Gender, CourseRecord | null>
+  /**
+   * Every member who beat their best earlier time on the same course, biggest
+   * gain first (the first three are the race's top improvements); null in a
+   * course's first year after a move.
    */
   personalBests: Improvement[] | null
-  /** Comparable member results (raced the course before). */
+  /** Member results with an earlier time on the same course. */
   comparable: number
   startsPreviousYear: number | null
 }
@@ -97,11 +87,7 @@ export interface SeasonSummary {
   pointsPodium: Record<Gender, Array<{ name: string; points: number }>>
 }
 
-/** Runners of a relay team, from "Team name (A / B / C)". */
-export function relayRunners(teamName: string): string[] {
-  const m = teamName.match(/\(([^)]*)\)\s*$/)
-  return m ? m[1].split('/').map((s) => s.trim()).filter(Boolean) : []
-}
+export { relayRunners }
 
 /** "01:22:20" → 4940: whole seconds of an official (displayed) time. */
 export function parseClock(time: string): number {
@@ -118,12 +104,6 @@ function peopleOf(a: AthleteResult): string[] {
   return isRelay(a) ? relayRunners(a.Name) : [a.Name]
 }
 
-/** Whether this year was raced on the current course (records and PBs compare only these). */
-export function isComparableYear(sport: SportType, year: string): boolean {
-  const c = COURSES[sport]
-  return !c.excluded && (!c.since || Number(year) >= c.since)
-}
-
 /** Adult individual finisher (Herr/Dam, not youth, not relay). */
 function adultFinisher(a: AthleteResult): boolean {
   return isFinisher(a) && racesOverall(a) && (a.class_lower === 'herr' || a.class_lower === 'dam')
@@ -137,7 +117,12 @@ function summarizeRace(sport: SportType, rows: AthleteResult[], year: string): R
   const season = rows.filter((a) => a.Competition_Year === year)
   const individual = season.filter((a) => !isRelay(a))
   const relays = season.filter(isRelay)
-  const comparable = isComparableYear(sport, year)
+  // Times only compare with earlier years on the same course
+  const onCourse = (a: AthleteResult) => a.Competition_Year < year && sameCourse(sport, a.Competition_Year, year)
+  const course = courseOf(sport, year)
+  const previous = rows.filter((a) => a.Competition_Year < year && !sameCourse(sport, a.Competition_Year, year))
+    .reduce<string | null>((y, a) => (y === null || a.Competition_Year > y ? a.Competition_Year : y), null)
+  const newCourse = previous !== null && !rows.some(onCourse)
 
   const podium = { men: [], women: [] } as Record<Gender, PodiumEntry[]>
   const fasterGuest: Partial<Record<Gender, PodiumEntry>> = {}
@@ -149,43 +134,37 @@ function summarizeRace(sport: SportType, rows: AthleteResult[], year: string): R
     podium[g] = members.slice(0, 3).map(entry)
     if (field[0] && members[0] && !field[0].is_club_member) fasterGuest[g] = entry(field[0])
 
-    if (comparable) {
-      const earlier = rows
-        .filter((a) => a.Competition_Year < year && isComparableYear(sport, a.Competition_Year)
-          && adultFinisher(a) && a.is_club_member && a.class_lower === GENDER_CLASS[g])
-        .sort(fastestFirst)[0]
-      if (members[0] && (!earlier || members[0].Total_Time_Seconds < earlier.Total_Time_Seconds)) {
-        // A first-ever club time is the course record, but only beating an
-        // earlier record counts as a record broken
-        if (earlier) records.push({ gender: g, ...entry(members[0]), previous: { ...entry(earlier), year: earlier.Competition_Year } })
-        courseRecords[g] = { ...entry(members[0]), year, setThisSeason: true }
-      } else if (earlier) {
-        // No club member raced it this season, or nobody beat the record
-        courseRecords[g] = { ...entry(earlier), year: earlier.Competition_Year, setThisSeason: false }
-      }
+    const earlier = rows
+      .filter((a) => onCourse(a) && adultFinisher(a) && a.is_club_member && a.class_lower === GENDER_CLASS[g])
+      .sort(fastestFirst)[0]
+    if (members[0] && (!earlier || members[0].Total_Time_Seconds < earlier.Total_Time_Seconds)) {
+      // A first-ever club time is the course record, but only beating an
+      // earlier record counts as a record broken
+      if (earlier) records.push({ gender: g, ...entry(members[0]), previous: { ...entry(earlier), year: earlier.Competition_Year } })
+      courseRecords[g] = { ...entry(members[0]), year, setThisSeason: true }
+    } else if (earlier) {
+      // No club member raced it this season, or nobody beat the record
+      courseRecords[g] = { ...entry(earlier), year: earlier.Competition_Year, setThisSeason: false }
     }
   }
 
   const improvementsAll: Improvement[] = []
   let comparableCount = 0
-  if (comparable) {
-    for (const a of season.filter((x) => adultFinisher(x) && x.is_club_member)) {
-      const best = rows
-        .filter((b) => b.Name === a.Name && b.Competition_Year < year
-          && isComparableYear(sport, b.Competition_Year) && adultFinisher(b))
-        .sort(fastestFirst)[0]
-      if (!best) continue
-      comparableCount++
-      // From the official times people see, so 38:41 → 33:25 reads as 5:16
-      // (raw seconds carry decimals the displayed times truncate)
-      const gain = parseClock(best.Total_Time) - parseClock(a.Total_Time)
-      if (gain > 0) {
-        improvementsAll.push({
-          gender: genderOf(a), ...entry(a),
-          previousBest: { time: best.Total_Time, seconds: best.Total_Time_Seconds, year: best.Competition_Year },
-          gain,
-        })
-      }
+  for (const a of season.filter((x) => adultFinisher(x) && x.is_club_member)) {
+    const best = rows
+      .filter((b) => b.Name === a.Name && onCourse(b) && adultFinisher(b))
+      .sort(fastestFirst)[0]
+    if (!best) continue
+    comparableCount++
+    // From the official times people see, so 38:41 → 33:25 reads as 5:16
+    // (raw seconds carry decimals the displayed times truncate)
+    const gain = parseClock(best.Total_Time) - parseClock(a.Total_Time)
+    if (gain > 0) {
+      improvementsAll.push({
+        gender: genderOf(a), ...entry(a),
+        previousBest: { time: best.Total_Time, seconds: best.Total_Time_Seconds, year: best.Competition_Year },
+        gain,
+      })
     }
   }
   improvementsAll.sort((x, y) => y.gain - x.gain)
@@ -206,9 +185,10 @@ function summarizeRace(sport: SportType, rows: AthleteResult[], year: string): R
     },
     podium,
     fasterGuest,
-    records: comparable ? records : null,
-    courseRecords: comparable ? courseRecords : null,
-    personalBests: comparable ? improvementsAll : null,
+    course: { ...course, newThisSeason: newCourse, previous: previous === null ? undefined : courseOf(sport, previous) },
+    records: newCourse ? null : records,
+    courseRecords,
+    personalBests: newCourse ? null : improvementsAll,
     comparable: comparableCount,
     startsPreviousYear: prevRows.length || null,
   }

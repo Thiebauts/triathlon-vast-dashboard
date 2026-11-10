@@ -51,6 +51,9 @@ NAME_CORRECTIONS = {
 # data/.
 CLUB_CORRECTIONS = {
     'Erik Arnström': 'TriVäst',
+    # Entered as guests in one race each (cycling 2026, swimming 2023)
+    'Karl Wackerberg': 'TriVäst',
+    'Jonas Örarbäck': 'TriVäst',
 }
 
 # Per-race fixes for fields NyTaTime holds wrong or blank, confirmed with the
