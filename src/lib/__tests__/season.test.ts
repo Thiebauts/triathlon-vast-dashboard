@@ -148,15 +148,15 @@ test('course records: a record set this season is flagged and listed as broken',
 test('seasonStory: short and long text carry the summary numbers, in both languages', () => {
   const d = empty()
   d.cycling = [mk('Old', 'Herr', 'TriVäst', '2021', 1418), mk('Pontus', 'Herr', 'TriVäst', '2026', 1415), mk('Josefine', 'Dam', 'TriVäst', '2026', 1641)]
-  d.swimrun = [mk('Martin', 'Herr', 'TriVäst', '2026', 1590)]
+  d.swimrun = [mk('Sisjon', 'Herr', 'TriVäst', '2025', 1500), mk('Martin', 'Herr', 'TriVäst', '2026', 1590)]
   const s = getSeasonSummary(d, '2026')
   const en = seasonStory(s, 'en')
   assert.match(en.short, /In 2026 the club raced 2 championships: 3 starts by 3 different people/)
   assert.match(en.short, /Pontus set a new course record in cycling/)
-  assert.ok(en.long.some((p) => p === 'Cycling: Pontus and Josefine won the club title. Pontus set a new course record (23:35). No personal bests this time.'))
+  assert.ok(en.long.some((p) => p === 'Cycling: Pontus and Josefine won the club title. Pontus set a new course record (23:35).'))
   assert.ok(en.long.some((p) => p.includes('Swimrun: Martin won the club title. New course')))
   const sv = seasonStory(s, 'sv')
-  assert.match(sv.short, /Under 2026 körde klubben 2 klubbmästerskap/)
+  assert.match(sv.short, /Under 2026 körde klubben 2 deltävlingar/)
   assert.ok(sv.long.some((p) => p.startsWith('Cykling: Pontus och Josefine blev klubbmästare.')))
 })
 
@@ -172,12 +172,12 @@ test('seasonStory: long text opens with the yearly trend, describes changes in w
   assert.deepEqual(s.newcomers, { members: ['Cleo'], guests: ['Gus'] })
   assert.deepEqual(s.history.map((h) => [h.year, h.starts]), [['2024', 1], ['2025', 2], ['2026', 4]])
   const en = seasonStory(s, 'en')
-  assert.match(en.long[0], /^With 4 starts, 2026 was the busiest season since the club championships began in 2024\. That compares with 2 in 2025 and 1 a year in 2024\./)
+  assert.match(en.long[0], /^With 4 starts, 2026 was the busiest season since the club championships began in 2024\. That compares with 2 in 2025 and 1 in 2024\./)
   assert.equal(en.long[1], 'Running grew the most, from 2 to 4 starts.')
   assert.ok(!en.long.join(' ').includes('→'), 'no arrows in the text')
   assert.ok(en.long.some((p) => p.includes('2 personal bests: Ann (−0:40) and Bo (−0:10).')))
   assert.equal(en.long[en.long.length - 1], 'A warm welcome to the 2 athletes (1 members, 1 guests) who raced their first club championship in 2026: Cleo, and our guests Gus.')
-  assert.match(seasonStory(s, 'sv').long[0], /Det kan jämföras med 2 år 2025/)
+  assert.match(seasonStory(s, 'sv').long[0], /Det kan jämföras med 2 starter 2025 och 1 under 2024\./)
 })
 
 test('names per number of races, and the first season flag', () => {
@@ -188,4 +188,34 @@ test('names per number of races, and the first season flag', () => {
   assert.deepEqual(s2026.membersByRaceCount, { 2: ['Ann'], 1: ['Cy'] })
   assert.equal(s2026.firstSeason, false)
   assert.equal(getSeasonSummary(d, '2025').firstSeason, true)
+})
+
+test('courses: personal bests and records compare within the old course too (Sätila 2021 → 2022)', () => {
+  const d = empty()
+  d.triathlon = [
+    mk('Bo', 'Herr', 'TriVäst', '2021', 4000), mk('Bo', 'Herr', 'TriVäst', '2022', 3900),
+    mk('Bo', 'Herr', 'TriVäst', '2023', 4300),
+  ]
+  const r22 = getSeasonSummary(d, '2022').races[0]
+  assert.equal(r22.course.place, 'Sätila')
+  assert.equal(r22.course.newThisSeason, false)
+  assert.deepEqual(r22.personalBests?.map((x) => [x.name, x.gain]), [['Bo', 100]])
+  assert.equal(r22.records?.[0].previous.year, '2021')
+  // 2023 is the first year at Inseros: nothing to compare, but the first record is set
+  const r23 = getSeasonSummary(d, '2023').races[0]
+  assert.equal(r23.course.place, 'Inseros')
+  assert.equal(r23.course.newThisSeason, true)
+  assert.equal(r23.course.previous?.place, 'Sätila')
+  assert.equal(r23.personalBests, null)
+  assert.equal(r23.records, null)
+  assert.deepEqual([r23.courseRecords.men?.name, r23.courseRecords.men?.year], ['Bo', '2023'])
+})
+
+test('courses: the second year on a new course compares again (swimrun 2026 → 2027)', () => {
+  const d = empty()
+  d.swimrun = [mk('M', 'Herr', 'TriVäst', '2025', 1500), mk('M', 'Herr', 'TriVäst', '2026', 1700), mk('M', 'Herr', 'TriVäst', '2027', 1650)]
+  const race = getSeasonSummary(d, '2027').races[0]
+  assert.equal(race.course.newThisSeason, false)
+  assert.deepEqual(race.personalBests?.map((x) => x.gain), [50])
+  assert.equal(race.records?.[0].previous.year, '2026')
 })

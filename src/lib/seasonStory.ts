@@ -104,6 +104,7 @@ export function seasonStory(s: SeasonSummary, lang: Lang): { short: string; long
     const pbs = r.personalBests
     if (s.firstSeason) { /* first year: no earlier times to compare */ }
     else if (pbs === null) parts.push(t('season_story_race_new_course', lang))
+    else if (r.comparable === 0) { /* nobody had raced this course before */ }
     else if (pbs.length === 0) parts.push(t('season_story_race_no_pbs', lang))
     else {
       const names = list(pbs.map((p) => `${p.name} (−${gain(p.gain)})`), lang)

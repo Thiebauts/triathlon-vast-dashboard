@@ -3,27 +3,11 @@
 // Club records: the fastest adult club member on each course, men and women.
 
 import { isFinisher, racesOverall } from './data.ts'
+import { COURSE_HISTORY, inCourse } from './courses.ts'
 import { parseClock, SEASON_SPORTS } from './season.ts'
 import type { AthleteResult, CompetitionsData, SportType } from './types'
 
-/**
- * Where each championship has been raced. A course change starts a new record
- * list, since times on different courses can't be compared. Keep in line with
- * COURSES in season.ts (which decides what the season recap compares).
- */
-export const COURSE_HISTORY: Record<SportType, Array<{ place: string; from: number; to?: number }>> = {
-  triathlon: [{ place: 'Sätila', from: 2021, to: 2022 }, { place: 'Inseros', from: 2023 }],
-  swimrun: [{ place: 'Sisjön', from: 2025, to: 2025 }, { place: 'Frökens udde', from: 2026 }],
-  duathlon: [{ place: 'Gunnebo', from: 2021 }],
-  swimming: [{ place: 'Delsjön', from: 2021 }],
-  cycling: [{ place: 'Kungsbacka', from: 2021 }],
-  running: [{ place: 'Åby / Slottsskogsvallen', from: 2021 }],
-}
-
-/** First year of the course a sport is raced on today (times before it don't compare). */
-export function currentCourseFrom(sport: SportType): number {
-  return COURSE_HISTORY[sport][COURSE_HISTORY[sport].length - 1].from
-}
+export { COURSE_HISTORY, currentCourseFrom } from './courses.ts'
 
 export interface RecordHolder { name: string; time: string; seconds: number; year: string }
 export interface CourseRecords {
@@ -35,8 +19,6 @@ export interface CourseRecords {
   men: RecordHolder | null
   women: RecordHolder | null
 }
-
-const inCourse = (year: string, c: { from: number; to?: number }) => Number(year) >= c.from && (c.to === undefined || Number(year) <= c.to)
 
 function fastest(rows: AthleteResult[], cls: string): RecordHolder | null {
   let best: AthleteResult | null = null

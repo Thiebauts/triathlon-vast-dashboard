@@ -45,7 +45,7 @@ function MenuList({ current, lang, onSelect }: {
         <div key={gi} className={gi === 0 ? 'mb-2' : 'mb-2 mt-3 border-t border-line pt-3'}>
           {/* Group names are labels, not links: small, quiet, no hover */}
           {g.title && (
-            <div className="px-3 pb-1.5 text-[11px] font-bold uppercase tracking-[0.1em] text-[#6b7079]" aria-hidden="true">{t(g.title, lang)}</div>
+            <div className="px-3 pb-1.5 text-[11px] font-bold uppercase tracking-[0.1em] text-muted" aria-hidden="true">{t(g.title, lang)}</div>
           )}
           <ul className="m-0 list-none p-0" aria-label={g.title ? t(g.title, lang) : undefined}>
             {g.items.map((item) => {
@@ -56,8 +56,8 @@ function MenuList({ current, lang, onSelect }: {
                     type="button"
                     onClick={() => onSelect(item.tab)}
                     aria-current={isCurrent ? 'page' : undefined}
-                    className={`relative flex min-h-11 w-full items-center gap-3 rounded px-3 text-left text-[15px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand ${
-                      isCurrent ? 'bg-white font-bold text-brand shadow-sm' : 'font-semibold text-navy hover:bg-white/70'
+                    className={`relative flex min-h-11 w-full items-center gap-3 rounded px-3 py-1.5 text-left text-[15px] font-semibold leading-snug focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand ${
+                      isCurrent ? 'bg-white text-brand shadow-sm' : 'text-navy hover:bg-white/70'
                     }`}
                   >
                     {isCurrent && <span aria-hidden="true" className="absolute inset-y-1.5 left-0 w-1 rounded-r bg-brand" />}
@@ -91,13 +91,22 @@ interface Props {
 export function SideNav({ current, lang, desktopOpen, mobileOpen, onSelect, onCloseMobile }: Props) {
   const closeRef = useRef<HTMLButtonElement>(null)
 
-  // Phone drawer: focus moves into it, Escape closes it.
+  // Phone drawer: a real modal. Focus moves into it, Escape closes it, and the
+  // page behind (marked data-page-shell) can't be scrolled, tabbed to or read.
   useEffect(() => {
     if (!mobileOpen) return
     closeRef.current?.focus()
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onCloseMobile() }
     document.addEventListener('keydown', onKey)
-    return () => document.removeEventListener('keydown', onKey)
+    const shell = [...document.querySelectorAll<HTMLElement>('[data-page-shell]')]
+    for (const el of shell) el.inert = true
+    const overflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.removeEventListener('keydown', onKey)
+      for (const el of shell) el.inert = false
+      document.body.style.overflow = overflow
+    }
   }, [mobileOpen, onCloseMobile])
 
   return (
@@ -113,7 +122,7 @@ export function SideNav({ current, lang, desktopOpen, mobileOpen, onSelect, onCl
         <div className="fixed inset-0 z-40 lg:hidden">
           <div className="absolute inset-0 bg-navy/55" aria-hidden="true" onClick={onCloseMobile} />
           <div id="side-menu-mobile" role="dialog" aria-modal="true" aria-label={t('nav_label', lang)}
-            className="absolute inset-y-0 left-0 flex w-[318px] max-w-[85vw] flex-col overflow-y-auto bg-mist">
+            className="absolute inset-y-0 left-0 flex w-[318px] max-w-[85vw] flex-col overflow-y-auto overscroll-contain bg-mist">
             <div className="flex items-center justify-between gap-2 border-b border-line bg-white py-3 pl-4 pr-2">
               <span className="font-script text-[22px] leading-tight text-brand">{t('site_name', lang)}</span>
               <button ref={closeRef} type="button" onClick={onCloseMobile} aria-label={t('menu_close', lang)}
@@ -121,7 +130,7 @@ export function SideNav({ current, lang, desktopOpen, mobileOpen, onSelect, onCl
                 <svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#212934" strokeWidth="2.2" strokeLinecap="round"><path d="M6 6l12 12M18 6L6 18" /></svg>
               </button>
             </div>
-            <nav aria-label={t('nav_label', lang)} className="px-3 pb-2 pt-4">
+            <nav className="px-3 pb-2 pt-4">
               <MenuList current={current} lang={lang} onSelect={onSelect} />
             </nav>
             <div className="mt-auto border-t border-line p-4">

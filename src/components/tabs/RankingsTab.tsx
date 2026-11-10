@@ -1,8 +1,8 @@
 'use client'
 import { useMemo } from 'react'
 import { t, tf } from '@/lib/translations'
-import { CARD_MIST, MEDAL_COLORS, PageTitle } from '@/components/ui/brand'
-import { getClubRankings } from '@/lib/data'
+import { H_BLOCK, H_SECTION, CARD_MIST, MEDAL_COLORS, PageTitle } from '@/components/ui/brand'
+import { getClubRankings, pointsRanks } from '@/lib/data'
 import type { CompetitionsData, Lang, ClubAthlete } from '@/lib/types'
 
 interface Props {
@@ -22,32 +22,33 @@ function RankTable({ data, lang, onAthleteClick }: {
   onAthleteClick?: (name: string) => void
 }) {
   if (!data.length) return <p className="py-6 text-center text-[15px] text-muted">{t('not_ranked', lang)}</p>
+  const ranks = pointsRanks(data)
   return (
-    <table className="min-w-full text-[15px]">
+    <table className="w-full text-[15px]">
       <thead>
         <tr className="text-left font-display text-sm text-white">
-          <th scope="col" className="w-14 bg-navy px-4 py-3 font-semibold">{t('rank', lang)}</th>
-          <th scope="col" className="bg-navy px-3 py-3 font-semibold">{t('athlete', lang)}</th>
-          <th scope="col" className="bg-navy px-3 py-3 text-right font-semibold">{t('competitions', lang)}</th>
-          <th scope="col" className="bg-navy px-4 py-3 text-right font-semibold">{t('total_points', lang)}</th>
+          <th scope="col" className="w-12 bg-navy py-3 pl-3 pr-2 font-semibold sm:pl-4"><span aria-hidden="true">#</span><span className="sr-only">{t('rank', lang)}</span></th>
+          <th scope="col" className="bg-navy px-2 py-3 font-semibold sm:px-3">{t('name', lang)}</th>
+          <th scope="col" className="bg-navy px-2 py-3 text-right font-semibold sm:px-3">{t('rank_races', lang)}</th>
+          <th scope="col" className="bg-navy py-3 pl-2 pr-3 text-right font-semibold sm:pr-4">{t('points', lang)}</th>
         </tr>
       </thead>
       <tbody>
         {data.map((a, i) => {
-          const rank = i + 1
+          const rank = ranks[i]
           return (
             <tr key={a.name} className={`border-b border-line ${i % 2 ? 'bg-[#f9f9fb]' : 'bg-white'} hover:bg-mist`}>
-              <th scope="row" className="px-4 py-2.5 text-left font-display font-semibold tabular-nums" style={{ color: MEDAL_COLORS[i] ?? '#4a4e57' }}>{rank}</th>
-              <td className="px-3 py-2.5">
+              <th scope="row" className="py-1.5 pl-3 pr-2 text-left font-display font-semibold tabular-nums sm:pl-4" style={{ color: MEDAL_COLORS[rank - 1] ?? '#4a4e57' }}>{rank}</th>
+              <td className="px-2 py-1.5 sm:px-3">
                 {onAthleteClick ? (
                   <button type="button" onClick={() => onAthleteClick(a.name)}
-                    className="rounded text-left font-semibold text-navy hover:text-brand hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand">
+                    className="inline-flex min-h-9 items-center rounded text-left font-semibold text-navy hover:text-brand hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand">
                     {a.name}
                   </button>
                 ) : <span className="font-semibold text-navy">{a.name}</span>}
               </td>
-              <td className="px-3 py-2.5 text-right text-muted">{a.competitions.length}</td>
-              <td className="px-4 py-2.5 text-right font-display font-semibold tabular-nums text-brand">{a.total_points}</td>
+              <td className="px-2 py-1.5 text-right tabular-nums text-muted sm:px-3">{a.competitions.length}</td>
+              <td className="py-1.5 pl-2 pr-3 text-right font-display font-semibold tabular-nums text-brand sm:pr-4">{a.total_points}</td>
             </tr>
           )
         })}
@@ -93,18 +94,18 @@ export function RankingsTab({ data, allTimeRankings, lang, onAthleteClick, year,
       </div>
 
       <section className={`${CARD_MIST} px-6 py-5`}>
-        <h3 className="mb-1.5 mt-0 font-display text-[22px] font-semibold text-navy">{t('club_rankings_title', lang)}</h3>
+        <h3 className={`${H_BLOCK} mb-1.5`}>{t('club_rankings_title', lang)}</h3>
         <p className="m-0 text-[15px] leading-relaxed">{t('club_rankings_text1', lang)}</p>
         <p className="mb-0 mt-1.5 text-[15px] leading-relaxed">{t('club_rankings_text2', lang)}</p>
       </section>
 
       <div className="grid gap-8 lg:grid-cols-2">
-        {([['womens_rankings', women], ['mens_rankings', men]] as const).map(([key, list]) => (
+        {/* Men first, like every other page */}
+        {([['mens_rankings', men], ['womens_rankings', women]] as const).map(([key, list]) => (
           <section key={key} aria-label={t(key, lang)} className="min-w-0">
-            <h3 className="mb-3 mt-0 font-display text-[26px] font-semibold text-navy">{t(key, lang)}</h3>
-            <div className="overflow-x-auto">
-              <RankTable data={list} lang={lang} onAthleteClick={onAthleteClick} />
-            </div>
+            <h3 className={`${H_SECTION} mb-3`}>{t(key, lang)}</h3>
+            {/* No scroll box: the four columns fit a phone, and the header stays in view while the page scrolls */}
+            <RankTable data={list} lang={lang} onAthleteClick={onAthleteClick} />
           </section>
         ))}
       </div>

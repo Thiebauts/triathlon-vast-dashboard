@@ -3,7 +3,7 @@ import fs from 'fs'
 import path from 'path'
 // Explicit .ts extension: the node --experimental-strip-types test runner
 // resolves runtime imports literally (type-only imports are stripped).
-import { CLUB_ALIASES, CLUB_CORRECTIONS, NAME_CORRECTIONS } from './data.ts'
+import { CLUB_ALIASES, CLUB_CORRECTIONS, CLUB_CORRECTIONS_BY_YEAR, NAME_CORRECTIONS, SPLIT_EXCLUSIONS } from './data.ts'
 import type { AthleteResult, CompetitionsData, ExtraEvent, SportType } from './types'
 
 const FIELDS_USED: ReadonlySet<string> = new Set([
@@ -73,7 +73,7 @@ function rowToAthlete(
   // Confirmed corrections win over what the result sheet recorded
   const rawName = String(out.Name ?? '').trim()
   const name = NAME_CORRECTIONS.get(rawName) ?? rawName
-  const club = CLUB_CORRECTIONS.get(name) ?? String(out.Club ?? '')
+  const club = CLUB_CORRECTIONS_BY_YEAR.get(`${name}|${year}`) ?? CLUB_CORRECTIONS.get(name) ?? String(out.Club ?? '')
   return {
     ...out,
     Name: name,
@@ -105,7 +105,14 @@ export function loadAllCompetitions(): CompetitionsData {
       const year = file.match(pattern)![1].split('-')[0]
       const content = fs.readFileSync(path.join(base, file), 'utf-8')
       for (const row of parseCsv(content)) {
-        data[sport].push(rowToAthlete(row, year))
+        const athlete = rowToAthlete(row, year)
+        // Splits confirmed as timing errors are cleared (see SPLIT_EXCLUSIONS)
+        const fields = athlete as unknown as Record<string, unknown>
+        for (const split of SPLIT_EXCLUSIONS.get(`${athlete.Name}|${sport}|${year}`) ?? []) {
+          fields[`${split}_Time`] = ''
+          fields[`${split}_Seconds`] = 0
+        }
+        data[sport].push(athlete)
       }
     }
   }

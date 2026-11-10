@@ -2,7 +2,7 @@
 // published (email, Season tab). Run from the repo root:
 //   node --experimental-strip-types scripts/season-review.ts 2026 > SEASON_2026_REVIEW.md
 import { loadAllCompetitions } from '../src/lib/loader.ts'
-import { COURSES, getSeasonSummary } from '../src/lib/season.ts'
+import { getSeasonSummary } from '../src/lib/season.ts'
 import { seasonStory } from '../src/lib/seasonStory.ts'
 
 const year = process.argv[2] ?? String(new Date().getFullYear())
@@ -55,12 +55,11 @@ for (const r of s.races) {
     if (r.fasterGuest[g]) p(`  _Note: guest ${r.fasterGuest[g]!.name} was faster (${r.fasterGuest[g]!.time})._`)
     p()
   }
-  const c = COURSES[r.sport]
   if (r.records === null) {
-    p(`**Records / improvements:** not computed — ${c.excluded ? 'new course this season, no earlier time to compare' : 'course not comparable'}.`)
+    p(`**Records / improvements:** not computed — new course this season (${r.course.place}), no earlier time to compare.`)
   } else {
-    const scope = c.since ? ` (course since ${c.since})` : ''
-    const cr = r.courseRecords!
+    const scope = ` (${r.course.place}, since ${r.course.from})`
+    const cr = r.courseRecords
     p(`**Course records${scope}:** ${(['men', 'women'] as const).map((g) => `${g}: ${cr[g] ? `${cr[g]!.name} ${cr[g]!.time} (${cr[g]!.year})${cr[g]!.setThisSeason ? ' NEW' : ''}` : '—'}`).join(' · ')}`)
     p()
     p(`**Club records broken:** ${r.records.length ? r.records.map((x) => `${x.gender}: ${x.name} ${x.time} (was ${x.previous.name} ${x.previous.time}, ${x.previous.year})`).join(' · ') : 'none'}`)

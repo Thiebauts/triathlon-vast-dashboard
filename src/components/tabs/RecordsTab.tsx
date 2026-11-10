@@ -4,7 +4,7 @@ import { t, tf } from '@/lib/translations'
 import { getClubRecords, multiRecordHolders, type RecordHolder } from '@/lib/records'
 import { SEASON_YEARS, displayTime } from '@/lib/season'
 import type { CompetitionsData, Lang, SportType } from '@/lib/types'
-import { CARD_MIST, CARD_NAVY, Eyebrow, LINK_BTN, PageTitle } from '@/components/ui/brand'
+import { H_BLOCK, H_SECTION, CARD_MIST, CARD_NAVY, Eyebrow, LINK_BTN, PageTitle } from '@/components/ui/brand'
 
 interface Props {
   data: CompetitionsData
@@ -33,7 +33,7 @@ export function RecordsTab({ data, lang, onAthleteClick, onAllTime }: Props) {
 
   return (
     <div className="flex flex-col gap-9">
-      <div className="flex flex-wrap items-end justify-between gap-x-10 gap-y-6">
+      <div className="flex flex-wrap items-start justify-between gap-x-10 gap-y-6">
         <PageTitle eyebrow={t('rec_eyebrow', lang)} title={t('rec_title', lang)} subtitle={t('rec_subtitle', lang)} />
         {holderLines.length > 0 && (
           <div className={`${CARD_NAVY} max-w-[380px] px-6 py-5`}>
@@ -47,7 +47,7 @@ export function RecordsTab({ data, lang, onAthleteClick, onAllTime }: Props) {
         {current.map((r) => (
           <article key={r.sport} className={`${CARD_MIST} flex flex-col gap-1 px-6 pb-6 pt-5`}>
             <div className="flex items-baseline justify-between gap-3">
-              <h3 className="m-0 font-display text-[26px] font-semibold leading-tight text-navy">{t(r.sport, lang)}</h3>
+              <h3 className={H_BLOCK}>{t(r.sport, lang)}</h3>
               {onAllTime && (
                 <button type="button" onClick={() => onAllTime(r.sport)} aria-label={`${t(r.sport, lang)}: ${t('rec_all_time', lang)}`} className={`${LINK_BTN} text-sm`}>
                   {t('rec_all_time', lang)}
@@ -63,11 +63,11 @@ export function RecordsTab({ data, lang, onAthleteClick, onAllTime }: Props) {
                 // "New" only when it beat an earlier record, not on a course's first year
                 const isNew = h && h.year === latest && r.from < Number(latest)
                 return (
-                  <div key={g} className="grid grid-cols-[72px_minmax(0,1fr)_auto] items-baseline gap-x-3 border-t border-line py-2.5">
-                    <dt className="text-[13px] font-bold uppercase tracking-[0.06em] text-muted">{t(g, lang)}</dt>
+                  <div key={g} className="grid grid-cols-[minmax(0,1fr)_auto] items-baseline gap-x-3 border-t border-line py-2.5 sm:grid-cols-[72px_minmax(0,1fr)_auto]">
+                    <dt className="text-[13px] font-bold uppercase tracking-[0.06em] text-muted max-sm:col-span-2">{t(g, lang)}</dt>
                     {h ? (
                       <>
-                        <dd className="m-0 min-w-0">{name(h)}<span className="block text-[13px] text-muted">{h.year}</span></dd>
+                        <dd className="m-0 min-w-0 break-words">{name(h)}<span className="block text-[13px] text-muted">{h.year}</span></dd>
                         <dd className="m-0 flex flex-col items-end gap-0.5">
                           <span className="font-display text-2xl font-semibold leading-tight text-brand">{displayTime(h.time)}</span>
                           {isNew && (
@@ -90,26 +90,31 @@ export function RecordsTab({ data, lang, onAthleteClick, onAllTime }: Props) {
 
       {earlier.length > 0 && (
         <section aria-labelledby="rec-earlier">
-          <h3 id="rec-earlier" className="mb-1.5 mt-0 font-display text-[30px] font-semibold text-navy">{t('rec_earlier', lang)}</h3>
+          <h3 id="rec-earlier" className={`${H_SECTION} mb-1.5`}>{t('rec_earlier', lang)}</h3>
           <p className="mb-3 mt-0 text-[15px] text-muted">{t('rec_earlier_text', lang)}</p>
           <div tabIndex={0} role="region" aria-label={t('rec_earlier', lang)} className="overflow-x-auto focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand">
-            <table className="w-full min-w-[620px] text-[15px]">
+            <table className="w-full text-[15px]">
               <thead>
                 <tr className="text-left font-display text-sm text-white">
-                  <th scope="col" className="bg-navy px-4 py-3 font-semibold">{t('rec_race', lang)}</th>
-                  <th scope="col" className="bg-navy px-4 py-3 font-semibold">{t('rec_course', lang)}</th>
-                  <th scope="col" className="bg-navy px-4 py-3 font-semibold">{t('men', lang)}</th>
-                  <th scope="col" className="bg-navy px-4 py-3 font-semibold">{t('women', lang)}</th>
+                  <th scope="col" className="bg-navy px-2 py-3 font-semibold sm:px-4">{t('rec_course', lang)}</th>
+                  <th scope="col" className="bg-navy px-2 py-3 font-semibold sm:px-4">{t('men', lang)}</th>
+                  <th scope="col" className="bg-navy px-2 py-3 font-semibold sm:px-4">{t('women', lang)}</th>
                 </tr>
               </thead>
               <tbody>
                 {earlier.map((r) => (
                   <tr key={`${r.sport}-${r.place}`} className="border-b border-line">
-                    <th scope="row" className="px-4 py-3 text-left font-semibold text-navy">{t(r.sport, lang)}</th>
-                    <td className="px-4 py-3 text-muted">{r.place}, {r.from === r.to ? r.from : `${r.from}–${r.to}`}</td>
+                    {/* Race and course share a cell and each record stacks, so the table fits a phone */}
+                    <th scope="row" className="px-2 py-3 text-left align-top font-normal sm:px-4">
+                      <span className="block font-semibold text-navy">{t(r.sport, lang)}</span>
+                      <span className="block text-sm text-muted">{r.place}, {r.from === r.to ? r.from : `${r.from}–${r.to}`}</span>
+                    </th>
                     {[r.men, r.women].map((h, i) => (
-                      <td key={i} className="px-4 py-3">
-                        {h ? <>{h.name} ({h.year}) <strong className="font-display text-navy">{displayTime(h.time)}</strong></> : '—'}
+                      <td key={i} className="px-2 py-3 align-top sm:px-4">
+                        {h ? <>
+                          <strong className="block font-display text-navy">{displayTime(h.time)}</strong>
+                          <span className="block text-sm">{h.name} ({h.year})</span>
+                        </> : '—'}
                       </td>
                     ))}
                   </tr>

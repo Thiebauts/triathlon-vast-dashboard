@@ -3,8 +3,9 @@
 // Per-race extras for the Results page: the PB / Debut tag on each finisher
 // and the "fastest of the day" for men and women (finish time and splits).
 
-import { athleteKey, isFinisher, isRelay, racesOverall } from './data.ts'
-import { isComparableYear, parseClock } from './season.ts'
+import { athleteKey, isFinisher, isReliableSplit, splitUpperBound, isRelay, racesOverall } from './data.ts'
+import { sameCourse } from './courses.ts'
+import { parseClock } from './season.ts'
 import type { AthleteResult, SportType } from './types'
 
 export type ResultTag = 'pb' | 'debut'
@@ -20,7 +21,6 @@ const isAdult = (a: AthleteResult) => a.class_lower === 'herr' || a.class_lower 
  */
 export function getResultTags(rows: AthleteResult[], sport: SportType, year: string): Map<string, ResultTag> {
   const out = new Map<string, ResultTag>()
-  const comparable = isComparableYear(sport, year)
   for (const a of rows) {
     if (a.Competition_Year !== year || !isFinisher(a) || isRelay(a)) continue
     const earlier = rows.filter((b) => b.Name === a.Name && b.Competition_Year < year)
@@ -28,9 +28,9 @@ export function getResultTags(rows: AthleteResult[], sport: SportType, year: str
       out.set(athleteKey(a), 'debut')
       continue
     }
-    if (!comparable || !isAdult(a)) continue
+    if (!isAdult(a)) continue
     const best = earlier
-      .filter((b) => isFinisher(b) && isAdult(b) && isComparableYear(sport, b.Competition_Year))
+      .filter((b) => isFinisher(b) && isAdult(b) && sameCourse(sport, b.Competition_Year, year))
       .reduce<number | null>((m, b) => {
         const s = parseClock(b.Total_Time)
         return m === null || s < m ? s : m
@@ -68,12 +68,21 @@ export function getFastestOfDay(rows: AthleteResult[], sport: SportType, year: s
   const field = rows.filter((a) => a.Competition_Year === year && isFinisher(a) && racesOverall(a) && isAdult(a))
   const pick = (cls: string, time: keyof AthleteResult, secs: keyof AthleteResult): FastestEntry | null => {
     let best: AthleteResult | null = null
+    // The most an athlete WITHOUT a usable split can have taken (see splitUpperBound)
+    let unknownAtMost = Infinity
     for (const a of field) {
       if (a.class_lower !== cls) continue
+      // A split that swallowed a missed timing mat is not a real split time
+      if (secs !== 'Total_Time_Seconds' && !isReliableSplit(a, secs, sport as 'triathlon' | 'duathlon')) {
+        unknownAtMost = Math.min(unknownAtMost, splitUpperBound(a, secs, sport as 'triathlon' | 'duathlon') ?? Infinity)
+        continue
+      }
       const s = Number(a[secs]) || 0
       if (s <= 0) continue
       if (!best || s < (Number(best[secs]) || 0)) best = a
     }
+    // Someone whose split wasn't recorded was certainly faster: the fastest is unknown
+    if (best && unknownAtMost < (Number(best[secs]) || 0)) return null
     return best ? { name: best.Name, time: String(best[time] ?? ''), guest: !best.is_club_member } : null
   }
   const legs = [{ leg: 'finish' as LegKey, time: 'Total_Time' as keyof AthleteResult, secs: 'Total_Time_Seconds' as keyof AthleteResult }, ...LEGS[sport]]

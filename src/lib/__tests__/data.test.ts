@@ -11,8 +11,10 @@ import {
   getClubRankings,
   getParticipationByYear,
   getSummaryStats,
+  isReliableSplit,
   isClubMember,
   isFinisher,
+  pointsRanks,
 } from '../data.ts'
 import type { AthleteResult, CompetitionsData } from '../types.ts'
 
@@ -110,11 +112,11 @@ test('athleteKey: distinguishes athletes across years', () => {
 
 test('computeSplitRanks: ranks each split independently with rank 1 for fastest', () => {
   const a = mk({ Name: 'A', Class: 'Herr', Club: 'TriVäst', Competition_Year: '2024',
-    Swim_Seconds: 700, Bike_Seconds: 2000, Run_Seconds: 1100 })
+    Swim_Seconds: 700, T1_Seconds: 60, Bike_Seconds: 2000, T2_Seconds: 40, Run_Seconds: 1100, Total_Time_Seconds: 3900 })
   const b = mk({ Name: 'B', Class: 'Herr', Club: 'TriVäst', Competition_Year: '2024',
-    Swim_Seconds: 800, Bike_Seconds: 1900, Run_Seconds: 1200 })
+    Swim_Seconds: 800, T1_Seconds: 60, Bike_Seconds: 1900, T2_Seconds: 40, Run_Seconds: 1200, Total_Time_Seconds: 4000 })
   const c = mk({ Name: 'C', Class: 'Herr', Club: 'TriVäst', Competition_Year: '2024',
-    Swim_Seconds: 600, Bike_Seconds: 2100, Run_Seconds: 1000 })
+    Swim_Seconds: 600, T1_Seconds: 60, Bike_Seconds: 2100, T2_Seconds: 40, Run_Seconds: 1000, Total_Time_Seconds: 3800 })
 
   const ranks = computeSplitRanks([a, b, c], 'triathlon')
   assert.equal(ranks.get(athleteKey(c))!.swim, 1)
@@ -124,19 +126,49 @@ test('computeSplitRanks: ranks each split independently with rank 1 for fastest'
   assert.equal(ranks.get(athleteKey(c))!.run, 1)
 })
 
-test('computeSplitRanks: zero/missing splits are excluded from ranking', () => {
-  const a = mk({ Name: 'A', Class: 'Herr', Club: 'TriVäst', Competition_Year: '2024', Swim_Seconds: 700 })
-  const b = mk({ Name: 'B', Class: 'Herr', Club: 'TriVäst', Competition_Year: '2024', Swim_Seconds: 0 })
+test('computeSplitRanks: a split that swallowed a missed timing mat gets no rank', () => {
+  const a = mk({ Name: 'A', Class: 'Herr', Club: 'TriVäst', Competition_Year: '2024', Swim_Seconds: 700, T1_Seconds: 60, Bike_Seconds: 2000, T2_Seconds: 40, Run_Seconds: 1100, Total_Time_Seconds: 3900 })
+  // Missed the T1 mat: T1 is 0 and "bike" is really the clock at bike-in
+  const b = mk({ Name: 'B', Class: 'Herr', Club: 'TriVäst', Competition_Year: '2024',
+    Swim_Seconds: 600, T1_Seconds: 0, Bike_Seconds: 2700, T2_Seconds: 40, Run_Seconds: 1000, Total_Time_Seconds: 3740 })
+  assert.equal(isReliableSplit(a, 'Bike_Seconds'), true)
+  // Her swim, T2 and run were timed; T1 is missing and the bike swallowed it
+  assert.deepEqual(['Swim_Seconds', 'T1_Seconds', 'Bike_Seconds', 'T2_Seconds', 'Run_Seconds'].map((f) => isReliableSplit(b, f)), [true, false, false, true, true])
   const ranks = computeSplitRanks([a, b], 'triathlon')
-  assert.equal(ranks.get(athleteKey(a))!.swim, 1)
-  assert.equal(ranks.get(athleteKey(b))!.swim, undefined)
+  assert.deepEqual(ranks.get(athleteKey(b)), { swim: 1, t2: 1, run: 1 })
+  assert.deepEqual(ranks.get(athleteKey(a)), { swim: 2, t1: 1, bike: 1, t2: 1, run: 2 })
+  // Every leg recorded but they don't add up to the finish time: nothing is trusted
+  const c = mk({ Name: 'C', Class: 'Herr', Club: 'TriVäst', Competition_Year: '2024',
+    Swim_Seconds: 600, T1_Seconds: 60, Bike_Seconds: 2000, T2_Seconds: 40, Run_Seconds: 1000, Total_Time_Seconds: 4500 })
+  assert.equal(isReliableSplit(c, 'Swim_Seconds'), false)
+})
+
+test('computeSplitRanks: equal splits share a rank', () => {
+  const row = (Name: string, t1: number) => mk({ Name, Class: 'Herr', Club: 'TriVäst', Competition_Year: '2024',
+    Swim_Seconds: 700, T1_Seconds: t1, Bike_Seconds: 2000, T2_Seconds: 40, Run_Seconds: 1100, Total_Time_Seconds: 3840 + t1 })
+  const [a, b, c] = [row('A', 60), row('B', 60), row('C', 75)]
+  const ranks = computeSplitRanks([a, b, c], 'triathlon')
+  assert.deepEqual([a, b, c].map((x) => ranks.get(athleteKey(x))!.t1), [1, 1, 3])
+})
+
+test('pointsRanks: equal totals share a place and the next one is skipped', () => {
+  assert.deepEqual(pointsRanks([70, 63, 63, 40].map((total_points) => ({ total_points }))), [1, 2, 2, 4])
+})
+
+test('getClubRankings: equal totals are listed in name order, whatever the file order', () => {
+  const data: CompetitionsData = { ...empty, running: [
+    mk({ Name: 'Åsa', Class: 'Dam', Club: 'TriVäst', Competition_Year: '2024', Total_Time_Seconds: 1300 }),
+    mk({ Name: 'Zed', Class: 'Herr', Club: 'TriVäst', Competition_Year: '2024', Total_Time_Seconds: 1200 }),
+    mk({ Name: 'Adam', Class: 'Herr', Club: 'TriVäst', Competition_Year: '2025', Total_Time_Seconds: 1250 }),
+  ] }
+  assert.deepEqual(getClubRankings(data).map((a) => a.name), ['Adam', 'Zed', 'Åsa'])
 })
 
 test('computeSplitRanks: duathlon uses Run1/Run2 fields', () => {
   const a = mk({ Name: 'A', Class: 'Herr', Club: 'TriVäst', Competition_Year: '2024',
-    Run1_Seconds: 1000, Run2_Seconds: 800 })
+    Run1_Seconds: 1000, T1_Seconds: 50, Bike_Seconds: 2000, T2_Seconds: 50, Run2_Seconds: 800, Total_Time_Seconds: 3900 })
   const b = mk({ Name: 'B', Class: 'Herr', Club: 'TriVäst', Competition_Year: '2024',
-    Run1_Seconds: 900,  Run2_Seconds: 850 })
+    Run1_Seconds: 900, T1_Seconds: 50, Bike_Seconds: 2000, T2_Seconds: 50, Run2_Seconds: 850, Total_Time_Seconds: 3850 })
   const ranks = computeSplitRanks([a, b], 'duathlon')
   assert.equal(ranks.get(athleteKey(b))!.run1, 1)
   assert.equal(ranks.get(athleteKey(a))!.run2, 1)
@@ -446,4 +478,12 @@ test('getParticipationByYear: tallies participants per sport per year, sorted as
     { year: '2023', triathlon: 0, duathlon: 0, swimming: 0, cycling: 0, running: 1, swimrun: 0 },
     { year: '2024', triathlon: 2, duathlon: 0, swimming: 0, cycling: 0, running: 0, swimrun: 0 },
   ])
+})
+
+test('getParticipationByYear: a relay team counts as its runners', () => {
+  const data: CompetitionsData = { ...empty, triathlon: [
+    mk({ Name: 'A', Class: 'Herr', Club: 'TriVäst', Competition_Year: '2026', Total_Time_Seconds: 1 }),
+    mk({ Name: 'Team (X / Y / Z)', Class: 'Staffet', Club: 'TriVäst', Competition_Year: '2026', Total_Time_Seconds: 2 }),
+  ] }
+  assert.equal(getParticipationByYear(data)[0].triathlon, 4)
 })
