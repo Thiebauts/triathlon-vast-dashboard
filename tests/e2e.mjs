@@ -78,14 +78,14 @@ async function run() {
   })
 
   await test('Extra events block visible', async () => {
-    const block = page.locator('text=Extra events & open trainings')
+    const block = page.locator('#view-overview h3', { hasText: 'Training and extra events' })
     await block.waitFor({ state: 'visible', timeout: 5000 })
   })
 
   await test('Extra events link navigates to Extra Events tab', async () => {
-    await page.locator('#view-overview').getByRole('button', { name: 'Training & extra events' }).click()
+    await page.locator('#view-overview').getByRole('button', { name: 'Training and extra events' }).click()
     await page.waitForTimeout(600)
-    const header = page.locator('text=Extra events & timed trainings')
+    const header = page.locator('#view-extra h2', { hasText: 'Training and extra events' })
     await header.waitFor({ state: 'visible', timeout: 3000 })
     // Return to Overview — the following tests expect it to be active
     await menu(page, 'Overview').click()
@@ -293,7 +293,7 @@ async function run() {
     const tab = menu(page, 'Athletes')
     await tab.click()
     await page.waitForTimeout(800)
-    const header = page.locator('text=Individual athlete profiles')
+    const header = page.locator('#view-athletes', { hasText: 'Athlete profiles' }).first()
     await header.waitFor({ state: 'visible', timeout: 5000 })
   })
 
@@ -311,7 +311,7 @@ async function run() {
   })
 
   await test('Select prompt shown before selection', async () => {
-    await page.locator('text=Please select an athlete').waitFor({ state: 'visible', timeout: 3000 })
+    await page.locator('text=Pick an athlete to see their profile').waitFor({ state: 'visible', timeout: 3000 })
   })
 
   await test('Search suggests matching athletes', async () => {
@@ -367,7 +367,7 @@ async function run() {
   })
 
   await test('Club member badge shown on profile', async () => {
-    const hasMember = await page.locator('#view-athletes').getByText('TriVäst Member', { exact: true }).count() > 0
+    const hasMember = await page.locator('#view-athletes').getByText('Club member', { exact: true }).count() > 0
     const hasGuest = await page.locator('#view-athletes').getByText('Guest', { exact: true }).count() > 0
     if (!hasMember && !hasGuest) throw new Error('No member/guest badge found')
   })
@@ -379,18 +379,18 @@ async function run() {
     const tab = menu(page, 'Club ranking')
     await tab.click()
     await page.waitForTimeout(800)
-    const header = page.locator('text=Club rankings & points system')
+    const header = page.locator('text=Club ranking and points system')
     await header.waitFor({ state: 'visible', timeout: 5000 })
   })
 
   await test("Women's rankings table visible", async () => {
-    const header = page.locator("text=Women's Rankings")
+    const header = page.getByRole('heading', { name: "Women's ranking", exact: true })
     await header.waitFor({ state: 'visible', timeout: 3000 })
   })
 
   await test("Men's rankings table visible", async () => {
     // Use getByRole to avoid case-insensitive substring matching "Women's" → "men's"
-    const header = page.getByRole('heading', { name: "Men's Rankings", exact: true })
+    const header = page.getByRole('heading', { name: "Men's ranking", exact: true })
     await header.waitFor({ state: 'visible', timeout: 3000 })
   })
 
@@ -436,10 +436,10 @@ async function run() {
   console.log('\n🎽 Extra Events Tab')
 
   await test('Click Extra Events tab', async () => {
-        const tab = menu(page, 'Training & extra events')
+        const tab = menu(page, 'Training and extra events')
     await tab.click()
     await page.waitForTimeout(800)
-    const header = page.locator('text=Extra events & timed trainings')
+    const header = page.locator('#view-extra h2', { hasText: 'Training and extra events' })
     await header.waitFor({ state: 'visible', timeout: 5000 })
   })
 
@@ -475,9 +475,10 @@ async function run() {
   })
 
   await test('Split rank (#) columns visible', async () => {
-    const hashHeaders = page.locator('table:visible th', { hasText: /^#$/ })
+    const hashHeaders = page.locator('#view-extra table th span[aria-hidden]', { hasText: /^#$/ })
     const count = await hashHeaders.count()
-    if (count !== 5) throw new Error(`Expected 5 split-rank columns, found ${count}`)
+    // One per split anybody has a time for: columns that would be all dashes (untimed transitions) are left out
+    if (count < 3 || count > 5) throw new Error(`Expected 3 to 5 split-rank columns, found ${count}`)
   })
 
   await test('Partial participant has split ranks for completed legs only', async () => {
@@ -537,7 +538,7 @@ async function run() {
   await test('Season tab shows key numbers and every race', async () => {
     const panel = page.locator('#view-season')
     await panel.locator('h2', { hasText: 'Season recap' }).waitFor({ state: 'visible', timeout: 5000 })
-    for (const label of ['Participations', 'Different people', 'Personal bests', 'Course records']) {
+    for (const label of ['Starts', 'Participants', 'Personal bests', 'Course records']) {
       // .first(): the tiles come before the race cards, whose blocks reuse some labels
       if (!(await panel.getByText(label, { exact: true }).first().isVisible())) throw new Error(`Missing tile ${label}`)
     }
@@ -614,7 +615,7 @@ async function run() {
     const btn = page.locator('button', { hasText: 'Svenska' })
     await btn.click()
     await page.waitForTimeout(500)
-    const svHeader = page.locator('text=Damranking')
+    const svHeader = page.locator('text=Ranking damer')
     await svHeader.waitFor({ state: 'visible', timeout: 3000 })
   })
 
@@ -655,7 +656,7 @@ async function run() {
   await test('Direct link opens the supersprint results', async () => {
     await page.goto(`${BASE}/#extra/2026-06-10`, { waitUntil: 'networkidle' })
     await page.waitForTimeout(600)
-    const header = page.locator('text=Extra events & timed trainings')
+    const header = page.locator('#view-extra h2', { hasText: 'Training and extra events' })
     await header.waitFor({ state: 'visible', timeout: 5000 })
     const value = await page.locator('select:visible').first().inputValue()
     if (!value.includes('2026-06-10')) throw new Error(`Event selector is "${value}"`)
@@ -712,7 +713,7 @@ async function run() {
   })
 
   await test('Extra events URL carries the event date and category', async () => {
-    await menu(page, 'Training & extra events').click()
+    await menu(page, 'Training and extra events').click()
     await page.waitForTimeout(400)
     if (!page.url().includes('#extra/2026-06-10')) throw new Error(`URL is ${page.url()}`)
     await page.locator('select:visible').nth(1).selectOption('women')
@@ -741,13 +742,13 @@ async function run() {
 
   await test('Refresh keeps the current view (supersprint event)', async () => {
     // Navigate by clicking (like a real user), then reload the page
-    await menu(page, 'Training & extra events').click()
+    await menu(page, 'Training and extra events').click()
     await page.waitForTimeout(400)
     await page.reload({ waitUntil: 'networkidle' })
     await page.waitForTimeout(600)
-    const header = page.locator('text=Extra events & timed trainings')
+    const header = page.locator('#view-extra h2', { hasText: 'Training and extra events' })
     await header.waitFor({ state: 'visible', timeout: 5000 })
-    const tab = menu(page, 'Training & extra events')
+    const tab = menu(page, 'Training and extra events')
     const selected = await tab.getAttribute('aria-current')
     if (selected !== 'page') throw new Error('Extra Events tab not active after reload')
   })

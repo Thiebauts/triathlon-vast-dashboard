@@ -62,7 +62,10 @@ async function drawCard(canvas: HTMLCanvasElement, d: ShareData, lang: Lang) {
   const plex = fontVar('--font-plex', 'sans-serif')
   const raleway = fontVar('--font-raleway', 'sans-serif')
   const script = fontVar('--font-yellowtail', 'cursive')
-  await Promise.all([`600 80px ${plex}`, `600 30px ${raleway}`, `400 50px ${script}`].map((f) => document.fonts.load(f).catch(() => null)))
+  // Every face the card draws with, and the text itself so names outside basic Latin load their subset too
+  const text = `${d.name} ${d.raceLabel} ${d.dateLabel}`
+  await Promise.all([`600 80px ${plex}`, `500 30px ${raleway}`, `600 30px ${raleway}`, `700 30px ${raleway}`, `400 50px ${script}`]
+    .map((f) => document.fonts.load(f, text).catch(() => null)))
   const logo = await new Promise<HTMLImageElement | null>((resolve) => {
     const img = new Image()
     img.onload = () => resolve(img)
@@ -190,8 +193,11 @@ export function ShareDialog({ data, lang, onClose }: { data: ShareData; lang: La
         setBlob(b)
         setUrl(URL.createObjectURL(b))
       }, 'image/png')
-    })
-    return () => { cancelled = true }
+    }).catch(() => { /* drawing failed: the dialog stays usable and can be closed */ })
+    // The page behind stays put while the dialog is open
+    const overflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => { cancelled = true; document.body.style.overflow = overflow }
   }, [data, lang])
 
   useEffect(() => () => { if (url) URL.revokeObjectURL(url) }, [url])
@@ -206,8 +212,10 @@ export function ShareDialog({ data, lang, onClose }: { data: ShareData; lang: La
 
   return (
     <dialog ref={dialogRef} onClose={onClose} aria-labelledby="share-title"
-      className="m-auto w-[min(520px,calc(100vw-32px))] rounded-[4px_4px_32px_4px] p-0 backdrop:bg-navy/60">
-      <div className="flex flex-col gap-4 p-5">
+      // A click on the dimmed area around the dialog lands on the <dialog> itself
+      onClick={(e) => { if (e.target === dialogRef.current) dialogRef.current?.close() }}
+      className="m-auto max-h-[calc(100dvh-24px)] w-[min(520px,calc(100vw-24px))] rounded-[4px_4px_32px_4px] p-0 backdrop:bg-navy/60">
+      <div className="flex flex-col gap-3 p-4 sm:gap-4 sm:p-5">
         <div className="flex items-center justify-between gap-3">
           <h2 id="share-title" className="m-0 font-display text-2xl font-semibold text-navy">{t('share_title', lang)}</h2>
           <button type="button" onClick={() => dialogRef.current?.close()} aria-label={t('share_close', lang)}
@@ -217,20 +225,22 @@ export function ShareDialog({ data, lang, onClose }: { data: ShareData; lang: La
         </div>
         <canvas ref={canvasRef} className="hidden" />
         {url
+          // Sized by height so the buttons below always stay on screen
           // eslint-disable-next-line @next/next/no-img-element -- a generated blob URL, not an optimisable asset
-          ? <img src={url} alt={`${data.name}, ${data.sportLabel} ${data.year}: ${data.time}`} className="w-full rounded border border-line" />
-          : <div className="aspect-[4/5] w-full animate-pulse rounded bg-mist" />}
+          ? <img src={url} alt={tf('share_alt', lang, { name: data.name, race: `${data.sportLabel} ${data.year}`, time: data.time, place: data.place, n: data.fieldSize })}
+              className="mx-auto max-h-[min(56dvh,640px)] w-auto max-w-full rounded border border-line" />
+          : <div role="status" aria-label={t('share_loading', lang)} className="mx-auto aspect-[4/5] max-h-[min(56dvh,640px)] w-auto max-w-full animate-pulse rounded bg-mist" />}
         <p className="m-0 text-sm text-muted">{t('share_text', lang)}</p>
-        <div className="flex flex-wrap gap-3">
+        <div className="flex gap-3">
           {canShare && (
             <button type="button" onClick={share}
-              className="inline-flex min-h-12 items-center rounded bg-brand px-5 font-display font-semibold text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-navy focus-visible:ring-offset-2">
+              className="inline-flex min-h-12 items-center whitespace-nowrap rounded bg-brand px-5 font-display font-semibold text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-navy focus-visible:ring-offset-2">
               {t('share_share', lang)}
             </button>
           )}
           {url && (
             <a href={url} download={fileName(data)}
-              className={`inline-flex min-h-12 items-center rounded px-5 font-display font-semibold no-underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand ${canShare ? 'border-2 border-navy text-navy' : 'bg-brand text-white'}`}>
+              className={`inline-flex min-h-12 items-center whitespace-nowrap rounded px-4 font-display font-semibold no-underline sm:px-5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand ${canShare ? 'border-2 border-navy text-navy' : 'bg-brand text-white'}`}>
               {t('share_download', lang)}
             </a>
           )}

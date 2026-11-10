@@ -1,7 +1,7 @@
 'use client'
 import { useState, useMemo, useDeferredValue } from 'react'
 import dynamic from 'next/dynamic'
-import { t, tf } from '@/lib/translations'
+import { plural, t, tf } from '@/lib/translations'
 import { CARD_MIST, CARD_NAVY, Eyebrow, H_BLOCK, H_SECTION, PageTitle } from '@/components/ui/brand'
 import { displayTime, parseClock } from '@/lib/season'
 import { currentCourseFrom } from '@/lib/records'
@@ -163,7 +163,7 @@ export function AthletesTab({ data, athleteNames, allTimeRankings, lang, initial
               return (
                 <li key={l}>
                   <button type="button" disabled={!has} onClick={() => setLetter(letter === l ? null : l)} aria-pressed={letter === l}
-                    aria-label={has ? tf('ath_letter_label', lang, { l, n: byLetter.get(l)!.length }) : l}
+                    aria-label={has ? plural(byLetter.get(l)!.length, 'ath_letter_label', lang, { l }) : l}
                     className={`h-11 w-11 rounded-[4px_4px_12px_4px] font-display text-base font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand ${
                       letter === l ? 'bg-brand text-white' : has ? 'bg-white text-navy hover:bg-white/70' : 'cursor-default bg-transparent text-[#b6bac1]'}`}>
                     {l}

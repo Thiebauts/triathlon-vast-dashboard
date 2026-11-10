@@ -156,7 +156,7 @@ test('seasonStory: short and long text carry the summary numbers, in both langua
   assert.ok(en.long.some((p) => p === 'Cycling: Pontus and Josefine won the club title. Pontus set a new course record (23:35).'))
   assert.ok(en.long.some((p) => p.includes('Swimrun: Martin won the club title. New course')))
   const sv = seasonStory(s, 'sv')
-  assert.match(sv.short, /Under 2026 körde klubben 2 klubbmästerskap/)
+  assert.match(sv.short, /Under 2026 körde klubben 2 deltävlingar/)
   assert.ok(sv.long.some((p) => p.startsWith('Cykling: Pontus och Josefine blev klubbmästare.')))
 })
 
@@ -172,12 +172,12 @@ test('seasonStory: long text opens with the yearly trend, describes changes in w
   assert.deepEqual(s.newcomers, { members: ['Cleo'], guests: ['Gus'] })
   assert.deepEqual(s.history.map((h) => [h.year, h.starts]), [['2024', 1], ['2025', 2], ['2026', 4]])
   const en = seasonStory(s, 'en')
-  assert.match(en.long[0], /^With 4 starts, 2026 was the busiest season since the club championships began in 2024\. That compares with 2 in 2025 and 1 a year in 2024\./)
+  assert.match(en.long[0], /^With 4 starts, 2026 was the busiest season since the club championships began in 2024\. That compares with 2 in 2025 and 1 in 2024\./)
   assert.equal(en.long[1], 'Running grew the most, from 2 to 4 starts.')
   assert.ok(!en.long.join(' ').includes('→'), 'no arrows in the text')
   assert.ok(en.long.some((p) => p.includes('2 personal bests: Ann (−0:40) and Bo (−0:10).')))
   assert.equal(en.long[en.long.length - 1], 'A warm welcome to the 2 athletes (1 members, 1 guests) who raced their first club championship in 2026: Cleo, and our guests Gus.')
-  assert.match(seasonStory(s, 'sv').long[0], /Det kan jämföras med 2 år 2025/)
+  assert.match(seasonStory(s, 'sv').long[0], /Det kan jämföras med 2 starter 2025 och 1 under 2024\./)
 })
 
 test('names per number of races, and the first season flag', () => {

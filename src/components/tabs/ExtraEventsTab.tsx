@@ -1,31 +1,29 @@
 'use client'
 import { useMemo, useCallback, Fragment } from 'react'
-import { t } from '@/lib/translations'
-import { BTN_PRIMARY, PageTitle } from '@/components/ui/brand'
+import { t, tf } from '@/lib/translations'
+import { BTN_PRIMARY, CARD_MIST, H_BLOCK, MEDAL_COLORS, PageTitle } from '@/components/ui/brand'
+import { classLabel } from '@/lib/classes'
+import { displayTime } from '@/lib/season'
 import { athleteKey, computeSplitRanks, type SplitRanks } from '@/lib/data'
 import { csvEscape, toCsvFile } from '@/lib/csv'
 import { formatDate } from '@/lib/dates'
 import type { AthleteResult, ExtraCategory, ExtraEvent, Lang } from '@/lib/types'
 
-const MEDAL = {
-  1: { color: '#7D6300' },
-  2: { color: '#56677A' },
-  3: { color: '#85552B' },
-} as Record<number, { color: string }>
+/** Same rank colours as the championship results: medal colours for 1–3, grey after. */
+const rankColor = (n: number) => ({ color: MEDAL_COLORS[n - 1] ?? '#4a4e57' })
 
 function RankCell({ n }: { n: number | undefined }) {
   if (!n) return <span className="text-muted text-[13px]">—</span>
-  const style = MEDAL[n] ?? { color: '#6B7280' }
   const weight = n <= 3 ? 'font-semibold' : 'font-normal'
-  return <span style={style} className={`text-[13px] tabular-nums ${weight}`}>{n}</span>
+  return <span style={rankColor(n)} className={`text-[13px] tabular-nums ${weight}`}>{n}</span>
 }
 
+/** Times read like everywhere else on the site: 14:35, not 00:14:35. */
 function fmt(v: string | undefined) {
-  return v && v !== 'N/A' ? v : '—'
+  return v && v !== 'N/A' ? displayTime(v) : '—'
 }
 
-/** "10 juni 2026" / "10 June 2026" — parsed as local date parts to avoid the
- *  UTC-midnight day shift `new Date('YYYY-MM-DD')` can produce. */
+/** Columns only shown from tablet width up. */
 const D = 'hidden sm:table-cell'
 
 /**
@@ -101,13 +99,18 @@ export function ExtraEventsTab({ events, lang, eventDate, category, onEventChang
     [events, eventDate],
   )
 
-  const segs = event ? (FORMAT_SEGMENTS[event.format] ?? []) : []
-
   // CSV order is already ranked-finishers-then-partials; the category filter
   // never reorders, so partials stay at the bottom.
   const rows = useMemo(
     () => (event ? event.results.filter((a) => inCategory(a, category)) : []),
     [event, category],
+  )
+
+  // A split nobody has a time for (e.g. no transitions timed in the children's
+  // race) would be a column of dashes: leave it out
+  const segs = useMemo(
+    () => (event ? (FORMAT_SEGMENTS[event.format] ?? []) : []).filter((s) => rows.some((a) => ((a[s.secondsKey] as number | undefined) ?? 0) > 0)),
+    [event, rows],
   )
 
   // Split ranks share the SAME pool as the visible rows, mirroring the KM
@@ -161,7 +164,7 @@ export function ExtraEventsTab({ events, lang, eventDate, category, onEventChang
       </div>
 
       {events.length === 0 ? (
-        <div className="rounded bg-mist p-8 text-center text-[15px] text-muted">
+        <div className={`${CARD_MIST} p-8 text-center text-[15px] text-muted`}>
           {t('no_extra_events', lang)}
         </div>
       ) : (
@@ -179,7 +182,7 @@ export function ExtraEventsTab({ events, lang, eventDate, category, onEventChang
                 }}
                 className="h-12 w-full max-w-full truncate rounded border border-line bg-mist px-3 text-[15px] font-medium text-navy focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand">
                 {events.map((e) => (
-                  <option key={e.file} value={e.file}>{e.title[lang]} — {formatDate(e.date, lang)}</option>
+                  <option key={e.file} value={e.file}>{e.title[lang]} – {formatDate(e.date, lang)}</option>
                 ))}
               </select>
             </div>
@@ -194,7 +197,7 @@ export function ExtraEventsTab({ events, lang, eventDate, category, onEventChang
             </div>
             <div className="flex flex-wrap items-center gap-3 ml-auto self-center">
               {event.location && <span className="text-sm text-muted">{event.location}</span>}
-              <span className="text-xs text-muted" aria-live="polite">{rows.length} {t('total_results', lang)}</span>
+              <span className="text-sm text-muted" aria-live="polite">{tf(rows.length === 1 ? 'res_shown_one' : 'res_shown', lang, { n: rows.length })}</span>
               <button onClick={exportCsv}
                 className={BTN_PRIMARY}>
                 {t('export_csv', lang)}
@@ -205,7 +208,7 @@ export function ExtraEventsTab({ events, lang, eventDate, category, onEventChang
           {/* Event context: format, distances, who it's for (from the manifest) */}
           {event.description?.[lang] && (
             <div className="rounded-[4px_4px_40px_4px] bg-mist px-6 py-5">
-              <h3 className="mb-1.5 mt-0 font-display text-[24px] font-semibold leading-tight text-navy">{event.title[lang]} — {formatDate(event.date, lang)}</h3>
+              <h3 className={`${H_BLOCK} mb-1.5`}>{event.title[lang]} – {formatDate(event.date, lang)}</h3>
               <p className="m-0 text-[15px] leading-relaxed">{event.description[lang]}</p>
             </div>
           )}
@@ -215,26 +218,26 @@ export function ExtraEventsTab({ events, lang, eventDate, category, onEventChang
           )}
 
           {/* Results table */}
-          <div className="overflow-x-auto">
+          <div tabIndex={0} role="region" aria-label={event.title[lang]} className="overflow-x-auto focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand">
             {rows.length === 0 ? (
-              <p className="p-8 text-center text-xs text-muted">{t('no_data_available', lang)} {t(event.format, lang)}</p>
+              <p className={`${CARD_MIST} m-0 p-8 text-center text-[15px] text-muted`}>{tf('res_empty', lang, { sport: event.title[lang] })}</p>
             ) : (
               <table className="min-w-full text-[15px]">
                 <thead>
                   <tr className="text-left font-display text-sm text-white [&>th]:bg-navy">
-                    <th scope="col" className="px-3 py-3 text-left font-semibold">
-                      {category === 'all' ? t('overall_rank', lang) : t('class_rank', lang)}
-                    </th>
-                    <th scope="col" className="px-3 py-3 text-left font-semibold">{t('name', lang)}</th>
+                    <th scope="col" className="px-2 py-3 text-left font-semibold sm:px-3">{t('rank', lang)}</th>
+                    <th scope="col" className="px-2 py-3 text-left font-semibold sm:px-3">{t('name', lang)}</th>
                     <th scope="col" className={`px-3 py-3 text-left font-semibold ${D}`}>{t('club', lang)}</th>
-                    <th scope="col" className={`px-3 py-3 text-left font-semibold ${D}`}>{t('gender', lang)}</th>
-                    <th scope="col" className="px-3 py-3 text-left font-semibold">{t('total_time', lang)}</th>
+                    <th scope="col" className={`px-3 py-3 text-left font-semibold ${D}`}>{t('res_filter_category', lang)}</th>
                     {segs.map((s) => (
                       <Fragment key={s.labelKey}>
-                        <th scope="col" className={`px-2 py-3 text-left font-semibold border-l border-line ${D}`}>{t(s.labelKey, lang)}</th>
-                        <th scope="col" className={`px-2 py-3 text-center font-semibold text-[#c3c6d1] ${D}`}>#</th>
+                        <th scope="col" className={`border-l border-[#3a4250] py-3 pl-2 pr-1 text-right font-semibold ${D}`}>{t(s.labelKey, lang)}</th>
+                        <th scope="col" className={`py-3 pl-1 pr-2 text-right font-semibold text-[#c3c6d1] ${D}`}>
+                          <span aria-hidden="true">#</span><span className="sr-only">{tf('res_split_rank', lang, { leg: t(s.labelKey, lang) })}</span>
+                        </th>
                       </Fragment>
                     ))}
+                    <th scope="col" className="border-l border-[#3a4250] px-2 py-3 text-right font-semibold sm:px-3">{t('res_time', lang)}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -249,29 +252,30 @@ export function ExtraEventsTab({ events, lang, eventDate, category, onEventChang
                     return (
                       <tr key={`${a.Name}-${i}`}
                         className={`${bg} border-b border-line hover:bg-mist`}>
-                        <th scope="row" className="px-3 py-2.5 font-semibold tabular-nums">
+                        <th scope="row" className="px-2 py-2.5 text-left font-display font-semibold tabular-nums sm:px-3">
                           {rank !== null
-                            ? <span style={MEDAL[rank] ?? { color: '#6B7280' }}>{rank}</span>
+                            ? <span style={rankColor(rank)}>{rank}</span>
                             : <span className="text-muted font-normal">—</span>}
                         </th>
-                        <td className="px-3 py-2.5 whitespace-nowrap font-semibold text-navy">{a.Name}</td>
-                        <td className={`px-3 py-2.5 text-muted ${D}`}>{a.is_club_member ? a.Club : t('guest', lang)}</td>
-                        <td className={`px-3 py-2.5 text-muted ${D}`}>{a.Class}</td>
-                        <td className="px-3 py-2.5 font-display font-semibold tabular-nums text-navy">
-                          {isPartial
-                            ? <span className="font-sans font-normal text-muted">{completedLegsLabel(a, event, lang)}</span>
-                            : fmt(a.Total_Time)}
-                        </td>
+                        {/* Names wrap on phones so the time next to them always stays on screen */}
+                        <td className="px-2 py-2.5 font-semibold text-navy sm:whitespace-nowrap sm:px-3">{a.Name}</td>
+                        <td className={`px-3 py-2.5 text-muted ${D}`}>{a.is_club_member ? t('club_member_short', lang) : t('guest', lang)}</td>
+                        <td className={`px-3 py-2.5 text-muted ${D}`}>{classLabel(a.Class, lang)}</td>
                         {segs.map((s) => (
                           <Fragment key={s.labelKey}>
-                            <td className={`px-2 py-2.5 tabular-nums border-l border-line ${D}`}>
+                            <td className={`border-l border-line py-2.5 pl-2 pr-1 text-right tabular-nums ${D}`}>
                               {fmt(a[s.timeKey] as string | undefined)}
                             </td>
-                            <td className={`px-2 py-2.5 text-center ${D}`}>
+                            <td className={`py-2.5 pl-1 pr-2 text-right ${D}`}>
                               <RankCell n={sr[s.rankKey]} />
                             </td>
                           </Fragment>
                         ))}
+                        <td className="border-l border-line px-2 py-2.5 text-right font-display font-semibold tabular-nums text-navy sm:px-3">
+                          {isPartial
+                            ? <span className="font-sans text-sm font-normal text-muted">{completedLegsLabel(a, event, lang)}</span>
+                            : fmt(a.Total_Time)}
+                        </td>
                       </tr>
                     )
                   })}

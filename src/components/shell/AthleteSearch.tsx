@@ -1,6 +1,6 @@
 'use client'
 import { useId, useMemo, useRef, useState } from 'react'
-import { t, tf } from '@/lib/translations'
+import { plural, t } from '@/lib/translations'
 import { matchesSearch } from '@/lib/search'
 import type { Lang } from '@/lib/types'
 
@@ -98,7 +98,7 @@ export function AthleteSearch({ athleteNames, lang, onSelect }: Props) {
           <li role="option" aria-selected={false} aria-disabled="true" className="px-2.5 py-2 text-[15px] text-muted">{t('search_no_match', lang)}</li>
         )}
       </ul>
-      <span className="sr-only" aria-live="polite">{!showList ? '' : matches.length > 0 ? tf('search_results_count', lang, { n: matches.length }) : t('search_no_match', lang)}</span>
+      <span className="sr-only" aria-live="polite">{!showList ? '' : matches.length > 0 ? plural(matches.length, 'search_results_count', lang) : t('search_no_match', lang)}</span>
     </div>
   )
 }

@@ -3,14 +3,14 @@
 // legible at phone width, carry their numbers as visible text (the youth
 // colour is below 3:1 against white, so colour never stands alone) and need
 // no client-side chart library.
-import { t, tf } from '@/lib/translations'
+import { plural, t, tf } from '@/lib/translations'
+import { GROUP_COLOR, INK, SERIES } from './theme'
 import { displayTime, type Improvement, type RaceSummary } from '@/lib/season'
 import type { Lang } from '@/lib/types'
 
-// Validated categorical palette (dataviz skill, light surface): fixed order.
-const COLOR = { men: '#2a78d6', women: '#eb6834', youth: '#1baf7a', relay: '#888780' } as const
-const PREVIOUS = '#888780'
-const CURRENT = '#2a78d6'
+const COLOR = GROUP_COLOR
+const PREVIOUS = INK.neutral
+const CURRENT = SERIES[0]
 
 /** 2001 → "33:21", 4861 → "1:21:01" (truncated, like every time on the site). */
 export function clock(seconds: number): string {
@@ -21,12 +21,12 @@ export function clock(seconds: number): string {
   return h ? `${h}:${String(m).padStart(2, '0')}:${ss}` : `${m}:${ss}`
 }
 
-function Legend({ items }: { items: Array<{ color: string; label: string; round?: boolean }> }) {
+function Legend({ items }: { items: Array<{ color: string; label: string; round?: boolean; tick?: boolean }> }) {
   return (
-    <div className="flex flex-wrap gap-x-4 gap-y-1 mb-2 text-[11px] text-gray-600">
+    <div className="flex flex-wrap gap-x-4 gap-y-1 mb-2 text-xs text-muted">
       {items.map((i) => (
         <span key={i.label} className="flex items-center gap-1.5">
-          <span aria-hidden="true" className={`inline-block w-2.5 h-2.5 ${i.round ? 'rounded-full' : 'rounded-sm'}`} style={{ background: i.color }} />
+          <span aria-hidden="true" className={`inline-block h-2.5 ${i.tick ? 'w-0.5' : 'w-2.5'} ${i.round ? 'rounded-full' : 'rounded-sm'}`} style={{ background: i.color }} />
           {i.label}
         </span>
       ))}
@@ -50,19 +50,20 @@ export function ParticipationBars({ races, year, lang }: { races: RaceSummary[];
       ].filter((s) => s.n > 0),
     }
   })
+  const hasPrevious = races.some((r) => r.startsPreviousYear)
   return (
     <div>
+      {/* Only what this season's bars actually show */}
       <Legend items={[
-        { color: COLOR.men, label: t('season_men', lang) },
-        { color: COLOR.women, label: t('season_women', lang) },
-        { color: COLOR.youth, label: t('season_youth', lang) },
-        { color: COLOR.relay, label: t('season_relay', lang) },
-        { color: '#1f2937', label: tf('season_prev_year_marker', lang, { y: prevYear }) },
+        ...(['men', 'women', 'youth', 'relay'] as const)
+          .filter((k) => rows.some((r) => r.segments.some((s) => s.key === k)))
+          .map((k) => ({ color: COLOR[k], label: t(`season_${k}`, lang) })),
+        ...(hasPrevious ? [{ color: INK.navy, label: tf('season_prev_year_marker', lang, { y: prevYear }), tick: true }] : []),
       ]} />
       <div aria-hidden="true" className="space-y-2.5">
         {rows.map(({ race, segments }) => (
           <div key={race.sport} className="grid grid-cols-[4.5rem_minmax(0,1fr)_4.5rem] sm:grid-cols-[6rem_minmax(0,1fr)_6rem] items-center gap-x-2">
-            <span className="text-xs text-gray-700 truncate">{t(race.sport, lang)}</span>
+            <span className="text-xs text-navy truncate">{t(race.sport, lang)}</span>
             <div className="relative h-5">
               <div className="flex h-full">
                 {segments.map((s, i) => (
@@ -81,17 +82,17 @@ export function ParticipationBars({ races, year, lang }: { races: RaceSummary[];
               {race.startsPreviousYear && (
                 <div
                   title={`${tf('season_prev_year_marker', lang, { y: prevYear })}: ${race.startsPreviousYear}`}
-                  className="absolute -top-0.5 -bottom-0.5 w-0.5 bg-gray-800"
+                  className="absolute -top-0.5 -bottom-0.5 w-0.5 bg-navy"
                   style={{ left: `calc(${(race.startsPreviousYear / max) * 100}% - 1px)` }}
                 />
               )}
             </div>
-            <span className="text-xs text-gray-700 tabular-nums">
+            <span className="text-xs text-navy tabular-nums">
               <strong>{race.starts.total}</strong>
-              {race.startsPreviousYear && <span className="text-gray-500"> ({race.startsPreviousYear})</span>}
+              {race.startsPreviousYear && <span className="text-muted"> ({race.startsPreviousYear})</span>}
             </span>
             {/* Every segment's number in text: colour never carries it alone */}
-            <span className="col-start-2 col-span-2 mt-1 text-[11px] text-gray-500 tabular-nums">
+            <span className="col-start-2 col-span-2 mt-1 text-xs text-muted tabular-nums">
               {segments.map((s) => `${s.n} ${s.label.toLowerCase()}`).join(' · ')}
             </span>
           </div>
@@ -109,7 +110,7 @@ export function ParticipationBars({ races, year, lang }: { races: RaceSummary[];
               <th scope="col">{t('season_youth', lang)}</th>
               <th scope="col">{t('season_relay', lang)}</th>
               <th scope="col">{t('total', lang)}</th>
-              <th scope="col">{tf('season_prev_year_marker', lang, { y: prevYear })}</th>
+              {hasPrevious && <th scope="col">{tf('season_prev_year_marker', lang, { y: prevYear })}</th>}
             </tr>
           </thead>
           <tbody>
@@ -121,7 +122,7 @@ export function ParticipationBars({ races, year, lang }: { races: RaceSummary[];
                 <td>{r.starts.youth}</td>
                 <td>{r.starts.total - r.starts.men - r.starts.women - r.starts.youth}</td>
                 <td>{r.starts.total}</td>
-                <td>{r.startsPreviousYear ?? '—'}</td>
+                {hasPrevious && <td>{r.startsPreviousYear ?? '—'}</td>}
               </tr>
             ))}
           </tbody>
@@ -139,18 +140,18 @@ export function MembersPerRaceCount({ racesPerMember, raceCount, lang }: {
   const max = Math.max(1, ...counts)
   return (
     <div>
-      <div aria-hidden="true" className="flex items-end gap-2 h-32 border-b border-gray-300">
+      <div aria-hidden="true" className="flex items-end gap-2 h-32 border-b border-line">
         {counts.map((n, i) => (
-          <div key={i} className="flex-1 flex flex-col items-center justify-end h-full" title={`${i + 1} ${t('season_loyalty_races', lang)}: ${n} ${t('season_loyalty_members', lang)}`}>
-            <span className="text-[11px] text-gray-700 tabular-nums mb-0.5">{n}</span>
+          <div key={i} className="flex-1 flex flex-col items-center justify-end h-full" title={`${plural(i + 1, 'season_loyalty_races_n', lang)}: ${plural(n, 'season_loyalty_members_n', lang)}`}>
+            <span className="text-xs text-navy tabular-nums mb-0.5">{n}</span>
             <div className="w-full max-w-[2.5rem] rounded-t" style={{ height: `${(n / max) * 85}%`, minHeight: n ? 2 : 0, background: CURRENT }} />
           </div>
         ))}
       </div>
       <div aria-hidden="true" className="flex gap-2 mt-1">
-        {counts.map((_, i) => <span key={i} className="flex-1 text-center text-[11px] text-gray-500 tabular-nums">{i + 1}</span>)}
+        {counts.map((_, i) => <span key={i} className="flex-1 text-center text-xs text-muted tabular-nums">{i + 1}</span>)}
       </div>
-      <p aria-hidden="true" className="text-center text-[11px] text-gray-500">{t('season_loyalty_races', lang)}</p>
+      <p aria-hidden="true" className="text-center text-xs text-muted">{t('season_loyalty_races', lang)}</p>
       <div className="sr-only">
         <table>
           <caption>{t('season_loyalty', lang)}</caption>
@@ -193,21 +194,21 @@ export function PersonalBestChart({ pbs, year, lang, onAthleteClick }: {
           <li key={p.name} className={grid}>
             {onAthleteClick ? (
               <button onClick={() => onAthleteClick(p.name)}
-                className="min-h-6 text-left text-xs text-gray-800 truncate hover:text-red-700 hover:underline focus-visible:ring-2 focus-visible:ring-red-700 focus-visible:ring-offset-1 rounded">
+                className="min-h-9 text-left text-[13px] font-semibold text-navy break-words hover:text-brand hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand rounded">
                 {p.name}
               </button>
-            ) : <span className="text-xs text-gray-800 truncate">{p.name}</span>}
+            ) : <span className="text-[13px] font-semibold text-navy break-words">{p.name}</span>}
             <div className={`relative h-5 ${trackCell}`} aria-hidden="true">
-              {ticks.map((v) => <div key={v} className="absolute top-0 bottom-0 w-px bg-gray-100" style={{ left: pos(v) }} />)}
-              <div className="absolute top-1/2 h-0.5 -translate-y-1/2 bg-gray-300" style={{ left: pos(p.seconds), width: `calc(${pos(p.previousBest.seconds)} - ${pos(p.seconds)})` }} />
+              {ticks.map((v) => <div key={v} className="absolute top-0 bottom-0 w-px bg-line" style={{ left: pos(v) }} />)}
+              <div className="absolute top-1/2 h-0.5 -translate-y-1/2 bg-[#c3c6d1]" style={{ left: pos(p.seconds), width: `calc(${pos(p.previousBest.seconds)} - ${pos(p.seconds)})` }} />
               <span title={`${t('season_pb_prev', lang)}: ${displayTime(p.previousBest.time)} (${p.previousBest.year})`}
                 className="absolute top-1/2 w-2.5 h-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full ring-2 ring-white" style={{ left: pos(p.previousBest.seconds), background: PREVIOUS }} />
               <span title={`${year}: ${displayTime(p.time)}`}
                 className="absolute top-1/2 w-2.5 h-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full ring-2 ring-white" style={{ left: pos(p.seconds), background: CURRENT }} />
             </div>
             <span className="text-right leading-tight">
-              <span className="text-xs font-semibold text-gray-800 tabular-nums sm:block">−{clock(p.gain)}</span>
-              <span className="text-[11px] text-gray-500 sm:block"><span className="sm:hidden"> · </span>{tf('season_pb_best_year', lang, { y: p.previousBest.year })}</span>
+              <span className="text-xs font-semibold text-navy tabular-nums sm:block">−{clock(p.gain)}</span>
+              <span className="text-xs text-muted sm:block"><span className="sm:hidden"> · </span>{tf('season_pb_best_year', lang, { y: p.previousBest.year })}</span>
             </span>
           </li>
         ))}
@@ -216,7 +217,7 @@ export function PersonalBestChart({ pbs, year, lang, onAthleteClick }: {
         <span className="hidden sm:block" />
         <div className={`relative h-4 ${trackCell}`}>
           {ticks.map((v) => (
-            <span key={v} className="absolute -translate-x-1/2 text-[11px] text-gray-500 tabular-nums" style={{ left: pos(v) }}>{clock(v)}</span>
+            <span key={v} className="absolute -translate-x-1/2 text-xs text-muted tabular-nums" style={{ left: pos(v) }}>{clock(v)}</span>
           ))}
         </div>
         <span className="hidden sm:block" />

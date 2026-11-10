@@ -27,7 +27,7 @@ function Name({ name, onClick }: { name: string; onClick?: (name: string) => voi
   if (!onClick) return <>{name}</>
   return (
     <button onClick={() => onClick(name)}
-      className="min-h-6 inline-flex items-center text-left font-semibold text-navy hover:text-brand hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand rounded">
+      className="min-h-9 inline-flex items-center text-left font-semibold text-navy hover:text-brand hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand rounded">
       {name}
     </button>
   )
@@ -39,9 +39,9 @@ function Podium({ title, entries, onAthleteClick }: { title: string; entries: Ar
       <div className="mb-1 text-sm font-bold uppercase tracking-[0.06em] text-muted">{title}</div>
       <ol>
         {entries.map((e, i) => (
-          <li key={e.name} className="flex min-h-9 items-center gap-2.5 border-b border-line text-[15px] last:border-b-0">
+          <li key={e.name} className="flex min-h-11 items-center gap-2.5 border-b border-line py-1 text-[15px] last:border-b-0">
             <span className="w-5 font-display font-semibold tabular-nums" style={{ color: MEDAL_COLOR[i] }}>{i + 1}</span>
-            <span className="min-w-0 flex-1 truncate"><Name name={e.name} onClick={onAthleteClick} /></span>
+            <span className="min-w-0 flex-1 break-words leading-snug"><Name name={e.name} onClick={onAthleteClick} /></span>
             <span className="font-display font-semibold tabular-nums text-navy">{e.value}</span>
           </li>
         ))}
@@ -52,7 +52,7 @@ function Podium({ title, entries, onAthleteClick }: { title: string; entries: Ar
 
 function Kpi({ label, value, sub }: { label: string; value: number; sub: string }) {
   return (
-    <div className={CARD}>
+    <div className={`${CARD} h-full`}>
       <div className="font-display text-[40px] font-semibold leading-[1.1] tabular-nums text-brand">{value}</div>
       <div className="text-[15px] font-semibold text-navy">{label}</div>
       <div className="text-[13px] leading-snug text-muted">{sub}</div>
@@ -208,12 +208,12 @@ export function SeasonTab({ data, lang, year, onYearChange, onAthleteClick, onNa
 
       {/* The season in words: short paragraph, full race-by-race version on demand */}
       <div className={`${CARD_MIST} px-6 py-6`}>
-        <p className="m-0 text-base leading-[1.8] text-ink">{story.short}</p>
+        <p className="m-0 max-w-[75ch] text-base leading-[1.8] text-ink">{story.short}</p>
         <details className="mt-3">
           <summary className={`${LINK_BTN} w-fit cursor-pointer text-[15px]`}>
             {t('season_read_more', lang)}
           </summary>
-          <div className="mt-3 space-y-3 border-l-2 border-brand/30 pl-4">
+          <div className="mt-3 max-w-[75ch] space-y-3 border-l-2 border-brand/30 pl-4">
             {story.long.map((para, i) => <p key={i} className="m-0 text-[15px] leading-relaxed">{para}</p>)}
           </div>
         </details>

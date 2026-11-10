@@ -4,6 +4,7 @@ import { plural, t, tf } from '@/lib/translations'
 import type { AthleteResult, CompetitionsData, SportType, Lang, ResultsCategory } from '@/lib/types'
 import { athleteKey, computeSplitRanks, computeEventPoints, isFinisher, isReliableSplit, isRelay, type SplitRanks } from '@/lib/data'
 import { COURSE_HISTORY, courseIndex } from '@/lib/courses'
+import { classLabel } from '@/lib/classes'
 import { matchesSearch } from '@/lib/search'
 import { formatDate } from '@/lib/dates'
 import { displayTime, getSeasonSummary } from '@/lib/season'
@@ -51,12 +52,6 @@ function Tag({ tag, lang }: { tag: ResultTag; lang: Lang }) {
   )
 }
 
-/** "Herr" → "Men" etc. for display; other classes as written. */
-function classLabel(a: AthleteResult, lang: Lang) {
-  if (a.class_lower === 'herr') return t('men', lang)
-  if (a.class_lower === 'dam') return t('women', lang)
-  return a.Class
-}
 
 /**
  * Classes that raced a shorter, separate course and are therefore shown as
@@ -153,7 +148,7 @@ function ResultRow({ a, rank, i, lang, yearValue, segs, splitRank, points, tag, 
           {!a.is_club_member && <span className="text-sm italic text-muted">{t('guest', lang)}</span>}
         </span>
       </td>
-      <td className="px-2 py-2.5">{classLabel(a, lang)}</td>
+      <td className="px-2 py-2.5">{classLabel(a.Class, lang)}</td>
       {yearValue === 'all' && <td className="px-2 py-2.5 text-muted">{a.Competition_Year}</td>}
       {segs.map((s) => {
         const fastest = isBestSplit(a, s.timeKey, best)
@@ -198,7 +193,7 @@ function ResultCard({ a, rank, lang, yearValue, segs, points, tag, best, onAthle
           <NameButton a={a} onAthleteClick={onAthleteClick} className="text-base leading-snug" />
           <span className="mt-1 flex flex-wrap items-center gap-1.5 text-[13px] text-muted">
             <span className={a.is_club_member ? '' : 'italic'}>
-              {classLabel(a, lang)} · {a.is_club_member ? a.Club : t('guest', lang)}{yearValue === 'all' ? ` · ${a.Competition_Year}` : ''}
+              {classLabel(a.Class, lang)} · {a.is_club_member ? a.Club : t('guest', lang)}{yearValue === 'all' ? ` · ${a.Competition_Year}` : ''}
             </span>
             {tag && <Tag tag={tag} lang={lang} />}
           </span>
@@ -708,7 +703,7 @@ export function ResultsTab({ data, lang, lastUpdated, raceDates, onAthleteClick,
               ))}
               {classBlocks.map((group) => (
                 <Fragment key={group.cls}>
-                  <li className="mt-3 text-xs font-bold uppercase tracking-[0.06em] text-muted">{group.cls} <span className="font-normal normal-case tracking-normal">· {group.note}</span></li>
+                  <li className="mt-3 text-xs font-bold uppercase tracking-[0.06em] text-muted">{classLabel(group.cls, lang)} <span className="font-normal normal-case tracking-normal">· {group.note}</span></li>
                   {group.rows.map(({ athlete: a, rank }, i) => (
                     <ResultCard key={`${a.Name}-${a.Competition_Year}-${i}`} a={a} rank={rank} lang={lang} yearValue={yearValue} segs={segs}
                       points={0} tag={undefined} best={null} onAthleteClick={onAthleteClick} />
@@ -765,7 +760,7 @@ export function ResultsTab({ data, lang, lastUpdated, raceDates, onAthleteClick,
                     <Fragment key={group.cls}>
                       <tr className="border-y border-line bg-mist">
                         <td colSpan={colCount} className="px-4 py-2">
-                          <span className="text-xs font-bold uppercase tracking-[0.06em] text-muted">{group.cls}</span>
+                          <span className="text-xs font-bold uppercase tracking-[0.06em] text-muted">{classLabel(group.cls, lang)}</span>
                           <span className="ml-2 text-[13px] text-muted">{group.note}</span>
                         </td>
                       </tr>

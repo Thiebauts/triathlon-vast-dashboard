@@ -97,7 +97,7 @@ export function OverviewTab({ data, lang, lastUpdated, raceDates, onNavigateToSe
       </section>
 
       {/* The cup in a few words, with the season's key numbers */}
-      <section className="mx-auto flex max-w-[1200px] flex-wrap items-center gap-10 pb-14 pt-8">
+      <section className="mx-auto flex w-full max-w-[1200px] flex-wrap items-center gap-10 pb-14 pt-8">
         <div className="min-w-0 flex-[1_1_420px]">
           <SectionTitle eyebrow={t('ov_intro_eyebrow', lang)} title={tf('ov_intro_title', lang, { races: SEASON_SPORTS.length })} />
           <div aria-hidden="true" className="my-5 h-px w-20 bg-[#a3a8ac]" />
@@ -159,7 +159,7 @@ export function OverviewTab({ data, lang, lastUpdated, raceDates, onNavigateToSe
       </section>
 
       {/* Standings */}
-      <section aria-labelledby="ov-standings" className="mx-auto max-w-[1200px] py-14">
+      <section aria-labelledby="ov-standings" className="mx-auto w-full max-w-[1200px] py-14">
         <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
           <SectionTitle id="ov-standings" eyebrow={t('ov_standings_eyebrow', lang)} title={tf('ov_standings_title', lang, { year })} />
           {onNavigateToRankings && <button type="button" onClick={onNavigateToRankings} className={BTN_PRIMARY}>{t('ov_full_ranking', lang)}</button>}
@@ -184,7 +184,7 @@ export function OverviewTab({ data, lang, lastUpdated, raceDates, onNavigateToSe
       </section>
 
       {/* More: other events, participation over the years, about */}
-      <section aria-labelledby="ov-more" className="mx-auto max-w-[1200px] border-t border-line pt-14">
+      <section aria-labelledby="ov-more" className="mx-auto w-full max-w-[1200px] border-t border-line pt-14">
         <SectionTitle id="ov-more" eyebrow={t('ov_more_eyebrow', lang)} title={t('overview_extra_title', lang)} />
         <p className="mb-0 mt-4 max-w-[640px] leading-[1.8]">{t('overview_extra_text', lang)}</p>
         {onNavigateToExtra && (
