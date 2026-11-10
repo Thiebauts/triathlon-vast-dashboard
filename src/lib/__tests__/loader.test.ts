@@ -1,5 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
+import { getFastestOfDay } from '../raceDay.ts'
 import { parseCsv, loadAllCompetitions, loadExtraEvents } from '../loader.ts'
 
 // ─── parseCsv ───────────────────────────────────────────────────────────────
@@ -77,6 +78,15 @@ test('loadAllCompetitions: membership confirmed by the club, per person and per 
     assert.equal(a.is_club_member, a.Competition_Year === '2026', `Helena ${a.Competition_Year}`)
   }
   assert.equal(rows('Helena Jakobsson Larsson', '2023').length, 2)
+})
+
+test('loadAllCompetitions: a split confirmed as a timing error is cleared, the result stays', () => {
+  const data = loadAllCompetitions()
+  const armando = data.duathlon.find((a) => a.Name === 'Armando Hurtado Sandoval' && a.Competition_Year === '2024')!
+  assert.equal(armando.Run1_Seconds, 0)
+  assert.equal(armando.Run1_Time, '')
+  assert.equal(armando.Total_Time, '01:26:04')
+  assert.equal(getFastestOfDay(data.duathlon, 'duathlon', '2024')[1].men?.name, 'Jonathan Flod')
 })
 
 test('loadAllCompetitions: merges confirmed name variants into one athlete', () => {

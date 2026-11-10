@@ -132,6 +132,19 @@ export const CLUB_CORRECTIONS_BY_YEAR: ReadonlyMap<string, string> = new Map([
 ])
 
 /**
+ * Split times the club has confirmed as timing errors, keyed by
+ * "name|sport|year" → the split columns to blank ('Run1' = Run1_Time and
+ * Run1_Seconds). The loader clears them, so the split shows as "—" and can't
+ * be ranked or win "fastest of the day"; the finish time, place and points
+ * are untouched. Fixes rows already in data/ without hand-editing the CSVs.
+ */
+export const SPLIT_EXCLUSIONS: ReadonlyMap<string, readonly string[]> = new Map([
+  // 16:38 for the first 5 km (faster than the race winner) by the 19th finisher,
+  // with no T1 recorded: the chip was read early
+  ['Armando Hurtado Sandoval|duathlon|2024', ['Run1']],
+])
+
+/**
  * Name variants confirmed as the same athlete, mapped to the canonical
  * spelling so one person keeps one profile and one ranking total. Fixes rows
  * already in data/ (older races can't be re-fetched cleanly). Mirrors
