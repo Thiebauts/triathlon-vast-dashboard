@@ -16,7 +16,7 @@ const TRANSLATIONS: Record<string, { en: string; sv: string }> = {
   menu_show:          { en: 'Menu',             sv: 'Meny' },
   menu_hide:          { en: 'Hide menu',        sv: 'Dölj menyn' },
   menu_close:         { en: 'Close menu',       sv: 'Stäng menyn' },
-  nav_label:          { en: 'Dashboard',        sv: 'Dashboard' },
+  nav_label:          { en: 'Main menu',        sv: 'Huvudmeny' },
   nav_group_kmcup:    { en: 'KM Cup',           sv: 'KM Cup' },
   nav_group_people:   { en: 'People',           sv: 'Personer' },
   nav_group_other:    { en: 'Other events',     sv: 'Andra evenemang' },
@@ -95,7 +95,18 @@ const TRANSLATIONS: Record<string, { en: string; sv: string }> = {
   res_tag_pb_long:    { en: 'Personal best on this course', sv: 'Personbästa på banan' },
   res_tag_debut:      { en: 'Debut', sv: 'Debut' },
   res_tag_debut_long: { en: 'First time in this KM race', sv: 'Första gången i detta KM-lopp' },
-  res_tag_summary:    { en: '{pb} personal bests and {debut} debuts this year', sv: '{pb} personbästan och {debut} debuter i år' },
+  res_tag_summary:    { en: '{pb} and {debut} this year', sv: '{pb} och {debut} i år' },
+  res_n_pb_one:       { en: '{n} personal best', sv: '{n} personbästa' },
+  res_n_pb:           { en: '{n} personal bests', sv: '{n} personbästan' },
+  res_n_debut_one:    { en: '{n} debut', sv: '{n} debut' },
+  res_n_debut:        { en: '{n} debuts', sv: '{n} debuter' },
+  res_shown_one:      { en: '{n} result shown', sv: '{n} resultat visas' },
+  res_shown:          { en: '{n} results shown', sv: '{n} resultat visas' },
+  res_no_match:       { en: 'No athlete matches “{q}”.', sv: 'Ingen deltagare matchar ”{q}”.' },
+  res_clear_search:   { en: 'Clear search', sv: 'Rensa sökningen' },
+  res_empty:          { en: 'No results for {sport} with this selection.', sv: 'Inga resultat för {sport} med det här urvalet.' },
+  res_time:           { en: 'Time', sv: 'Tid' },
+  res_best_split_sr:  { en: 'fastest of the day', sv: 'dagens snabbaste' },
   res_best_split:     { en: 'Bold green = fastest split of the day for men or women', sv: 'Fet grön = dagens snabbaste delsträcka för herrar eller damer' },
   res_no_points_note: { en: 'Guests, youth and relay teams are listed but earn no club points.', sv: 'Gäster, ungdomar och stafettlag visas men får inga klubbpoäng.' },
   res_split_rank:     { en: 'Rank in {leg}', sv: 'Placering {leg}' },
@@ -146,7 +157,10 @@ const TRANSLATIONS: Record<string, { en: string; sv: string }> = {
   share_footer:       { en: 'Triathlon Väst club championship', sv: 'Triathlon Västs klubbmästerskap' },
 
   // Athlete page
-  ath_find:           { en: 'Find an athlete', sv: 'Hitta en idrottare' },
+  ath_find:           { en: 'Find an athlete', sv: 'Hitta en deltagare' },
+  ath_find_other:     { en: 'Find another athlete', sv: 'Hitta en annan deltagare' },
+  ath_eyebrow:        { en: 'Athlete', sv: 'Deltagare' },
+  ath_summary:        { en: 'In the club championships', sv: 'I klubbmästerskapen' },
   ath_browse:         { en: 'Or browse by first name', sv: 'Eller bläddra efter förnamn' },
   ath_letter_label:   { en: '{l}: {n} athletes', sv: '{l}: {n} idrottare' },
   ath_letter_list:    { en: 'Athletes whose first name starts with {l}', sv: 'Idrottare vars förnamn börjar på {l}' },
@@ -455,4 +469,9 @@ export function t(key: string, lang: Lang = 'en'): string {
 /** t() with {placeholders} filled in: tf('season_pbs', lang, { n: 7, m: 21 }). */
 export function tf(key: string, lang: Lang, vars: Record<string, string | number>): string {
   return t(key, lang).replace(/\{(\w+)\}/g, (match, name: string) => (name in vars ? String(vars[name]) : match))
+}
+
+/** Counted text with a singular: plural(1, 'res_n_pb', lang) reads the `res_n_pb_one` key, any other number `res_n_pb`. */
+export function plural(n: number, key: string, lang: Lang): string {
+  return tf(n === 1 ? `${key}_one` : key, lang, { n })
 }

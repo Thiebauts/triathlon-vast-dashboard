@@ -1,5 +1,5 @@
 'use client'
-import { useId, useMemo, useState } from 'react'
+import { useId, useMemo, useRef, useState } from 'react'
 import { t, tf } from '@/lib/translations'
 import { matchesSearch } from '@/lib/search'
 import type { Lang } from '@/lib/types'
@@ -20,6 +20,7 @@ interface Props {
 export function AthleteSearch({ athleteNames, lang, onSelect }: Props) {
   const id = useId()
   const listId = `${id}-list`
+  const inputRef = useRef<HTMLInputElement>(null)
   const [query, setQuery] = useState('')
   const [open, setOpen] = useState(false)
   const [active, setActive] = useState(0)
@@ -35,6 +36,8 @@ export function AthleteSearch({ athleteNames, lang, onSelect }: Props) {
     setQuery('')
     setOpen(false)
     setActive(0)
+    // Leave the field: the phone keyboard closes and the page gets the focus
+    inputRef.current?.blur()
     onSelect(name)
   }
 
@@ -55,13 +58,14 @@ export function AthleteSearch({ athleteNames, lang, onSelect }: Props) {
   }
 
   return (
-    <div className="relative w-full" role="search">
+    <div className="relative w-full" role="search" aria-label={t('search_athletes', lang)}>
       <label htmlFor={`${id}-input`} className="sr-only">{t('search_athletes', lang)}</label>
       <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round"
         className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-muted">
         <circle cx="11" cy="11" r="7" /><path d="M20 20l-4-4" />
       </svg>
       <input
+        ref={inputRef}
         id={`${id}-input`}
         type="search"
         role="combobox"
@@ -77,7 +81,7 @@ export function AthleteSearch({ athleteNames, lang, onSelect }: Props) {
         // Delay so a click on an option lands before the list closes
         onBlur={() => setTimeout(() => setOpen(false), 120)}
         onKeyDown={onKeyDown}
-        className="h-12 w-full rounded border border-line bg-mist pl-11 pr-3 text-[15px] text-navy placeholder:text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
+        className="h-12 w-full rounded border border-[#8a8e94] bg-white pl-11 pr-3 text-[15px] text-navy placeholder:text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
       />
       <ul id={listId} role="listbox" aria-label={t('search_athletes', lang)} hidden={!showList}
         className="absolute left-0 right-0 top-[52px] z-30 m-0 list-none rounded-[4px_4px_24px_4px] border border-line bg-white p-1.5 shadow-lg">
@@ -86,7 +90,7 @@ export function AthleteSearch({ athleteNames, lang, onSelect }: Props) {
             // mousedown, not click: fires before the input's blur closes the list
             onMouseDown={(e) => { e.preventDefault(); choose(name) }}
             onMouseEnter={() => setActive(i)}
-            className={`flex min-h-11 cursor-pointer items-center rounded px-2.5 text-[15px] font-semibold text-navy ${i === active ? 'bg-mist' : ''}`}>
+            className={`flex min-h-11 cursor-pointer items-center rounded border-l-4 px-2.5 text-[15px] font-semibold text-navy ${i === active ? 'border-brand bg-mist' : 'border-transparent'}`}>
             {name}
           </li>
         ))}
@@ -94,7 +98,7 @@ export function AthleteSearch({ athleteNames, lang, onSelect }: Props) {
           <li role="option" aria-selected={false} aria-disabled="true" className="px-2.5 py-2 text-[15px] text-muted">{t('search_no_match', lang)}</li>
         )}
       </ul>
-      <span className="sr-only" aria-live="polite">{showList && matches.length > 0 ? tf('search_results_count', lang, { n: matches.length }) : ''}</span>
+      <span className="sr-only" aria-live="polite">{!showList ? '' : matches.length > 0 ? tf('search_results_count', lang, { n: matches.length }) : t('search_no_match', lang)}</span>
     </div>
   )
 }

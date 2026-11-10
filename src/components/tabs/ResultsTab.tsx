@@ -1,6 +1,6 @@
 'use client'
 import { useState, useMemo, useCallback, useDeferredValue, Fragment } from 'react'
-import { t, tf } from '@/lib/translations'
+import { plural, t, tf } from '@/lib/translations'
 import type { AthleteResult, CompetitionsData, SportType, Lang, ResultsCategory } from '@/lib/types'
 import { athleteKey, computeSplitRanks, computeEventPoints, isFinisher, isReliableSplit, isRelay, type SplitRanks } from '@/lib/data'
 import { COURSE_HISTORY, courseIndex } from '@/lib/courses'
@@ -9,7 +9,7 @@ import { formatDate } from '@/lib/dates'
 import { displayTime, getSeasonSummary } from '@/lib/season'
 import { getFastestOfDay, getResultTags, type LegKey, type ResultTag } from '@/lib/raceDay'
 import { ShareButton, ShareDialog, type ShareData } from '@/components/share/ShareResult'
-import { BTN_PRIMARY, CARD_MIST, CARD_NAVY, Eyebrow, MEDAL_COLORS, PageTitle } from '@/components/ui/brand'
+import { BTN_PRIMARY, CARD_MIST, CARD_NAVY, Eyebrow, FIELD, H_SECTION, LINK_BTN, MEDAL_COLORS, PageTitle } from '@/components/ui/brand'
 import { csvEscape, toCsvFile } from '@/lib/csv'
 
 const SPORTS: SportType[] = ['triathlon', 'duathlon', 'swimming', 'cycling', 'running', 'swimrun']
@@ -140,42 +140,48 @@ function ResultRow({ a, rank, i, lang, yearValue, segs, splitRank, points, tag, 
   const finished = rank !== null
   return (
     <tr className={`border-b border-line ${i % 2 ? 'bg-[#f9f9fb]' : 'bg-white'} hover:bg-mist`}>
-      <th scope="row" className="px-4 py-2.5 text-left font-display font-semibold tabular-nums">
+      <th scope="row" className="py-2.5 pl-4 pr-2 text-left font-display font-semibold tabular-nums">
         {rank !== null
           ? <span style={{ color: MEDAL_COLORS[rank - 1] ?? '#4a4e57' }}>{rank}</span>
           : <span className="font-normal text-muted">—</span>}
       </th>
-      <td className="min-w-[230px] px-3 py-2.5">
-        <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
-          <NameButton a={a} onAthleteClick={onAthleteClick} />
+      {/* One line per finisher: name, tag and "guest" stay together so every row has the same height */}
+      <td className="px-2 py-1.5">
+        <span className={`flex items-center gap-x-2 ${isRelay(a) ? 'min-w-[220px]' : 'whitespace-nowrap'}`}>
+          <NameButton a={a} onAthleteClick={onAthleteClick} className="inline-flex min-h-9 items-center" />
           {tag && <Tag tag={tag} lang={lang} />}
-          {onShare && <span className="ml-auto"><ShareButton name={a.Name} lang={lang} onClick={onShare} /></span>}
+          {!a.is_club_member && <span className="text-sm italic text-muted">{t('guest', lang)}</span>}
         </span>
       </td>
-      <td className={`px-3 py-2.5 ${a.is_club_member ? '' : 'italic text-muted'}`}>{a.is_club_member ? a.Club : t('guest', lang)}</td>
-      <td className="px-3 py-2.5">{classLabel(a, lang)}</td>
-      {yearValue === 'all' && <td className="px-3 py-2.5 text-muted">{a.Competition_Year}</td>}
-      {segs.map((s) => (
-        <Fragment key={s.label}>
-          <td className={`border-l border-line px-2 py-2.5 tabular-nums ${isBestSplit(a, s.timeKey, best) ? GREEN : ''}`}>
-            {splitText(a, s.timeKey)}
-          </td>
-          <td className="px-2 py-2.5 text-center text-[13px] tabular-nums text-muted">
-            {(splitRank as Record<string, number | undefined>)[s.rankKey] ?? '—'}
-          </td>
-        </Fragment>
-      ))}
-      <td className="border-l border-line px-3 py-2.5 font-display font-semibold tabular-nums text-navy">
+      <td className="px-2 py-2.5">{classLabel(a, lang)}</td>
+      {yearValue === 'all' && <td className="px-2 py-2.5 text-muted">{a.Competition_Year}</td>}
+      {segs.map((s) => {
+        const fastest = isBestSplit(a, s.timeKey, best)
+        return (
+          <Fragment key={s.label}>
+            <td className={`border-l border-line py-2.5 pl-1.5 pr-1 text-right tabular-nums ${fastest ? GREEN : ''}`}>
+              {splitText(a, s.timeKey)}{fastest && <span className="sr-only"> ({t('res_best_split_sr', lang)})</span>}
+            </td>
+            <td className="py-2.5 pl-1 pr-1.5 text-right text-xs tabular-nums text-muted">
+              {(splitRank as Record<string, number | undefined>)[s.rankKey] ?? '—'}
+            </td>
+          </Fragment>
+        )
+      })}
+      <td className="border-l border-line px-2 py-2.5 text-right font-display font-semibold tabular-nums text-navy">
         {finished ? fmt(a.Total_Time) : <span className="font-sans text-muted">{t('dnf', lang)}</span>}
       </td>
       {/* Points only for one race: across all years the column would just
           repeat 40, 35, 30… for every year's winners */}
       {yearValue !== 'all' && (
-        <td className="px-4 py-2.5 text-right font-display font-semibold tabular-nums">
+        <td className="px-2 py-2.5 text-right font-display font-semibold tabular-nums">
           {earnsPoints(a, rank)
             ? <span className={points > 0 ? 'text-brand' : 'text-muted'}>{points}</span>
             : <span className="text-muted">—</span>}
         </td>
+      )}
+      {yearValue !== 'all' && (
+        <td className="py-0.5 pl-1 pr-2 text-right">{onShare && <ShareButton name={a.Name} lang={lang} onClick={onShare} />}</td>
       )}
     </tr>
   )
@@ -213,7 +219,7 @@ function ResultCard({ a, rank, lang, yearValue, segs, points, tag, best, onAthle
               {segs.map((s) => (
                 <div key={s.label}>
                   <dt className="text-muted">{s.label}</dt>
-                  <dd className={`m-0 tabular-nums ${isBestSplit(a, s.timeKey, best) ? GREEN : 'font-semibold text-navy'}`}>{splitText(a, s.timeKey)}</dd>
+                  <dd className={`m-0 tabular-nums ${isBestSplit(a, s.timeKey, best) ? GREEN : 'font-semibold text-navy'}`}>{splitText(a, s.timeKey)}{isBestSplit(a, s.timeKey, best) && <span className="sr-only"> ({t('res_best_split_sr', lang)})</span>}</dd>
                 </div>
               ))}
             </dl>
@@ -267,6 +273,12 @@ interface Props {
 export function ResultsTab({ data, lang, lastUpdated, raceDates, onAthleteClick, sport, year, category, onSportChange, onYearChange, onCategoryChange }: Props) {
   const [search, setSearch] = useState('')
   const deferredSearch = useDeferredValue(search)
+  // A name typed for one sport is stale in the next
+  const [searchSport, setSearchSport] = useState(sport)
+  if (sport !== searchSport) {
+    setSearchSport(sport)
+    setSearch('')
+  }
 
   const isMultiSport = sport === 'triathlon' || sport === 'duathlon'
 
@@ -425,11 +437,15 @@ export function ResultsTab({ data, lang, lastUpdated, raceDates, onAthleteClick,
     return out
   }, [oneYear, isMultiSport, segs, fastest])
 
+  // Counted over the rows on screen, so the line matches the class filter
   const tagCounts = useMemo(() => {
     let pb = 0, debut = 0
-    for (const v of tags.values()) { if (v === 'pb') pb++; else debut++ }
+    for (const { athlete } of ranked) {
+      const v = tags.get(athleteKey(athlete))
+      if (v === 'pb') pb++; else if (v === 'debut') debut++
+    }
     return { pb, debut }
-  }, [tags])
+  }, [tags, ranked])
 
   // Points of a podium name, from the same lookup as the table
   const pointsOf = useCallback((name: string) => {
@@ -509,7 +525,7 @@ export function ResultsTab({ data, lang, lastUpdated, raceDates, onAthleteClick,
   }, [rows, sport, yearValue, category, lang, pointsLookup])
 
   // Six base columns either way: one race has Points, all years has Year instead
-  const colCount = 6 + segs.length * 2
+  const colCount = 7 + segs.length * 2
   const selectCls = 'h-12 min-w-[130px] rounded border border-line bg-mist px-3 text-[15px] font-medium text-navy focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand'
   const labelCls = 'flex flex-col gap-1 text-sm font-semibold text-navy'
   const showRaceBlocks = oneYear && category !== 'youth' && race !== null
@@ -648,27 +664,34 @@ export function ResultsTab({ data, lang, lastUpdated, raceDates, onAthleteClick,
 
       <section aria-labelledby="all-finishers">
         <div className="mb-3 flex flex-wrap items-end justify-between gap-3">
-          <h3 id="all-finishers" className="m-0 font-display text-[30px] font-semibold text-navy sm:text-[34px]">{t('res_all_finishers', lang)}</h3>
+          <h3 id="all-finishers" className={H_SECTION}>{t('res_all_finishers', lang)}</h3>
           <div className="flex flex-wrap items-center gap-3">
             <label className="sr-only" htmlFor="results-search">{t('search_athlete', lang)}</label>
             <input id="results-search" type="search" value={search} onChange={(e) => setSearch(e.target.value)}
               placeholder={t('search_athlete', lang)}
-              className="h-11 w-48 rounded border border-line bg-mist px-3 text-[15px] text-navy focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand" />
-            <span className="text-sm text-muted" aria-live="polite">{rows.length} {t('total_results', lang)}</span>
+              className={`${FIELD} w-48`} />
+            <span className="text-sm text-muted" aria-live="polite">{tf(rows.length === 1 ? 'res_shown_one' : 'res_shown', lang, { n: rows.length })}</span>
           </div>
         </div>
         <p className="mb-3 mt-0 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-sm text-muted">
-          {oneYear && tags.size > 0 && <>
+          {oneYear && tagCounts.pb + tagCounts.debut > 0 && <>
             <span className="inline-flex items-center gap-2"><Tag tag="pb" lang={lang} />{t('res_tag_pb_long', lang)}</span>
             <span className="inline-flex items-center gap-2"><Tag tag="debut" lang={lang} />{t('res_tag_debut_long', lang)}</span>
-            <span>· {tf('res_tag_summary', lang, tagCounts)}</span>
+            <span>· {tf('res_tag_summary', lang, { pb: plural(tagCounts.pb, 'res_n_pb', lang), debut: plural(tagCounts.debut, 'res_n_debut', lang) })}</span>
           </>}
-          {bestSplits && <span className="basis-full sm:basis-auto"><span className={GREEN}>{t('res_best_split', lang)}</span></span>}
-          {oneYear && <span className="basis-full">{t('res_no_points_note', lang)}</span>}
+          {bestSplits && rows.length > 0 && <span className="basis-full sm:basis-auto"><span className={GREEN}>{t('res_best_split', lang)}</span></span>}
+          {oneYear && rows.length > 0 && <span className="basis-full">{t('res_no_points_note', lang)}</span>}
         </p>
 
         {rows.length === 0 && separateRaces.length === 0 ? (
-          <p className="rounded bg-mist p-8 text-center text-[15px] text-muted">{t('no_data_available', lang)} {t(sport, lang)}</p>
+          <div className={`${CARD_MIST} p-8 text-center text-[15px] text-muted`}>
+            {deferredSearch.trim() && ranked.length > 0 ? (
+              <>
+                <p className="m-0">{tf('res_no_match', lang, { q: deferredSearch.trim() })}</p>
+                <button type="button" onClick={() => setSearch('')} className={`${LINK_BTN} mt-1`}>{t('res_clear_search', lang)}</button>
+              </>
+            ) : <p className="m-0">{tf('res_empty', lang, { sport: t(sport, lang) })}</p>}
+          </div>
         ) : (
           <>
             {/* Phones: one card per finisher */}
@@ -695,25 +718,25 @@ export function ResultsTab({ data, lang, lastUpdated, raceDates, onAthleteClick,
             </ol>
 
             {/* Wider screens: the full table */}
-            <div tabIndex={0} role="region" aria-label={t('res_all_finishers', lang)} className="hidden overflow-x-auto focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand sm:block">
-              <table className="min-w-full text-[15px]">
+            <div tabIndex={0} role="region" aria-label={t('res_all_finishers', lang)} className="hidden overflow-x-auto focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand sm:block 2xl:overflow-visible">
+              <table className={`min-w-full ${segs.length > 0 ? 'text-sm' : 'text-[15px]'}`}>
                 <thead>
                   <tr className="bg-navy text-left font-display text-sm text-white">
-                    <th scope="col" className="bg-navy px-4 py-3 font-semibold">{yearValue === 'all' ? t('all_time_rank', lang) : t('overall_rank', lang)}</th>
-                    <th scope="col" className="bg-navy px-3 py-3 font-semibold">{t('name', lang)}</th>
-                    <th scope="col" className="bg-navy px-3 py-3 font-semibold">{t('club', lang)}</th>
-                    <th scope="col" className="bg-navy px-3 py-3 font-semibold">{t('gender', lang)}</th>
-                    {yearValue === 'all' && <th scope="col" className="bg-navy px-3 py-3 font-semibold">{t('year', lang)}</th>}
+                    <th scope="col" className="bg-navy py-3 pl-4 pr-2 font-semibold">{t('rank', lang)}</th>
+                    <th scope="col" className="bg-navy px-2 py-3 font-semibold">{t('name', lang)}</th>
+                    <th scope="col" className="bg-navy px-2 py-3 font-semibold">{t('res_filter_category', lang)}</th>
+                    {yearValue === 'all' && <th scope="col" className="bg-navy px-2 py-3 font-semibold">{t('year', lang)}</th>}
                     {segs.map((s) => (
                       <Fragment key={s.label}>
-                        <th scope="col" className="border-l border-[#3a4250] bg-navy px-2 py-3 font-semibold">{s.label}</th>
-                        <th scope="col" className="bg-navy px-2 py-3 text-center font-semibold text-[#c3c6d1]">
+                        <th scope="col" className="border-l border-[#3a4250] bg-navy py-3 pl-2 pr-1 text-right font-semibold">{s.label}</th>
+                        <th scope="col" className="bg-navy py-3 pl-1 pr-2 text-right font-semibold text-[#c3c6d1]">
                           <span aria-hidden="true">#</span><span className="sr-only">{tf('res_split_rank', lang, { leg: s.label })}</span>
                         </th>
                       </Fragment>
                     ))}
-                    <th scope="col" className="border-l border-[#3a4250] bg-navy px-3 py-3 font-semibold">{t('total_time', lang)}</th>
-                    {oneYear && <th scope="col" className="bg-navy px-4 py-3 text-right font-semibold">{t('points', lang)}</th>}
+                    <th scope="col" className="border-l border-[#3a4250] bg-navy px-2 py-3 text-right font-semibold">{t('res_time', lang)}</th>
+                    {oneYear && <th scope="col" className="bg-navy px-2 py-3 text-right font-semibold">{t('points', lang)}</th>}
+                    {oneYear && <th scope="col" className="bg-navy px-2 py-3"><span className="sr-only">{t('share_title', lang)}</span></th>}
                   </tr>
                 </thead>
                 <tbody>

@@ -26,17 +26,18 @@ export const SiteHeader = forwardRef<HTMLButtonElement, Props>(function SiteHead
 ) {
   return (
     <>
-      <div className="bg-brand">
-        <div className="flex min-h-8 items-center justify-end px-4 sm:px-6">
-          <a href="https://triathlonvast.se" className="text-[13px] leading-snug text-white no-underline hover:underline">
-            {t('club_site_link', lang)}
-          </a>
+      <header data-page-shell className="border-b border-line bg-white">
+        {/* Red club bar. Phones skip it to leave room for the page (the footer links to the club site too). */}
+        <div className="hidden bg-brand sm:block">
+          <div className="flex min-h-8 items-center justify-end px-6">
+            <a href="https://triathlonvast.se" className="inline-flex min-h-8 items-center text-[13px] leading-snug text-white no-underline hover:underline">
+              {t('club_site_link', lang)}
+            </a>
+          </div>
         </div>
-      </div>
-      <header className="border-b border-line bg-white">
         {/* The logo is the visual title; this gives the page its one <h1>. */}
         <h1 className="sr-only">{t('site_title', lang)}</h1>
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 px-3 py-3 sm:px-6 lg:min-h-20">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-2 px-3 py-2 sm:gap-x-4 sm:px-6 sm:py-3 lg:min-h-20">
           <button
             ref={menuButtonRef}
             type="button"
@@ -50,9 +51,10 @@ export const SiteHeader = forwardRef<HTMLButtonElement, Props>(function SiteHead
             </svg>
             <span className="max-sm:sr-only">{menuShowsHide ? t('menu_hide', lang) : t('menu_show', lang)}</span>
           </button>
-          <a href="./" onClick={(e) => { e.preventDefault(); onHome() }} className="flex min-w-0 flex-1 flex-col items-start gap-0.5 no-underline sm:flex-none sm:flex-row sm:items-center sm:gap-3">
-            <Image src="/OGLogo-2.png" alt="Triathlon Väst" width={180} height={62} className="h-auto w-[130px] object-contain sm:w-[180px]" priority />
-            <span className="whitespace-nowrap font-script text-[20px] leading-none text-brand sm:text-[30px]">{t('site_name', lang)}</span>
+          <a href="./" onClick={(e) => { e.preventDefault(); onHome() }} className="flex min-w-0 flex-1 items-center gap-3 no-underline sm:flex-none">
+            {/* width/height = the file's real 1200×630 ratio, so the header doesn't jump when the logo arrives */}
+            <Image src="/OGLogo-2.png" alt="Triathlon Väst" width={180} height={95} className="h-auto w-[104px] object-contain sm:w-[180px]" priority />
+            <span className="whitespace-nowrap font-script text-[30px] leading-none text-brand max-sm:hidden">{t('site_name', lang)}</span>
           </a>
           <div className="order-last w-full sm:order-none sm:ml-auto sm:w-[300px]">
             <AthleteSearch athleteNames={athleteNames} lang={lang} onSelect={onAthleteSelect} />

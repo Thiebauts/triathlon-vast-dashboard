@@ -26,7 +26,7 @@ export function PageTitle({ eyebrow, title, subtitle, intro }: { eyebrow: string
   return (
     <div>
       <Eyebrow>{eyebrow}</Eyebrow>
-      <h2 className="mt-1.5 font-display text-[36px] font-semibold leading-[1.16] text-navy sm:text-[52px]">{title}</h2>
+      <h2 className="mt-1.5 hyphens-auto break-words font-display text-[clamp(28px,8.6vw,36px)] font-semibold leading-[1.16] text-navy sm:text-[52px]">{title}</h2>
       {subtitle && <p className="m-0 font-display text-lg font-semibold italic leading-snug text-muted sm:text-2xl">{subtitle}</p>}
       <div aria-hidden="true" className="mt-5 h-px w-20 bg-[#a3a8ac]" />
       {intro && <p className="mb-0 mt-4 max-w-[720px] text-[15px] leading-relaxed text-muted">{intro}</p>}
@@ -39,10 +39,17 @@ export function SectionTitle({ eyebrow, title, id }: { eyebrow?: string; title: 
   return (
     <div>
       {eyebrow && <Eyebrow>{eyebrow}</Eyebrow>}
-      <h3 id={id} className="mt-1.5 font-display text-[30px] font-semibold leading-tight text-navy sm:text-[40px]">{title}</h3>
+      <h3 id={id} className="mt-1.5 hyphens-auto break-words font-display text-[30px] font-semibold leading-tight text-navy sm:text-[40px]">{title}</h3>
     </div>
   )
 }
+
+/** The two heading sizes used inside a page: a section (h3) and a block within it. */
+export const H_SECTION = 'm-0 hyphens-auto break-words font-display text-[26px] font-semibold leading-tight text-navy sm:text-[30px]'
+export const H_BLOCK = 'm-0 hyphens-auto break-words font-display text-[22px] font-semibold leading-tight text-navy'
+
+/** Form controls: one look for every select and search field. */
+export const FIELD = 'h-11 rounded border border-[#8a8e94] bg-white px-3 text-[15px] text-navy placeholder:text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand'
 
 /** Medal colours for places 1–3 (all pass 4.5:1 on white and the light grey). */
 export const MEDAL_COLORS = ['#7d6300', '#56677a', '#85552b']

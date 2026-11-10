@@ -1,5 +1,5 @@
 'use client'
-import { useState, useCallback, useEffect, useRef } from 'react'
+import { useState, useCallback, useEffect, useMemo, useRef } from 'react'
 import { useLang } from './LanguageProvider'
 import { t } from '@/lib/translations'
 import { buildHash, parseHash, type Tab } from '@/lib/deeplink'
@@ -59,6 +59,15 @@ export function Dashboard({ data, athleteNames, allTimeRankings, extraEvents, la
   const [isDesktop, setIsDesktop] = useState(true)
   const menuButtonRef = useRef<HTMLButtonElement>(null)
 
+  // Remember whether the desktop menu was hidden. Read after mount, like the
+  // saved language, so server and client render the same first HTML.
+  useEffect(() => {
+    try {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      if (window.localStorage.getItem('menu') === 'closed') setDesktopMenuOpen(false)
+    } catch { /* storage blocked: keep the default */ }
+  }, [])
+
   useEffect(() => {
     const mq = window.matchMedia('(min-width: 1024px)')
     const update = () => setIsDesktop(mq.matches)
@@ -68,8 +77,12 @@ export function Dashboard({ data, athleteNames, allTimeRankings, extraEvents, la
   }, [])
 
   const toggleMenu = useCallback(() => {
-    if (window.matchMedia('(min-width: 1024px)').matches) setDesktopMenuOpen((o) => !o)
-    else setMobileMenuOpen(true)
+    if (window.matchMedia('(min-width: 1024px)').matches) {
+      setDesktopMenuOpen((open) => {
+        try { window.localStorage.setItem('menu', open ? 'closed' : 'open') } catch { /* ignore */ }
+        return !open
+      })
+    } else setMobileMenuOpen(true)
   }, [])
 
   const closeMobileMenu = useCallback(() => {
@@ -85,11 +98,8 @@ export function Dashboard({ data, athleteNames, allTimeRankings, extraEvents, la
 
   const viewLabel = (id: Tab) => t(`nav_${id}`, lang)
 
-  // Picking a menu item starts the new view at the top
-  const selectTabFromMenu = useCallback((id: Tab) => {
-    selectTab(id)
-    window.scrollTo({ top: 0 })
-  }, [selectTab])
+  // Every change of view starts at the top (see the URL effect below)
+  const selectTabFromMenu = selectTab
 
   const navigateToAthlete = useCallback((name: string) => {
     setSelectedAthlete(name)
@@ -104,6 +114,19 @@ export function Dashboard({ data, athleteNames, allTimeRankings, extraEvents, la
     setRankingsYear(seasonYear)
     selectTab('rankings')
   }, [seasonYear, selectTab])
+
+  // The Overview always shows the latest season, whatever the Season page is on
+  const navigateToLatestRankings = useCallback(() => {
+    setRankingsYear(SEASON_YEARS[0])
+    selectTab('rankings')
+  }, [selectTab])
+
+  // Years that exist, so a link to a year without results falls back to "all"
+  const yearsBySport = useMemo(() => {
+    const out = {} as Record<SportType, Set<string>>
+    for (const s of VALID_SPORTS as SportType[]) out[s] = new Set(data[s].map((a) => a.Competition_Year))
+    return out
+  }, [data])
 
   // Years differ per sport, so switching sport resets the year filter —
   // the single place for that rule (the sport <select> and the Overview
@@ -124,16 +147,28 @@ export function Dashboard({ data, athleteNames, allTimeRankings, extraEvents, la
   // server always renders the overview, so reading the hash during the first
   // render would cause a hydration mismatch (same pattern as the saved
   // language in LanguageProvider).
+  // Set while the view is being set FROM the URL (first load, Back/Forward,
+  // an edited hash): the URL effect then must not add a history entry.
+  const fromUrl = useRef(false)
+  // Bumped on every read of the URL so the URL effect always runs and clears the flag
+  const [urlTick, setUrlTick] = useState(0)
   const applyHash = useCallback(() => {
     const parsed = parseHash(window.location.hash)
-    if (!parsed) return
+    fromUrl.current = true
+    setUrlTick((n) => n + 1)
+    if (!parsed) {
+      // No hash is the Overview — also when Back returns to it
+      if (!window.location.hash) selectTab('overview')
+      return
+    }
     const [p0, p1, p2] = parsed.params
     // A missing or invalid segment means its default, not "keep the current
     // value": following #…/2026/women and then #…/2026 (or pressing Back)
     // must drop the women filter.
     if (parsed.tab === 'results') {
-      setSport(p0 && VALID_SPORTS.includes(p0) ? p0 as SportType : DEFAULT_SPORT)
-      setResultsYear(p1 && (p1 === 'all' || YEAR_RE.test(p1)) ? p1 : 'all')
+      const nextSport = p0 && VALID_SPORTS.includes(p0) ? p0 as SportType : DEFAULT_SPORT
+      setSport(nextSport)
+      setResultsYear(p1 && yearsBySport[nextSport].has(p1) ? p1 : 'all')
       setResultsCategory(p2 && RESULTS_CATEGORIES.includes(p2) ? p2 as ResultsCategory : 'all')
     } else if (parsed.tab === 'athletes') {
       if (p0 && athleteNames.includes(p0)) setSelectedAthlete(p0)
@@ -143,12 +178,13 @@ export function Dashboard({ data, athleteNames, allTimeRankings, extraEvents, la
     } else if (parsed.tab === 'season') {
       setSeasonYear(p0 && SEASON_YEARS.includes(p0) ? p0 : SEASON_YEARS[0])
     } else if (parsed.tab === 'rankings') {
-      setRankingsYear(p0 && (p0 === 'all' || YEAR_RE.test(p0)) ? p0 : 'all')
+      setRankingsYear(p0 && YEAR_RE.test(p0) && Object.values(yearsBySport).some((ys) => ys.has(p0)) ? p0 : 'all')
     }
     selectTab(parsed.tab)
-  }, [athleteNames, extraEvents, selectTab])
+  }, [athleteNames, extraEvents, selectTab, yearsBySport])
 
   const urlInitialized = useRef(false)
+  const lastPage = useRef('overview/')
   useEffect(() => {
     // The post-mount re-render is the point: applying the deep link only
     // after hydration keeps server and client HTML identical (the server
@@ -156,10 +192,14 @@ export function Dashboard({ data, athleteNames, allTimeRankings, extraEvents, la
     // eslint-disable-next-line react-hooks/set-state-in-effect
     applyHash()
     urlInitialized.current = true
-    // Re-apply on hash edits and same-document hash navigations. Our own
-    // replaceState below never fires hashchange, so this cannot loop.
+    // Re-apply on hash edits, Back/Forward and same-document hash navigations.
+    // Our own pushState/replaceState below never fire these, so this cannot loop.
     window.addEventListener('hashchange', applyHash)
-    return () => window.removeEventListener('hashchange', applyHash)
+    window.addEventListener('popstate', applyHash)
+    return () => {
+      window.removeEventListener('hashchange', applyHash)
+      window.removeEventListener('popstate', applyHash)
+    }
   }, [applyHash])
 
   useEffect(() => {
@@ -172,10 +212,37 @@ export function Dashboard({ data, athleteNames, allTimeRankings, extraEvents, la
       : tab === 'season' ? [seasonYear]
       : []
     const hash = buildHash(tab, params)
-    // replaceState (not pushState): the URL stays shareable without turning
-    // every tab click into a browser-history entry.
-    window.history.replaceState(null, '', hash || window.location.pathname + window.location.search)
-  }, [tab, sport, resultsYear, resultsCategory, selectedAthlete, extraDate, extraCategory, rankingsYear, seasonYear])
+    const url = hash || window.location.pathname + window.location.search
+    const page = `${tab}/${tab === 'athletes' ? selectedAthlete ?? '' : ''}`
+    const newPage = page !== lastPage.current
+    lastPage.current = page
+    if (fromUrl.current) {
+      // The browser already moved (or loaded) this entry: only tidy its URL
+      fromUrl.current = false
+      window.history.replaceState(null, '', url)
+    } else if (newPage) {
+      // Another page (or another athlete) is a step the Back button returns
+      // from; it opens at the top with the keyboard focus on the page.
+      window.history.pushState(null, '', url)
+      window.scrollTo({ top: 0 })
+      document.getElementById('main')?.focus({ preventScroll: true })
+    } else {
+      // A filter change keeps the URL shareable without filling the history
+      window.history.replaceState(null, '', url)
+    }
+  }, [tab, sport, resultsYear, resultsCategory, selectedAthlete, extraDate, extraCategory, rankingsYear, seasonYear, urlTick])
+
+  // The browser tab names the page, in the current language
+  useEffect(() => {
+    const page = tab === 'athletes' && selectedAthlete ? selectedAthlete : tab === 'overview' ? null : t(`nav_${tab}`, lang)
+    const title = page ? `${page} – Triathlon Väst` : t('site_title', lang)
+    document.title = title
+    // The framework writes the static title once more when it finishes loading
+    // a deep link; put ours back if that happens.
+    const observer = new MutationObserver(() => { if (document.title !== title) document.title = title })
+    observer.observe(document.head, { childList: true, subtree: true, characterData: true })
+    return () => observer.disconnect()
+  }, [tab, selectedAthlete, lang])
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -194,32 +261,32 @@ export function Dashboard({ data, athleteNames, allTimeRankings, extraEvents, la
       <div className="flex flex-1 items-stretch">
         <SideNav current={tab} lang={lang} desktopOpen={desktopMenuOpen} mobileOpen={mobileMenuOpen}
           onSelect={selectTabFromMenu} onCloseMobile={closeMobileMenu} />
-        <div className="flex min-w-0 flex-1 flex-col">
+        <div data-page-shell className="flex min-w-0 flex-1 flex-col">
           {/* Pages keep their content to 1200px (wide enough for the tri/du
               results table); the Overview's coloured bands run full width. */}
           <main id="main" tabIndex={-1} className="w-full px-4 py-6 focus:outline-none sm:px-8 lg:px-10">
             <section id="view-overview" aria-label={viewLabel('overview')} hidden={tab !== 'overview'}>
-              {visited.has('overview') && <OverviewTab data={data} lang={lang} lastUpdated={lastUpdated} raceDates={raceDates} onNavigateToExtra={navigateToExtra} onNavigateToSeason={navigateToSeason} onNavigateToSport={navigateToSport} onNavigateToRankings={navigateToSeasonRankings} onAthleteClick={navigateToAthlete} />}
+              {visited.has('overview') && <OverviewTab data={data} lang={lang} lastUpdated={lastUpdated} raceDates={raceDates} onNavigateToExtra={navigateToExtra} onNavigateToSeason={navigateToSeason} onNavigateToSport={navigateToSport} onNavigateToRankings={navigateToLatestRankings} onAthleteClick={navigateToAthlete} />}
             </section>
-            <section id="view-results" aria-label={viewLabel('results')} hidden={tab !== 'results'} className="max-w-[1200px]">
+            <section id="view-results" aria-label={viewLabel('results')} hidden={tab !== 'results'} className="mx-auto max-w-[1200px]">
               {visited.has('results') && <ResultsTab data={data} lang={lang} lastUpdated={lastUpdated} raceDates={raceDates} onAthleteClick={navigateToAthlete} sport={sport} year={resultsYear} category={resultsCategory} onSportChange={changeSport} onYearChange={setResultsYear} onCategoryChange={setResultsCategory} />}
             </section>
-            <section id="view-athletes" aria-label={viewLabel('athletes')} hidden={tab !== 'athletes'} className="max-w-[1200px]">
+            <section id="view-athletes" aria-label={viewLabel('athletes')} hidden={tab !== 'athletes'} className="mx-auto max-w-[1200px]">
               {visited.has('athletes') && <AthletesTab data={data} athleteNames={athleteNames} allTimeRankings={allTimeRankings} lang={lang} initialAthlete={selectedAthlete} onAthleteChange={setSelectedAthlete} />}
             </section>
-            <section id="view-rankings" aria-label={viewLabel('rankings')} hidden={tab !== 'rankings'} className="max-w-[1200px]">
+            <section id="view-rankings" aria-label={viewLabel('rankings')} hidden={tab !== 'rankings'} className="mx-auto max-w-[1200px]">
               {visited.has('rankings') && <RankingsTab data={data} allTimeRankings={allTimeRankings} lang={lang} onAthleteClick={navigateToAthlete} year={rankingsYear} onYearChange={setRankingsYear} />}
             </section>
-            <section id="view-season" aria-label={viewLabel('season')} hidden={tab !== 'season'} className="max-w-[1200px]">
+            <section id="view-season" aria-label={viewLabel('season')} hidden={tab !== 'season'} className="mx-auto max-w-[1200px]">
               {visited.has('season') && <SeasonTab data={data} lang={lang} year={seasonYear} onYearChange={setSeasonYear} onAthleteClick={navigateToAthlete} onNavigateToRankings={navigateToSeasonRankings} />}
             </section>
-            <section id="view-records" aria-label={viewLabel('records')} hidden={tab !== 'records'} className="max-w-[1200px]">
+            <section id="view-records" aria-label={viewLabel('records')} hidden={tab !== 'records'} className="mx-auto max-w-[1200px]">
             {visited.has('records') && <RecordsTab data={data} lang={lang} onAthleteClick={navigateToAthlete} onAllTime={navigateToSport} />}
           </section>
-          <section id="view-points" aria-label={viewLabel('points')} hidden={tab !== 'points'} className="max-w-[1200px]">
+          <section id="view-points" aria-label={viewLabel('points')} hidden={tab !== 'points'} className="mx-auto max-w-[1200px]">
             {visited.has('points') && <PointsTab lang={lang} />}
           </section>
-          <section id="view-extra" aria-label={viewLabel('extra')} hidden={tab !== 'extra'} className="max-w-[1200px]">
+          <section id="view-extra" aria-label={viewLabel('extra')} hidden={tab !== 'extra'} className="mx-auto max-w-[1200px]">
               {visited.has('extra') && <ExtraEventsTab events={extraEvents} lang={lang} eventDate={extraDate} category={extraCategory} onEventChange={setExtraDate} onCategoryChange={setExtraCategory} />}
             </section>
           </main>

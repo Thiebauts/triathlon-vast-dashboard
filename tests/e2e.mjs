@@ -253,8 +253,9 @@ async function run() {
     await page.waitForTimeout(600)
     if (await page.getByText('Show guests').count()) throw new Error('"Show guests" toggle still present')
     const guest = page.locator('table tbody tr', { hasText: 'Nelly Bertilsson' })
-    const cells = (await guest.first().innerText()).split('\t').map((c) => c.trim())
-    if (!cells.includes('Guest')) throw new Error(`Nelly's row: ${cells.join(' | ')}`)
+    const cells = (await guest.first().innerText()).split('\t').map((c) => c.trim()).filter(Boolean)
+    // "Guest" sits next to the name, in the same cell
+    if (!cells.some((c) => c.includes('Nelly Bertilsson') && /\bGuest\b/.test(c))) throw new Error(`Nelly's row: ${cells.join(' | ')}`)
     if (cells[cells.length - 1] !== '—') throw new Error(`Guest shows points: ${cells.at(-1)}`)
   })
 
@@ -332,7 +333,7 @@ async function run() {
   await test('Picking a suggestion shows the profile', async () => {
     await athOptions().first().click()
     await page.waitForTimeout(800)
-    await page.locator('#view-athletes h3', { hasText: 'Erik Arnström' }).waitFor({ state: 'visible', timeout: 3000 })
+    await page.locator('#view-athletes h2', { hasText: 'Erik Arnström' }).waitFor({ state: 'visible', timeout: 3000 })
   })
 
   await test('A letter lists its athletes and opens a profile with sport cards and a chart', async () => {
@@ -343,7 +344,7 @@ async function run() {
     const name = 'Jonatan Hägerström'
     await page.locator('#view-athletes ul[aria-label^="Athletes whose"] button', { hasText: name }).click()
     await page.waitForTimeout(900)
-    await page.locator('#view-athletes h3', { hasText: name }).first().waitFor({ state: 'visible', timeout: 3000 })
+    await page.locator('#view-athletes h2', { hasText: name }).first().waitFor({ state: 'visible', timeout: 3000 })
     const cards = page.locator('#view-athletes button[aria-pressed]:visible', { hasText: 'Best' })
     if (await cards.count() < 2) throw new Error('Expected sport cards for an athlete with many races')
     await page.locator('#view-athletes section[aria-labelledby="ath-chart"] svg').first().waitFor({ state: 'visible', timeout: 5000 })
@@ -663,7 +664,7 @@ async function run() {
   await test('Direct link opens an athlete profile', async () => {
     await page.goto(`${BASE}/#athletes/${encodeURIComponent('Jonathan Flod')}`, { waitUntil: 'networkidle' })
     await page.waitForTimeout(600)
-    const nameEl = page.locator('h3', { hasText: 'Jonathan Flod' })
+    const nameEl = page.locator('h2', { hasText: 'Jonathan Flod' })
     await nameEl.waitFor({ state: 'visible', timeout: 5000 })
   })
 
@@ -756,7 +757,7 @@ async function run() {
     await page.waitForTimeout(600)
     await page.reload({ waitUntil: 'networkidle' })
     await page.waitForTimeout(600)
-    const nameEl = page.locator('h3', { hasText: 'Anton Söfting' })
+    const nameEl = page.locator('h2', { hasText: 'Anton Söfting' })
     await nameEl.waitFor({ state: 'visible', timeout: 5000 })
   })
 
