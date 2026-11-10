@@ -15,13 +15,16 @@ import { SEASON_YEARS } from '@/lib/season'
 import { SiteHeader } from './shell/SiteHeader'
 import { SideNav } from './shell/SideNav'
 import { SiteFooter } from './shell/SiteFooter'
-import type { CompetitionsData, ClubAthlete, ExtraCategory, ExtraEvent, ResultsCategory, SportType } from '@/lib/types'
+import type { AthleteResult, CompetitionsData, ClubAthlete, ExtraCategory, ExtraEvent, ResultsCategory, SportType } from '@/lib/types'
 
 const VALID_SPORTS: readonly string[] = ['triathlon', 'duathlon', 'swimming', 'cycling', 'running', 'swimrun']
 const RESULTS_CATEGORIES: readonly string[] = ['all', 'men', 'women', 'youth']
 const EXTRA_CATEGORIES: readonly string[] = ['all', 'men', 'women']
 const YEAR_RE = /^\d{4}$/
 const DEFAULT_SPORT: SportType = 'triathlon'
+
+/** The most recent year with results, e.g. '2026' ('all' if there are none). */
+const latestYearOf = (rows: AthleteResult[]) => rows.reduce((m, a) => (a.Competition_Year > m ? a.Competition_Year : m), '') || 'all'
 
 interface Props {
   data: CompetitionsData
@@ -45,7 +48,8 @@ export function Dashboard({ data, athleteNames, allTimeRankings, extraEvents, la
   // the full view: #results/<sport>/<year>/<category>, #extra/<date>/<category>, …
   const [selectedAthlete, setSelectedAthlete] = useState<string | null>(null)
   const [sport, setSport] = useState<SportType>(DEFAULT_SPORT)
-  const [resultsYear, setResultsYear] = useState('all')
+  // Results open on the sport's latest year; 'all' = every year together
+  const [resultsYear, setResultsYear] = useState(() => latestYearOf(data[DEFAULT_SPORT]))
   const [resultsCategory, setResultsCategory] = useState<ResultsCategory>('all')
   const [extraDate, setExtraDate] = useState<string | null>(extraEvents[0]?.date ?? null)
   const [extraCategory, setExtraCategory] = useState<ExtraCategory>('all')
@@ -131,15 +135,25 @@ export function Dashboard({ data, athleteNames, allTimeRankings, extraEvents, la
   // Years differ per sport, so switching sport resets the year filter —
   // the single place for that rule (the sport <select> and the Overview
   // discipline cards both go through here).
+  const latestYear = useCallback((s: SportType) => [...yearsBySport[s]].sort().at(-1) ?? 'all', [yearsBySport])
+
+  // Switching sport always starts on that sport's latest year
   const changeSport = useCallback((next: SportType) => {
     setSport(next)
-    setResultsYear('all')
-  }, [])
+    setResultsYear(latestYear(next))
+  }, [latestYear])
 
   const navigateToSport = useCallback((next: SportType) => {
     changeSport(next)
     selectTab('results')
   }, [changeSport, selectTab])
+
+  // Club records' "All-time list" opens every year of the sport at once
+  const navigateToAllTime = useCallback((next: SportType) => {
+    setSport(next)
+    setResultsYear('all')
+    selectTab('results')
+  }, [selectTab])
 
   // ── Deep links ──────────────────────────────────────────────────────────────
   // The hash mirrors the current view (#extra/2026-06-10, #athletes/Name, …)
@@ -168,7 +182,7 @@ export function Dashboard({ data, athleteNames, allTimeRankings, extraEvents, la
     if (parsed.tab === 'results') {
       const nextSport = p0 && VALID_SPORTS.includes(p0) ? p0 as SportType : DEFAULT_SPORT
       setSport(nextSport)
-      setResultsYear(p1 && yearsBySport[nextSport].has(p1) ? p1 : 'all')
+      setResultsYear(p1 === 'all' || (p1 && yearsBySport[nextSport].has(p1)) ? p1 : latestYear(nextSport))
       setResultsCategory(p2 && RESULTS_CATEGORIES.includes(p2) ? p2 as ResultsCategory : 'all')
     } else if (parsed.tab === 'athletes') {
       if (p0 && athleteNames.includes(p0)) setSelectedAthlete(p0)
@@ -181,7 +195,7 @@ export function Dashboard({ data, athleteNames, allTimeRankings, extraEvents, la
       setRankingsYear(p0 && YEAR_RE.test(p0) && Object.values(yearsBySport).some((ys) => ys.has(p0)) ? p0 : 'all')
     }
     selectTab(parsed.tab)
-  }, [athleteNames, extraEvents, selectTab, yearsBySport])
+  }, [athleteNames, extraEvents, selectTab, yearsBySport, latestYear])
 
   const urlInitialized = useRef(false)
   const lastPage = useRef('overview/')
@@ -205,10 +219,11 @@ export function Dashboard({ data, athleteNames, allTimeRankings, extraEvents, la
   useEffect(() => {
     if (!urlInitialized.current) return
     const params =
-      tab === 'results' ? [sport, resultsYear, resultsCategory]
+      // null = the default, left out of the address
+      tab === 'results' ? [sport, resultsYear === latestYear(sport) && resultsCategory === 'all' ? null : resultsYear, resultsCategory === 'all' ? null : resultsCategory]
       : tab === 'athletes' ? [selectedAthlete]
-      : tab === 'extra' ? [extraDate, extraCategory]
-      : tab === 'rankings' ? [rankingsYear]
+      : tab === 'extra' ? [extraDate, extraCategory === 'all' ? null : extraCategory]
+      : tab === 'rankings' ? [rankingsYear === 'all' ? null : rankingsYear]
       : tab === 'season' ? [seasonYear]
       : []
     const hash = buildHash(tab, params)
@@ -230,7 +245,7 @@ export function Dashboard({ data, athleteNames, allTimeRankings, extraEvents, la
       // A filter change keeps the URL shareable without filling the history
       window.history.replaceState(null, '', url)
     }
-  }, [tab, sport, resultsYear, resultsCategory, selectedAthlete, extraDate, extraCategory, rankingsYear, seasonYear, urlTick])
+  }, [tab, sport, resultsYear, resultsCategory, selectedAthlete, extraDate, extraCategory, rankingsYear, seasonYear, urlTick, latestYear])
 
   // The browser tab names the page, in the current language
   useEffect(() => {
@@ -281,7 +296,7 @@ export function Dashboard({ data, athleteNames, allTimeRankings, extraEvents, la
               {visited.has('season') && <SeasonTab data={data} lang={lang} year={seasonYear} onYearChange={setSeasonYear} onAthleteClick={navigateToAthlete} onNavigateToRankings={navigateToSeasonRankings} />}
             </section>
             <section id="view-records" aria-label={viewLabel('records')} hidden={tab !== 'records'} className="mx-auto max-w-[1200px]">
-            {visited.has('records') && <RecordsTab data={data} lang={lang} onAthleteClick={navigateToAthlete} onAllTime={navigateToSport} />}
+            {visited.has('records') && <RecordsTab data={data} lang={lang} onAthleteClick={navigateToAthlete} onAllTime={navigateToAllTime} />}
           </section>
           <section id="view-points" aria-label={viewLabel('points')} hidden={tab !== 'points'} className="mx-auto max-w-[1200px]">
             {visited.has('points') && <PointsTab lang={lang} />}

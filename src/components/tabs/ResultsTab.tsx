@@ -280,11 +280,12 @@ export function ResultsTab({ data, lang, lastUpdated, raceDates, onAthleteClick,
   const years = useMemo(() => {
     const ys = new Set<string>()
     for (const a of data[sport]) ys.add(a.Competition_Year)
-    return ['all', ...[...ys].sort().reverse()]
+    // Newest first, "All years" last
+    return [...[...ys].sort().reverse(), 'all']
   }, [data, sport])
 
-  // A deep link can name a year this sport never ran — fall back to 'all'
-  const yearValue = years.includes(year) ? year : 'all'
+  // A deep link can name a year this sport never ran: fall back to the latest
+  const yearValue = years.includes(year) ? year : years[0]
 
   // Split ranks share the SAME pool as the visible rows: sport, category and
   // the year filter (guests always included). With one year selected, each split is ranked

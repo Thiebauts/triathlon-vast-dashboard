@@ -145,6 +145,34 @@ async function run() {
     await header.waitFor({ state: 'visible', timeout: 5000 })
   })
 
+  await test('Results open on the latest year, "All years" listed last', async () => {
+    const yearSelect = page.locator('#view-results select:visible').nth(1)
+    if (await yearSelect.inputValue() !== '2026') throw new Error(`Year is ${await yearSelect.inputValue()}, expected 2026`)
+    const options = await yearSelect.locator('option').allTextContents()
+    if (options[0] !== '2026' || !/All years/.test(options.at(-1))) throw new Error(`Order: ${JSON.stringify(options)}`)
+  })
+
+  await test('Switching sport starts on that sport\'s latest year', async () => {
+    await page.locator('#view-results select:visible').nth(1).selectOption('2024')
+    await page.waitForTimeout(300)
+    await page.locator('#view-results select:visible').first().selectOption('running')
+    await page.waitForTimeout(500)
+    const year = await page.locator('#view-results select:visible').nth(1).inputValue()
+    if (year !== '2026') throw new Error(`Year after switching sport is ${year}`)
+    if (!(await page.locator('#view-results h2').first().innerText()).includes('2026')) throw new Error('Title not on 2026')
+  })
+
+  await test('"All years" is kept in the address', async () => {
+    await page.locator('#view-results select:visible').nth(1).selectOption('all')
+    await page.waitForTimeout(400)
+    if (!page.url().endsWith('#results/running/all')) throw new Error(`URL is ${page.url()}`)
+    await page.reload({ waitUntil: 'networkidle' })
+    await page.waitForTimeout(800)
+    if (await page.locator('#view-results select:visible').nth(1).inputValue() !== 'all') throw new Error('All years lost after reload')
+    await page.goto(`${BASE}/#results/triathlon`, { waitUntil: 'networkidle' })
+    await page.waitForTimeout(800)
+  })
+
   await test('Sport selector visible with options', async () => {
     // Tabs stay mounted via `hidden`; scope locators to visible selects only.
     const select = page.locator('select:visible').first()

@@ -33,10 +33,11 @@ test('buildHash: overview maps to empty (bare URL)', () => {
   assert.equal(buildHash('overview', ['anything']), '')
 })
 
-test('buildHash: trims trailing defaults', () => {
-  assert.equal(buildHash('results', ['swimming', 'all', 'all']), '#results/swimming')
-  assert.equal(buildHash('extra', ['2026-06-10', 'all']), '#extra/2026-06-10')
-  assert.equal(buildHash('rankings', ['all']), '#rankings')
+test('buildHash: trims trailing defaults (null), keeps an explicit "all"', () => {
+  assert.equal(buildHash('results', ['swimming', null, null]), '#results/swimming')
+  assert.equal(buildHash('results', ['swimming', 'all', null]), '#results/swimming/all')
+  assert.equal(buildHash('extra', ['2026-06-10', null]), '#extra/2026-06-10')
+  assert.equal(buildHash('rankings', [null]), '#rankings')
   assert.equal(buildHash('athletes', [null]), '#athletes')
 })
 

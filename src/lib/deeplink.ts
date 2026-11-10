@@ -35,10 +35,10 @@ export function parseHash(hash: string): { tab: Tab; params: string[] } | null {
 export function buildHash(tab: Tab, params: Array<string | null | undefined> = []): string {
   if (tab === 'overview') return ''
   const segs = [...params]
-  // Trailing defaults add noise: #results/swimming, not #results/swimming/all/all
-  while (segs.length && (segs[segs.length - 1] == null || segs[segs.length - 1] === 'all')) {
-    segs.pop()
-  }
+  // Callers pass null for a default; trailing defaults add noise
+  // (#results/swimming, not #results/swimming/2026). 'all' is a real choice
+  // (e.g. every year of a sport), so it is kept.
+  while (segs.length && segs[segs.length - 1] == null) segs.pop()
   // A missing middle segment is not expressible — keep its position as 'all'
   const parts = segs.map((s) => encodeURIComponent(s ?? 'all'))
   return parts.length ? `#${tab}/${parts.join('/')}` : `#${tab}`
