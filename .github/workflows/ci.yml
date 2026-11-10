@@ -12,7 +12,9 @@ concurrency:
 jobs:
   app:
     name: Lint, types, unit tests, build, e2e
-    runs-on: ubuntu-latest
+    # Pinned: the project's Playwright can only install its browser on an Ubuntu
+    # release it knows. Move to a newer Ubuntu together with a Playwright update.
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
