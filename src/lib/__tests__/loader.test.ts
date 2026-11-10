@@ -64,6 +64,21 @@ test('loadAllCompetitions: applies confirmed club corrections over the CSV', () 
   }
 })
 
+test('loadAllCompetitions: membership confirmed by the club, per person and per season', () => {
+  const all = Object.values(loadAllCompetitions()).flat()
+  const rows = (name: string, year?: string) => all.filter((a) => a.Name === name && (!year || a.Competition_Year === year))
+  // Entered as guests in single races, members all along
+  for (const name of ['Karl Wackerberg', 'Jonas Örarbäck', 'Maria Ernsfors', 'Greg James-Rae']) {
+    assert.ok(rows(name).length > 0, name)
+    for (const a of rows(name)) assert.equal(a.is_club_member, true, `${name} ${a.Competition_Year}`)
+  }
+  // Helena Jakobsson Larsson joined in 2026: a guest before that, in every race
+  for (const a of rows('Helena Jakobsson Larsson')) {
+    assert.equal(a.is_club_member, a.Competition_Year === '2026', `Helena ${a.Competition_Year}`)
+  }
+  assert.equal(rows('Helena Jakobsson Larsson', '2023').length, 2)
+})
+
 test('loadAllCompetitions: merges confirmed name variants into one athlete', () => {
   const data = loadAllCompetitions()
   const names = new Set(Object.values(data).flat().map((a) => a.Name))

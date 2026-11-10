@@ -115,6 +115,20 @@ export const CLUB_CORRECTIONS: ReadonlyMap<string, string> = new Map([
   // Entered as guests in one race each (cycling 2026, swimming 2023)
   ['Karl Wackerberg', 'TriVäst'],
   ['Jonas Örarbäck', 'TriVäst'],
+  // Member since the start; entered as a guest in running 2023
+  ['Maria Ernsfors', 'TriVäst'],
+  // Member in 2025 and 2026; entered as a guest in cycling 2026
+  ['Greg James-Rae', 'TriVäst'],
+])
+
+/**
+ * Club labels confirmed by the club for one season only, keyed by
+ * "name|year": for someone who joined or left, where a result sheet has the
+ * wrong label for that year. Wins over CLUB_CORRECTIONS.
+ */
+export const CLUB_CORRECTIONS_BY_YEAR: ReadonlyMap<string, string> = new Map([
+  // Joined in 2026: a guest in 2021, 2023 and 2025 (cycling 2023 said member)
+  ['Helena Jakobsson Larsson|2023', 'Gäst'],
 ])
 
 /**
