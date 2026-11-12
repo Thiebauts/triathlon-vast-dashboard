@@ -24,6 +24,8 @@ const SPORT_FILTERS: Array<RaceSport | 'all'> = ['all', 'triathlon', 'running', 
 function raceDateLabel(r: Race, lang: Lang) {
   if (!r.race_date) return r.date_note ?? t('cal_date_tba', lang)
   const [y, m, d] = r.race_date.split('-').map(Number)
+  // A note that is itself a date ("29–30 May") replaces the single day
+  if (r.date_note && /^\d/.test(r.date_note)) return r.date_note
   const date = new Intl.DateTimeFormat(lang === 'sv' ? 'sv-SE' : 'en-GB', { weekday: 'short', day: 'numeric', month: 'long' }).format(new Date(y, m - 1, d))
   return r.date_note ? `${date} · ${r.date_note}` : date
 }
