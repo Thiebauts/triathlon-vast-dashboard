@@ -60,9 +60,9 @@ async function run() {
     await btn.waitFor({ state: 'visible', timeout: 5000 })
   })
 
-  await test('8 menu items visible', async () => {
+  await test('9 menu items visible', async () => {
     const count = await page.locator('#side-menu').getByRole('button').count()
-    if (count !== 8) throw new Error(`Found ${count} menu items, expected 8`)
+    if (count !== 9) throw new Error(`Found ${count} menu items, expected 9`)
   })
 
   await test('Discipline cards visible', async () => {
@@ -312,6 +312,15 @@ async function run() {
     for (const s of ['Points per place', 'Members only', 'Men and women apart']) {
       if (!text.includes(s)) throw new Error(`Missing ${s}`)
     }
+  })
+
+  await test('Race calendar lists the races (read-only, needs the Supabase database)', async () => {
+    await page.goto(`${BASE}/#races`, { waitUntil: 'networkidle' })
+    const view = page.locator('#view-races')
+    await view.locator('h2', { hasText: 'Race calendar' }).waitFor({ state: 'visible', timeout: 5000 })
+    await view.locator('li h4', { hasText: 'IRONMAN Kalmar' }).waitFor({ state: 'visible', timeout: 10000 })
+    const n = await view.locator('li h4').count()
+    if (n < 10) throw new Error(`Only ${n} races`)
   })
 
   // ── ATHLETES TAB ─────────────────────────────────────────────────────────────
