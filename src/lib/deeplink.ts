@@ -13,7 +13,7 @@
  * the default. The overview tab maps to no hash at all (the bare URL).
  */
 
-export const TABS = ['overview', 'results', 'athletes', 'rankings', 'season', 'extra', 'records', 'points'] as const
+export const TABS = ['overview', 'results', 'athletes', 'rankings', 'season', 'extra', 'records', 'points', 'races'] as const
 export type Tab = (typeof TABS)[number]
 
 export function parseHash(hash: string): { tab: Tab; params: string[] } | null {
